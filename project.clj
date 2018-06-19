@@ -23,6 +23,9 @@
                  [common-core "11.17.0"]
                  [common-io   "43.17.0"]
                  [common-datomic "5.22.0"]
+                 [common-kafka "8.2.0"]
+                 [common-http-client "7.13.6"]
+                 [common-test "12.14.0"]
                  [nu-algebraic-data-types "0.2.1"]]
 
   :exclusions   [log4j]
