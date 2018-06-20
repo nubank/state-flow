@@ -28,7 +28,7 @@ Example:
             [state-flow.helpers.kafka :as helpers.kafka))
 
 (flow "Make a request and consume a message"
-  (helpers.http/make-request my-post-request-fn
+  (helpers.http/make-request my-post-request-fn)
   (helpers.http/consume {:message my-payload :topic :my-topic}))
 ```
 
