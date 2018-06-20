@@ -44,7 +44,7 @@ All state monads have a return value. To take advantage of that, you can use a l
 
 (flow "Make a get request and consume a message with the return of the request as payload"
   [my-entity (helpers.http/make-request get-entity-req-fn)]
-  (helpers.http/consume {:message my-entity :topic :my-topic}))
+  (helpers.kafka/consume {:message my-entity :topic :my-topic}))
 ```
 
 You can also use `:let` inside a vector to perform some pure computation. This is similar to clojure `for` list comprehension. For instance:
@@ -58,7 +58,7 @@ You can also use `:let` inside a vector to perform some pure computation. This i
 (flow "Make a get request and consume a message with a payload built from the return value of the request"
   [my-entity (helpers.http/make-request get-entity-req-fn)
    :let [my-payload (transform-entity my-entity)]]
-  (helpers.http/consume {:message my-payload :topic :my-topic}))
+  (helpers.kafka/consume {:message my-payload :topic :my-topic}))
 ```
 
 This way we can easily combine flows one with the other. The return value of a flow is the return value of the last argument passed to `flow`.
@@ -72,11 +72,10 @@ In fact, if a simple value is passed as second argument, what it does is simply 
 However, if we pass a state monad as second argument, it will try to evaluate the state monad several times until its return value matches the third argument or
 there is a timeout. This can be useful for avoiding asynchronous problems, when we need to wait for the state to become consistent.
 
-The return value of the verify monad is the second argument if it is a value, or the last return value of the state monad. This makes it possible to use the result
-of a verify on a later part of the flow execution if that is desired.
+Verify returns a state monad that will make the check and return something. If the second argument is a value, it will return this argument. If the second argument is itself a state monad, it will return the last return value of the state monad that was passed. This makes it possible to use the result of verify on a later part of the flow execution if that is desired.
 
 Say we have a function for making a POST request that stores data in datomic (`store-data-request`),
-and we also have a funtion that fetches this data from db (`fetch-data`). We want to check that after we make the POST, the data is saved.
+and we also have a funtion that fetches this data from db (`fetch-data`). We want to check that after we make the POST, the data is persisted:
 
 ```clojure
 (:require [state-flow.core :refer [flow verify]]
