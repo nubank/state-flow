@@ -4,7 +4,7 @@
             [nu.monads.state :as state]))
 
 (defn make-request
-  [req-fn http-responses]
+  [req-fn]
   (assert (fn? req-fn) "First argument must be a function")
   (state/wrap-fn req-fn))
 
