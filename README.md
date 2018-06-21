@@ -2,7 +2,7 @@
 
 A redesign of Postman using a state monad in the backend for building and composing flows.
 
-The StateFlow library aim to provide an alternative, more functional way in which one could implement postman-like integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
+The StateFlow library aim to provide an alternative, more compositional way in which one could implement postman-like integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
 
 For an in-depth explanation of the internals, check https://wiki.nubank.com.br/index.php/Busquem_Conhecimento_-_tech_talks#Monadic_Postman (it might be a bit outdated).
 
