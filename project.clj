@@ -1,4 +1,4 @@
-(defproject state-flow "0.1.0-SNAPSHOT"
+(defproject state-flow "1.0.0-SNAPSHOT"
   :description "Common code for algebraic data types"
   :url "https://github.com/nubank/state-flow"
   :license {:name "Proprietary"}
