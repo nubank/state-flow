@@ -33,7 +33,7 @@ Example:
 
 ### Using the return values
 
-All steps have a return value. To take advantage of that, you can use a let-like syntax inside the flow to lexically bind the return value of a state monad to a variable within the flow.
+All steps have a return value. To take advantage of that, you can use a let-like syntax inside the flow to lexically bind the return value of a step to a variable within the flow.
 
 ```clojure
 (ns postman.example
