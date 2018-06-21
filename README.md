@@ -6,8 +6,7 @@ The StateFlow library aim to provide an alternative, more functional way in whic
 
 For an in-depth explanation of the internals, check https://wiki.nubank.com.br/index.php/Busquem_Conhecimento_-_tech_talks#Monadic_Postman (it might be a bit outdated).
 
-## Do I need to understand monads?
-
+**Do I need to understand monads?**
 No. But if you want to, you can read https://github.com/nubank/nu-algebraic-data-types/blob/master/README.md, which also points to some other interesting references.
 
 ## Using flow
