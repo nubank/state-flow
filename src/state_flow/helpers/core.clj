@@ -1,9 +1,14 @@
 (ns state-flow.helpers.core
   (:require [cats.core :as m]
+            [com.stuartsierra.component :as component]
+            [common-datomic.db :as ddb]
             [nu.monads.state :as state]
-            [common-datomic.db :as ddb]))
+            [schema.core :as s]))
+
+(s/defschema Flow (s/pred nu.monads.state/state?))
 
 ;;Resource fetchers
+(def ^:private get-system   :system)
 (def ^:private get-datomic  (comp :datomic :system))
 (def ^:private get-db       (comp ddb/db :datomic :system))
 (def ^:private get-http     (comp :http :system))
@@ -38,3 +43,11 @@
 (defn with-consumer
   [kafka-fn]
   (with-resource get-consumer kafka-fn))
+
+(def refresh-system
+  (state/swap #(update-in % [:system] component/start)))
+
+(defn system-swap
+  "Input is a step that makes changes to the system map. Calls component/start to reinject dependencies"
+  [swap-step]
+  (m/>> swap-step refresh-system))

@@ -1,7 +1,7 @@
 (ns state-flow.helpers.http
   (:require [common-http-client.components.mock-http :as mock-http]
-            [state-flow.helpers.core :as helpers]
-            [nu.monads.state :as state]))
+            [nu.monads.state :as state]
+            [state-flow.helpers.core :as helpers]))
 
 (defn make-request
   [req-fn]
@@ -12,3 +12,6 @@
   [responses]
   (helpers/with-http #(mock-http/add-responses! % responses)))
 
+(def get-responses (helpers/with-http #(mock-http/get-responses %)))
+
+(def clear-requests! (helpers/with-http #(mock-http/clear-requests! %)))

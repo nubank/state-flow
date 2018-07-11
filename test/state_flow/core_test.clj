@@ -3,7 +3,8 @@
             [cats.data :as d]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
-            [nu.monads.state :as state]))
+            [nu.monads.state :as state]
+            [com.stuartsierra.component :as component]))
 
 (def increment-two
   (m/mlet [world (state/get)]
