@@ -17,11 +17,3 @@
 (def get-responses (helpers/with-http #(mock-http/get-responses %)))
 
 (def clear-requests! (helpers/with-http #(mock-http/clear-requests! %)))
-
-(defn with-responses
-  [responses req-fn]
-  (flow "with-responses"
-    [old-responses get-responses]
-    (add-responses responses)
-    (make-request req-fn)
-    (add-responses old-responses)))
