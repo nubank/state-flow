@@ -103,3 +103,4 @@
   "Transform a state monad into a postman step function"
   [m]
   (fn [world] (state/exec m world)))
+

@@ -19,12 +19,13 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [funcool/cats "2.2.1"]
+                 [nubank/matcher-combinators "0.2.7"]
 
-                 [common-core "11.17.0"]
+                 [common-core "11.32.0"]
                  [common-io   "43.17.0"]
                  [common-datomic "5.22.0"]
                  [common-kafka "8.2.0"]
-                 [common-http-client "7.13.6"]
+                 [common-http-client "9.2.0-SNAPSHOT"]
                  [common-test "12.14.0"]
                  [nu-algebraic-data-types "0.2.1"]]
 
