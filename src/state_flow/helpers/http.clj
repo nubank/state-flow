@@ -9,7 +9,6 @@
   (assert (fn? req-fn) "First argument must be a function")
   (state/wrap-fn req-fn))
 
-
 (defn add-responses
   [responses]
   (helpers/with-http #(mock-http/add-responses! % responses)))
