@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0]
+- Experimental req function without exceptions and status assertion
+- Update-component helper function
+
 ## [1.1.0]
 - Add Flow schema
 - Add system swap helper
