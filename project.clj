@@ -25,7 +25,7 @@
                  [common-io   "43.17.0"]
                  [common-datomic "5.22.0"]
                  [common-kafka "8.2.0"]
-                 [common-http-client "9.2.0-SNAPSHOT"]
+                 [common-http-client "10.2.0"]
                  [common-test "12.14.0"]
                  [nu-algebraic-data-types "0.2.1"]]
 
