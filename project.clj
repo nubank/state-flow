@@ -21,7 +21,7 @@
                  [funcool/cats "2.2.1"]
                  [nubank/matcher-combinators "0.2.7"]
 
-                 [common-core "11.32.0"]
+                 [common-core "11.38.0"]
                  [common-io   "43.17.0"]
                  [common-datomic "5.22.0"]
                  [common-kafka "8.2.0"]
