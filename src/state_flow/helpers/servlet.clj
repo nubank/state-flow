@@ -4,6 +4,7 @@
             [common-test.http :as http]))
 
 (defn req
+  "Experimental"
   [servlet method content-type uri body]
   (th/with-debug-error-logging
     (let [request-content-type (get th/content-headers content-type)]
