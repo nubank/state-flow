@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.3.0]
+- Request helper using request-map
+
 ## [1.2.0]
 - Experimental req function without exceptions and status assertion
 - Update-component helper function
