@@ -3,7 +3,8 @@
             [nu.monads.state :as state]
             [state-flow.helpers.core :as helpers]))
 
-(defn make-request
+(defn ^:deprecated make-request
+  "Use helpers.servlet/request instead"
   [req-fn]
   (assert (fn? req-fn) "First argument must be a function")
   (state/wrap-fn req-fn))
