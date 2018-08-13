@@ -14,7 +14,9 @@
             {:keys [headers status body] :as response-map} (http/raw-req! servlet method uri (http/parse-data body content-type) request-headers)
             accept                        (get request-headers "Accept" request-content-type)
             response-type                 (wire/header->content-type (get headers "Content-Type" accept))]
-        (merge response-map {:body (th/output-stream->data body response-type)})))))
+        (merge response-map
+               (when-not (clojure.string/blank? body)
+                 {:body (th/output-stream->data body response-type)}))))))
 
 (defn request
   [{:keys [method url content-type body scopes]
