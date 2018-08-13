@@ -1,4 +1,4 @@
-(defproject state-flow "1.1.1-SNAPSHOT"
+(defproject state-flow "1.2.0-SNAPSHOT"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "Proprietary"}
@@ -21,11 +21,11 @@
                  [funcool/cats "2.2.1"]
                  [nubank/matcher-combinators "0.2.7"]
 
-                 [common-core "11.32.0"]
+                 [common-core "11.38.0"]
                  [common-io   "43.17.0"]
                  [common-datomic "5.22.0"]
                  [common-kafka "8.2.0"]
-                 [common-http-client "7.13.6"]
+                 [common-http-client "10.2.0"]
                  [common-test "12.14.0"]
                  [nu-algebraic-data-types "0.2.1"]]
 

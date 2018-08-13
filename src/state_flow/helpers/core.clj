@@ -14,6 +14,7 @@
 (def ^:private get-http     (comp :http :system))
 (def ^:private get-consumer (comp :consumer :system))
 (def ^:private get-producer (comp :producer :system))
+(def ^:private get-servlet  (comp :servlet :system))
 
 (defn with-resource
   [resource-fetcher user-fn]
@@ -44,10 +45,18 @@
   [kafka-fn]
   (with-resource get-consumer kafka-fn))
 
-(def refresh-system
-  (state/swap #(update-in % [:system] component/start)))
+(defn with-servlet
+  [servlet-fn]
+  (with-resource get-servlet servlet-fn))
+
+(def update-system-dependencies
+  (state/swap (fn [world] (update-in world [:system] component/update-system (keys (:system world)) identity))))
 
 (defn system-swap
-  "Input is a step that makes changes to the system map. Calls component/start to reinject dependencies"
+  "Input is a step that makes changes to the system map. Ensures dependencies are updated"
   [swap-step]
-  (m/>> swap-step refresh-system))
+  (m/>> swap-step update-system-dependencies))
+
+(defn update-component
+  [component-key update-fn]
+  (system-swap (state/swap #(update-in % [:system component-key] update-fn))))
