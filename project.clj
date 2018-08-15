@@ -1,4 +1,4 @@
-(defproject state-flow "1.3.2"
+(defproject state-flow "1.3.3-SNAPSHOT"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "Proprietary"}
