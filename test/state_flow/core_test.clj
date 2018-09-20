@@ -3,11 +3,12 @@
             [cats.data :as d]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
-            [nu.monads.state :as state]
+            [cats.monad.state :as state]
+            [nu.monads.state :as nu.state]
             [com.stuartsierra.component :as component]))
 
 (def increment-two
-  (m/mlet [world (state/get)]
+  (m/mlet [world (nu.state/get)]
     (m/return (+ 2 (-> world :value)))))
 
 (def get-value (comp deref :value))
@@ -45,9 +46,9 @@
   (fact "extended equality works"
     (let [val {:a 2 :b 5}]
       (state/run (state-flow/probe-state "contains with monadic left value"
-                                         (state/get) (contains {:a 2}) {}) val) => (d/pair val val)
+                                         (nu.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
       (state/run (state-flow/probe-state "just with monadic left value"
-                                         (state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
+                                         (nu.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
@@ -64,7 +65,7 @@
   (state-flow/flow "root"
     [original (state/gets :value)
      :let [doubled (* 2 original)]]
-    (state/swap #(assoc % :value doubled))
+    (nu.state/swap #(assoc % :value doubled))
     (state-flow/verify "value is doubled"
       (state/gets #(-> % :value)) doubled)))
 

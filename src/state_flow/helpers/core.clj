@@ -2,10 +2,11 @@
   (:require [cats.core :as m]
             [com.stuartsierra.component :as component]
             [common-datomic.db :as ddb]
-            [nu.monads.state :as state]
+            [cats.monad.state :as state]
+            [nu.monads.state :as nu.state]
             [schema.core :as s]))
 
-(s/defschema Flow (s/pred nu.monads.state/state?))
+(s/defschema Flow (s/pred state/state?))
 
 ;;Resource fetchers
 (def ^:private get-system   :system)
@@ -50,7 +51,7 @@
   (with-resource get-servlet servlet-fn))
 
 (def update-system-dependencies
-  (state/swap (fn [world] (update-in world [:system] component/update-system (keys (:system world)) identity))))
+  (nu.state/swap (fn [world] (update-in world [:system] component/update-system (keys (:system world)) identity))))
 
 (defn system-swap
   "Input is a step that makes changes to the system map. Ensures dependencies are updated"
@@ -59,4 +60,4 @@
 
 (defn update-component
   [component-key update-fn]
-  (system-swap (state/swap #(update-in % [:system component-key] update-fn))))
+  (system-swap (nu.state/swap #(update-in % [:system component-key] update-fn))))

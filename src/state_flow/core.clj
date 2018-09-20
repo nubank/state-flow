@@ -2,14 +2,23 @@
   (:refer-clojure :exclude [run!])
   (:require [cats.context :as ctx]
             [cats.core :as m]
+            [cats.data :as d]
             [cats.monad.exception :as e]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
-            [nu.monads.state :as state]
+            [nu.monads.state :as nu.state]
+            [cats.monad.state :as state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
 (def times-to-try 100)
+
+(defn wrap-fn
+  "Wraps a (possibly side-effecting) function to a state monad"
+  [my-fn]
+  (state/state (fn [s]
+                 (d/pair (my-fn) s))
+               nu.state/error-context))
 
 (defn update-description
   [old new]
@@ -19,12 +28,12 @@
 
 (defn push-meta
   [description]
-  (state/swap
+  (nu.state/swap
    (fn [s]
      (update-in s [:meta :description] #(update-description % description)))))
 
 (def pop-meta
-  (state/swap
+  (nu.state/swap
    (fn [s]
      (update-in s [:meta :description] #(pop %)))))
 
@@ -40,7 +49,7 @@
 (defmacro flow
   [description & flows]
   `(m/mlet [_#   (push-meta ~description)
-            ret# (state/do-let ~@flows)
+            ret# (nu.state/do-let ~@flows)
             _#   pop-meta]
     (m/return ret#)))
 
@@ -78,7 +87,7 @@
        [full-desc# (get-description)]
        (if (state/state? ~left-value)
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
-         (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
+         (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
 
 (defn run
