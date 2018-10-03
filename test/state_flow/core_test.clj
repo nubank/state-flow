@@ -111,16 +111,3 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
-
-
-(defmacro test
-  ""
-  [desc check-expr]
-  (let [the-meta  (meta &form)
-        test-name (symbol (clojure.string/replace desc " " "-"))
-        test-expr `(deftest ~test-name
-                     (is ~check-expr))]
-    test-expr))
-
-#_(fact ""
-  (test "my desc, ha " 1) => nil)

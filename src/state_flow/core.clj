@@ -4,7 +4,6 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
-            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [nu.monads.state :as nu.state]
