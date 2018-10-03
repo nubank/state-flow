@@ -4,10 +4,13 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [nu.monads.state :as nu.state]
             [cats.monad.state :as state]
+            [clojure.test :refer :all]
+            [nu.monads.state :as state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
@@ -81,7 +84,7 @@
   "If left-value is a state, do fact probing. Otherwise, regular fact checking.
   Push and pop descriptions (same behaviour of flow)"
   [desc left-value right-value]
-  (let [the-meta (meta &form)
+  (let [the-meta  (meta &form)
         fact-sexp `(fact ~left-value => ~right-value)]
     `(flow ~desc
        [full-desc# (get-description)]
@@ -89,6 +92,18 @@
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
          (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
+
+(defmacro test
+  "Test using clojure.test as a backend. check-expr is an expression that evaluates to a truthy or falsey"
+  [desc check-expr]
+  (let [the-meta  (meta &form)
+        test-name (symbol (clojure.string/replace desc " " "-"))
+        test-expr `(deftest ~test-name
+                     (is ~check-expr))]
+    `(flow ~desc
+       [full-desc# (get-description)]
+         (state/wrap-fn #(do ~test-expr
+                             ~check-expr)))))
 
 (defn run
   [flow initial-state]

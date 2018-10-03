@@ -2,6 +2,7 @@
   (:require [cats.core :as m]
             [cats.data :as d]
             [midje.sweet :refer :all]
+            [clojure.test :refer :all]
             [state-flow.core :as state-flow]
             [cats.monad.state :as state]
             [nu.monads.state :as nu.state]
@@ -49,6 +50,10 @@
                                          (nu.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
       (state/run (state-flow/probe-state "just with monadic left value"
                                          (nu.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
+
+(facts "on test"
+  (fact "works with non-state values"
+    (state-flow/run (state-flow/test "description" (= 3 3)) {}) => (d/pair true {:meta {:description []}})))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
@@ -106,3 +111,16 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
+
+
+(defmacro test
+  ""
+  [desc check-expr]
+  (let [the-meta  (meta &form)
+        test-name (symbol (clojure.string/replace desc " " "-"))
+        test-expr `(deftest ~test-name
+                     (is ~check-expr))]
+    test-expr))
+
+#_(fact ""
+  (test "my desc, ha " 1) => nil)
