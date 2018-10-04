@@ -19,7 +19,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [nubank/cats "2.4.0"]
-                 [nubank/matcher-combinators "0.2.7"]
+                 [nubank/matcher-combinators "0.3.4"]
 
                  [common-core "11.38.0"]
                  [common-io   "43.17.0"]

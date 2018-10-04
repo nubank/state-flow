@@ -54,11 +54,10 @@
 (facts "on match?"
 
   (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (state-flow/match? "description" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
+    (state-flow/run (state-flow/match? "test-1" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
 
   (fact "works with non-state values"
-    (state-flow/run (state-flow/match? "description" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
-
+    (state-flow/run (state-flow/match? "test-2" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
 
   (fact "works with matcher combinators (embeds by default)"
     (let [val {:value {:a 2 :b 5}}]

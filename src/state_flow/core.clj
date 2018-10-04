@@ -93,10 +93,10 @@
          (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
 
-(defmacro match-expr
+(defn match-expr
   [desc value checker]
   (let [test-name (symbol (clojure.string/replace desc " " "-"))]
-      (list `deftest test-name (list `is (list 'match? checker value)))))
+    (list `deftest test-name (list `is (list 'match? checker value)))))
 
 (defmacro match?
   "Builds a clojure.test test using matcher combinators"
@@ -105,9 +105,9 @@
      [full-desc# (get-description)]
      (if (state/state? ~value)
        (m/mlet [extracted-value# ~value]
-         (state/wrap-fn #(do (match-expr ~desc extracted-value# ~checker)
+         (state/wrap-fn #(do (eval (match-expr full-desc# extracted-value# ~checker))
                              extracted-value#)))
-       (state/wrap-fn #(do (match-expr ~desc ~value ~checker)
+       (state/wrap-fn #(do (eval (match-expr full-desc# ~value ~checker))
                            ~value)))))
 
 (defn run
