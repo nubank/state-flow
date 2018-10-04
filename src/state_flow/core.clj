@@ -4,6 +4,7 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [nu.monads.state :as nu.state]
@@ -92,17 +93,22 @@
          (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
 
-(defmacro test
-  "Test using clojure.test as a backend. check-expr is an expression that evaluates to a truthy or falsey"
-  [desc check-expr]
-  (let [the-meta  (meta &form)
-        test-name (symbol (clojure.string/replace desc " " "-"))
-        test-expr `(deftest ~test-name
-                     (is ~check-expr))]
-    `(flow ~desc
-       [full-desc# (get-description)]
-         (state/wrap-fn #(do ~test-expr
-                             ~check-expr)))))
+(defmacro match-expr
+  [desc value checker]
+  (let [test-name (symbol (clojure.string/replace desc " " "-"))]
+      (list `deftest test-name (list `is (list 'match? checker value)))))
+
+(defmacro match?
+  "Builds a clojure.test test using matcher combinators"
+  [desc value checker]
+  `(flow ~desc
+     [full-desc# (get-description)]
+     (if (state/state? ~value)
+       (m/mlet [extracted-value# ~value]
+         (state/wrap-fn #(do (match-expr ~desc extracted-value# ~checker)
+                             extracted-value#)))
+       (state/wrap-fn #(do (match-expr ~desc ~value ~checker)
+                           ~value)))))
 
 (defn run
   [flow initial-state]
