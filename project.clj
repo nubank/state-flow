@@ -1,4 +1,4 @@
-(defproject state-flow "1.3.3-SNAPSHOT"
+(defproject state-flow "1.4.0-SNAPSHOT"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "Proprietary"}
@@ -18,7 +18,7 @@
 
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [com.taoensso/timbre "4.10.0"]
-                 [funcool/cats "2.2.1"]
+                 [nubank/cats "2.4.0"]
                  [nubank/matcher-combinators "0.2.7"]
 
                  [common-core "11.38.0"]
@@ -27,7 +27,7 @@
                  [common-kafka "8.2.0"]
                  [common-http-client "10.2.0"]
                  [common-test "12.14.0"]
-                 [nu-algebraic-data-types "0.2.1"]]
+                 [nu-algebraic-data-types "1.0.0"]]
 
   :exclusions   [log4j]
 

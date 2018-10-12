@@ -1,13 +1,14 @@
 (ns state-flow.helpers.http
   (:require [common-http-client.components.mock-http :as mock-http]
             [nu.monads.state :as state]
+            [state-flow.core :as core]
             [state-flow.helpers.core :as helpers]))
 
 (defn ^:deprecated make-request
   "Use helpers.servlet/request instead"
   [req-fn]
   (assert (fn? req-fn) "First argument must be a function")
-  (state/wrap-fn req-fn))
+  (core/wrap-fn req-fn))
 
 (defn add-responses
   [responses]

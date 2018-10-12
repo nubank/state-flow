@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.4.0]
+- Update cats and nu-algebraic-data-types dependencies
+
 ## [1.3.0]
 - Request helper using request-map
 

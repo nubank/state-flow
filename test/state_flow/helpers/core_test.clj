@@ -2,7 +2,8 @@
   (:require [state-flow.helpers.core :as helpers]
             [cats.data :as d]
             [midje.sweet :refer :all]
-            [nu.monads.state :as state]
+            [cats.monad.state :as state]
+            [nu.monads.state :as nu.state]
             [matcher-combinators.midje :refer [match]]
             [com.stuartsierra.component :as component]))
 
@@ -33,20 +34,20 @@
         system (component/start system-map)]
     (fact "we change system and reinject dependencies"
 
-      (state/exec (helpers/system-swap (state/swap swap-fn)) {:system system-map})
+      (state/exec (helpers/system-swap (nu.state/swap swap-fn)) {:system system-map})
       => (match {:system {:comp1 {:responses {:url 3}}
                           :comp2 {:responses {:url 2}
                                   :comp1 {:responses {:url 3}}}}}))
     (fact "no change"
-      (state/exec (helpers/system-swap (state/swap identity)) {:system system-map})
+      (state/exec (helpers/system-swap (nu.state/swap identity)) {:system system-map})
       => (match {:system system}))
     (fact "replace comp2"
-      (state/exec (helpers/system-swap (state/swap swap-fn-2)) {:system system-map})
+      (state/exec (helpers/system-swap (nu.state/swap swap-fn-2)) {:system system-map})
       => (match {:system {:comp1 {:responses {:url 1}}
                           :comp2 {:responses {:url 4}
                                   :comp1 {:responses {:url 1}}}}}))
     (fact "replace both"
-      (state/exec (helpers/system-swap (state/swap (comp swap-fn-2 swap-fn))) {:system system-map})
+      (state/exec (helpers/system-swap (nu.state/swap (comp swap-fn-2 swap-fn))) {:system system-map})
       => (match {:system {:comp1 {:responses {:url 3}}
                           :comp2 {:responses {:url 4}
                                   :comp1 {:responses {:url 3}}}}}))))
