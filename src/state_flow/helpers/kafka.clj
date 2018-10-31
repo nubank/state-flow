@@ -22,13 +22,26 @@
   [topic]
   (helpers/with-producer #(mock-producer/get-produced-messages % topic)))
 
+(defn get-consumed-messages
+  [topic]
+  (helpers/with-consumer #(mock-consumer/get-consumed-messages % topic)))
+
 (defn clear-produced-messages
   []
   (helpers/with-producer #(mock-producer/clear-messages! %)))
 
-(defn last-message
+(defn ^:deprecated last-message
+  "Use helpers.kafka/last-produced-message bellow instead"
   [topic]
   (m/fmap (comp :message last) (get-produced-messages topic)))
+
+(defn last-produced-message
+  [topic]
+  (m/fmap (comp :message last) (get-produced-messages topic)))
+
+(defn last-consumed-message
+  [topic]
+  (m/fmap (comp :message last) (get-consumed-messages topic)))
 
 (defn get-deadletters
   [topic]

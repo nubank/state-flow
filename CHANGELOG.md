@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.5.0]
+- Add `helpers.kafka/last-consumed-message`
+
 ## [1.4.0]
 - Update cats and nu-algebraic-data-types dependencies
 
