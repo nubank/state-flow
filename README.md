@@ -92,6 +92,38 @@ and we also have a funtion that fetches this data from db (`fetch-data`). We wan
 
 `GET` and `POST` requests can be done by simple function calls without requiring any components as dependency. Because of this, `make-request` requires that you pass a 0-arity function that will be called only when the flow is executed.
 
+### Testing with match?
+
+Testing with `match?` uses `clojure.test` and `matcher-combinators` library as a backend internally. The syntax is similar to midje's, though: `match?` asks for a string description, a value (or step returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
+
+Usage:
+```clojure
+(:require [state-flow.core :refer [flow match?]]
+              [matcher-combinators.matchers :as matchers]])
+
+(flow "my flow"
+
+  ;;embeds
+  (match? "my first test" {:a 2 :b 3 :c 4} {:a 2 :b 3})
+
+  ;;exact match
+  (match? "my second test" {:a 2 :b 3 :c 4} (matchers/equals {:a 2 :b 3 :c 4})
+
+ ;; in any order
+ (match? "my third test" [1 2 3] (matchers/in-any-order [1 3 2]))
+
+  ;; with flow
+ (match? "my fourth test"
+   (kafka/last-message :my-topic)
+   {:payload "payload"}))
+```
+
+If the backend, the first test will define the following test, for instance:
+```clojure
+(deftest my-flow->my-first-test
+  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4}
+```
+
 ### Running the flow
 
 A `flow` doesn't do anything by itself, it just defines a function from initial state to a return value and a final state. Therefore, we need to do something to run it. To do that, we use `state-flow.core/run!` with an initial value (usually the initialized components).
@@ -120,6 +152,16 @@ A good approach is to define a custom `run!` function in `postman.aux.init` like
 ```
 This way, one can have schema validation and also always initialize the system components with the default initializing function.
 
-## Real-life example
+## Real-life examples
 
-You can check https://github.com/nubank/purgatory/blob/master/postman/postman/agreement.clj for real life examples of StateFlow flows.
+You can check these services for real life examples:
+
+### Purgatory
+
+https://github.com/nubank/purgatory/blob/master/postman/postman/agreement.clj
+
+### Arnaldo
+
+https://github.com/nubank/arnaldo/blob/master/postman/postman/reissue_card_expiring_same_product.clj
+
+
