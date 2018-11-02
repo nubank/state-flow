@@ -1,7 +1,10 @@
 # Changelog
 
-## [1.5.0]
+## [1.6.0]
 - Add support for clojure.test + matcher-combinators
+
+## [1.5.0]
+- Add `helpers.kafka/last-consumed-message`
 
 ## [1.4.0]
 - Update cats and nu-algebraic-data-types dependencies
