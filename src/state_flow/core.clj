@@ -4,10 +4,13 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [nu.monads.state :as nu.state]
             [cats.monad.state :as state]
+            [clojure.test :refer :all]
+            [nu.monads.state :as state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
@@ -81,7 +84,7 @@
   "If left-value is a state, do fact probing. Otherwise, regular fact checking.
   Push and pop descriptions (same behaviour of flow)"
   [desc left-value right-value]
-  (let [the-meta (meta &form)
+  (let [the-meta  (meta &form)
         fact-sexp `(fact ~left-value => ~right-value)]
     `(flow ~desc
        [full-desc# (get-description)]
@@ -89,6 +92,23 @@
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
          (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
+
+(defn match-expr
+  [desc value checker]
+  (let [test-name (symbol (clojure.string/replace desc " " "-"))]
+    (list `deftest test-name (list `is (list 'match? checker value)))))
+
+(defmacro match?
+  "Builds a clojure.test test using matcher combinators"
+  [desc value checker]
+  `(flow ~desc
+     [full-desc# (get-description)]
+     (if (state/state? ~value)
+       (m/mlet [extracted-value# ~value]
+         (state/wrap-fn #(do (eval (match-expr full-desc# extracted-value# ~checker))
+                             extracted-value#)))
+       (state/wrap-fn #(do (eval (match-expr full-desc# ~value ~checker))
+                           ~value)))))
 
 (defn run
   [flow initial-state]

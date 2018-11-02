@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.6.0]
+- Add support for clojure.test + matcher-combinators
+
 ## [1.5.0]
 - Add `helpers.kafka/last-consumed-message`
 
