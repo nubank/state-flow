@@ -10,7 +10,7 @@
             [nu.monads.state :as nu.state]
             [cats.monad.state :as state]
             [clojure.test :refer :all]
-            [nu.monads.state :as state]
+            [nu.monads.state :as nu.state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
