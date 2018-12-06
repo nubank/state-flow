@@ -16,6 +16,8 @@
 (def sleep-time 10)
 (def times-to-try 100)
 
+(def ftap (partial m/fmap nu/tap))
+
 (defn wrap-fn
   "Wraps a (possibly side-effecting) function to a state monad"
   [my-fn]
