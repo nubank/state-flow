@@ -1,6 +1,7 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
-  (:require [cats.context :as ctx]
+  (:require [cljdev.core :as cljdev]
+            [cats.context :as ctx]
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
@@ -16,8 +17,9 @@
 (def sleep-time 10)
 (def times-to-try 100)
 
-(def ftap (partial m/fmap nu/tap))
-(defn functor-pprint [form]
+(def ftap (partial m/fmap cljdev/tap))
+(defn functor-pprint
+  [form]
   `(ftap ~form))
 
 (defn wrap-fn
