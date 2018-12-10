@@ -152,6 +152,20 @@ A good approach is to define a custom `run!` function in `postman.aux.init` like
 ```
 This way, one can have schema validation and also always initialize the system components with the default initializing function.
 
+### Debugging a flow
+
+You can use a `#nu/ftap` macro or the `state-flow.core/ftap` function to pretty print a State on a given moment during the flow in order to solve some problems easier.
+
+E.g.:
+```
+(flow "create something new with a POST"
+    (verify "the request is properly answered with a 202 status"
+      #nu/ftap (aux.http/do-some-post-request! customer-id entity-wire)
+      (match expected-body)))
+```
+
+This should pretty print the `aux.http/do-some-post-request!` http response entire `:body`, `:headers` and `:status`
+
 ## Real-life examples
 
 You can check these services for real life examples:
@@ -163,5 +177,3 @@ https://github.com/nubank/purgatory/blob/master/postman/postman/agreement.clj
 ### Arnaldo
 
 https://github.com/nubank/arnaldo/blob/master/postman/postman/reissue_card_expiring_same_product.clj
-
-

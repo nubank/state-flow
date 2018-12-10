@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.7.0]
+- Add `state-flow.core/ftap` for State pretty printing;
+
 ## [1.6.0]
 - Add support for clojure.test + matcher-combinators
 

@@ -1,4 +1,4 @@
-(defproject state-flow "1.6.1-SNAPSHOT"
+(defproject state-flow "1.7.0-SNAPSHOT"
 
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
@@ -17,7 +17,8 @@
 
   :deploy-repositories [["releases" {:url "s3p://nu-maven/releases/" :no-auth true}]]
 
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[cljdev "0.7.0"]
+                 [org.clojure/clojure "1.9.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [funcool/cats "2.3.1"]
                  [nubank/matcher-combinators "0.3.4"]
