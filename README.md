@@ -160,7 +160,7 @@ E.g.:
 ```
 (flow "create something new with a POST"
     (verify "the request is properly answered with a 202 status"
-      #nu/ftap (aux.http/do-some-post-request! customer-id complaint-wire)
+      #nu/ftap (aux.http/do-some-post-request! customer-id entity-wire)
       (match expected-body)))
 ```
 
