@@ -1,5 +1,6 @@
 (ns state-flow.helpers.core
   (:require [cats.core :as m]
+            [cljdev.core :as cljdev]
             [com.stuartsierra.component :as component]
             [common-datomic.db :as ddb]
             [cats.monad.state :as state]
@@ -61,3 +62,8 @@
 (defn update-component
   [component-key update-fn]
   (system-swap (nu.state/swap #(update-in % [:system component-key] update-fn))))
+
+(def ftap (partial m/fmap cljdev/tap))
+(defn functor-pprint
+  [form]
+  `(ftap ~form))

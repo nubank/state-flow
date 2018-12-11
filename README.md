@@ -154,7 +154,7 @@ This way, one can have schema validation and also always initialize the system c
 
 ### Debugging a flow
 
-You can use a `#nu/ftap` macro or the `state-flow.core/ftap` function to pretty print a State on a given moment during the flow in order to solve some problems easier.
+You can use a `#nu/ftap` macro or the `state-flow.helpers.core/ftap` function to pretty print a State on a given moment during the flow in order to solve some problems easier.
 
 E.g.:
 ```
