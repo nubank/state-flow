@@ -10,7 +10,6 @@
             [nu.monads.state :as nu.state]
             [cats.monad.state :as state]
             [clojure.test :refer :all]
-            [nu.monads.state :as nu.state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
@@ -51,9 +50,10 @@
 
 (defmacro flow
   [description & flows]
-  `(m/mlet [_#   (push-meta ~description)
-            ret# (nu.state/do-let ~@flows)
-            _#   pop-meta]
+  `(m/do-let
+    (push-meta ~description)
+    [ret# (m/do-let ~@flows)]
+    pop-meta
     (m/return ret#)))
 
 (defn retry
