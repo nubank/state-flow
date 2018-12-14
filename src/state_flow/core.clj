@@ -4,12 +4,12 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [cats.monad.state :as state]
+            [clojure.test :refer :all]
             [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [nu.monads.state :as nu.state]
-            [cats.monad.state :as state]
-            [clojure.test :refer :all]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)

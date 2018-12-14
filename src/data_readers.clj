@@ -1,3 +1,3 @@
 {
-  nu/ftap state-flow.core/functor-pprint
+  nu/ftap state-flow.helpres.core/functor-pprint
 }
