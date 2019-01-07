@@ -23,12 +23,13 @@
   (helpers/with-http #(mock-http/get-requests % url)))
 
 (defn with-responses
-  "Experimental: expect breaking changes"
+  "execute flow with reponses only and restore old responses afterward"
   [responses flow]
   (m/do-let
    [old-responses get-responses]
    (clear-requests!) ;also clears responses
    (add-responses responses)
    [ret flow]
+   (clear-requests!) ;also clears responses
    (add-responses old-responses)
    (m/return ret)))
