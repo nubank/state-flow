@@ -1,7 +1,6 @@
 (ns state-flow.helpers.http
   (:require [cats.core :as m]
             [common-http-client.components.mock-http :as mock-http]
-            [cats.monad.state :as state]
             [state-flow.core :as core]
             [state-flow.helpers.core :as helpers]))
 
