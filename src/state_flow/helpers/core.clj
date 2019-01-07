@@ -13,7 +13,7 @@
 (def ^:private get-system   :system)
 (def ^:private get-datomic  (comp :datomic :system))
 (def ^:private get-db       (comp ddb/db :datomic :system))
-(def ^:private get-http     (comp :http :system))
+(def get-http     (comp :http :system))
 (def ^:private get-consumer (comp :consumer :system))
 (def ^:private get-producer (comp :producer :system))
 (def ^:private get-servlet  (comp :servlet :system))

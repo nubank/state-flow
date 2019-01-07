@@ -1,6 +1,7 @@
 (ns state-flow.helpers.http
-  (:require [common-http-client.components.mock-http :as mock-http]
-            [nu.monads.state :as state]
+  (:require [cats.core :as m]
+            [common-http-client.components.mock-http :as mock-http]
+            [cats.monad.state :as state]
             [state-flow.core :as core]
             [state-flow.helpers.core :as helpers]))
 
@@ -17,3 +18,18 @@
 (def get-responses (helpers/with-http #(mock-http/get-responses %)))
 
 (def clear-requests! (helpers/with-http #(mock-http/clear-requests! %)))
+
+(defn get-requests
+  [url]
+  (helpers/with-http #(mock-http/get-requests % url)))
+
+(defn with-responses
+  "Experimental: expect breaking changes"
+  [responses flow]
+  (m/do-let
+   [old-responses get-responses]
+   (clear-requests!) ;also clears responses
+   (add-responses responses)
+   [ret flow]
+   (add-responses old-responses)
+   (m/return ret)))
