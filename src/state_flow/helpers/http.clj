@@ -27,9 +27,7 @@
 (def clear-requests! (helpers/with-http #(mock-http/clear-requests! %)))
 (def clear-responses! (helpers/with-http #(mock-http/clear-responses! %)))
 
-(defn get-requests
-  [url]
-  (helpers/with-http #(mock-http/get-requests % url)))
+(def get-requests (helpers/with-http #(mock-http/get-requests %)))
 
 (defn with-responses
   "execute flow with added `responses` and restores previous responses afterward
