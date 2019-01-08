@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.8.0]
+- Add with-responses helper
+
 ## [1.7.0]
 - Add `state-flow.core/ftap` for State pretty printing;
 
