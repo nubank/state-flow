@@ -50,7 +50,7 @@
    (add-responses responses)
    [ret      flow
     requests get-requests]
-   (clear-responses!)
+   clear-responses!
    (add-responses old-responses)
    (m/return {:requests (delta-requests old-requests requests)
               :response ret})))
