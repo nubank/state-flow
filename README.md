@@ -1,13 +1,8 @@
 # StateFlow
 
-A redesign of Postman using a state monad in the backend for building and composing flows.
+An integration testing framework using a state monad in the backend for building and composing test flows.
 
-The StateFlow library aim to provide an alternative, more compositional way in which one could implement postman-like integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
-
-For an in-depth explanation of the internals, check https://wiki.nubank.com.br/index.php/Busquem_Conhecimento_-_tech_talks#Monadic_Postman (it might be a bit outdated).
-
-**Do I need to understand monads?**
-No. But if you want to, you can read https://github.com/nubank/nu-algebraic-data-types/blob/master/README.md, which also points to some other interesting references.
+The StateFlow library aim to provide a compositional way in which one could implement integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
 
 ## Using flow
 
@@ -16,8 +11,6 @@ No. But if you want to, you can read https://github.com/nubank/nu-algebraic-data
 A step is just a state monad, which is a record containing a function from a state (a map containing the components) to a pair `[<return-value>, <updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
 
 One of the main advantages of using a state monad for building the state transition steps is to take advantage of the return value to avoid using the world state as a global mutable cache of intermediate results. Another advantage is to provide us with great tools to write and compose general flows into more complicated flows.
-
-95% of the time there is no need to create a step from scratch, since you can use `flow` and the functions on `state-flow.helpers` that create steps operating on the components. But if you do want to, you can check https://github.com/nubank/nu-algebraic-data-types#state-monad and the helpers for examples. It's actually pretty easy.
 
 Example:
 ```clojure
@@ -92,7 +85,7 @@ and we also have a funtion that fetches this data from db (`fetch-data`). We wan
 
 `GET` and `POST` requests can be done by simple function calls without requiring any components as dependency. Because of this, `make-request` requires that you pass a 0-arity function that will be called only when the flow is executed.
 
-### Testing with match?
+### Testing with match? (Experimental)
 
 Testing with `match?` uses `clojure.test` and `matcher-combinators` library as a backend internally. The syntax is similar to midje's, though: `match?` asks for a string description, a value (or step returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
 
@@ -151,29 +144,3 @@ A good approach is to define a custom `run!` function in `postman.aux.init` like
   (s/with-fn-validation (state-flow/run! flow (init! {}))))
 ```
 This way, one can have schema validation and also always initialize the system components with the default initializing function.
-
-### Debugging a flow
-
-You can use a `#nu/ftap` macro or the `state-flow.helpers.core/ftap` function to pretty print a State on a given moment during the flow in order to solve some problems easier.
-
-E.g.:
-```
-(flow "create something new with a POST"
-    (verify "the request is properly answered with a 202 status"
-      #nu/ftap (aux.http/do-some-post-request! customer-id entity-wire)
-      (match expected-body)))
-```
-
-This should pretty print the `aux.http/do-some-post-request!` http response entire `:body`, `:headers` and `:status`
-
-## Real-life examples
-
-You can check these services for real life examples:
-
-### Purgatory
-
-https://github.com/nubank/purgatory/blob/master/postman/postman/agreement.clj
-
-### Arnaldo
-
-https://github.com/nubank/arnaldo/blob/master/postman/postman/reissue_card_expiring_same_product.clj
