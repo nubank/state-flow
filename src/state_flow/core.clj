@@ -9,7 +9,7 @@
             [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
-            [nu.monads.state :as nu.state]
+            [state-flow.state :as sf.state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
@@ -20,7 +20,7 @@
   [my-fn]
   (state/state (fn [s]
                  (d/pair (my-fn) s))
-               nu.state/error-context))
+               sf.state/error-context))
 
 (defn update-description
   [old new]
@@ -30,12 +30,12 @@
 
 (defn push-meta
   [description]
-  (nu.state/swap
+  (sf.state/swap
    (fn [s]
      (update-in s [:meta :description] #(update-description % description)))))
 
 (def pop-meta
-  (nu.state/swap
+  (sf.state/swap
    (fn [s]
      (update-in s [:meta :description] #(pop %)))))
 

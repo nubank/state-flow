@@ -28,8 +28,7 @@
                  [common-datomic "5.22.0"]
                  [common-kafka "8.2.0"]
                  [common-http-client "10.8.0"]
-                 [common-test "12.14.0"]
-                 [nu-algebraic-data-types "1.0.0"]]
+                 [common-test "12.14.0"]]
 
   :exclusions   [log4j]
 
