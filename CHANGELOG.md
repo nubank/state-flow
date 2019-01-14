@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.9.0]
+- Clean up helpers
+
 ## [1.8.0]
 - Add with-responses helper
 
