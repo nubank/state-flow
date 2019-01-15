@@ -1,4 +1,4 @@
-(defproject state-flow "1.9.0"
+(defproject nubank/state-flow "1.9.0"
 
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
