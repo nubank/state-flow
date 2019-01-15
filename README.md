@@ -1,6 +1,6 @@
 # StateFlow
 
-[![Clojars Project](https://img.shields.io/clojars/v/state-flow.svg)](https://clojars.org/state-flow)
+[![Clojars Project](https://img.shields.io/clojars/v/nubank/state-flow.svg)](https://clojars.org/nubank/state-flow)
 
 An integration testing framework using a state monad in the backend for building and composing test flows.
 
