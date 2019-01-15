@@ -1,5 +1,7 @@
 # StateFlow
 
+[![Clojars Project](https://img.shields.io/clojars/v/state-flow.svg)](https://clojars.org/state-flow)
+
 An integration testing framework using a state monad in the backend for building and composing test flows.
 
 The StateFlow library aim to provide a compositional way in which one could implement integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
