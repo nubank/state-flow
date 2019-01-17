@@ -17,7 +17,7 @@ One of the main advantages of using a state monad for building the state transit
 Example:
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
             [state-flow.helpers.kafka :as helpers.kafka))
 
@@ -32,7 +32,7 @@ All steps have a return value. To take advantage of that, you can use a let-like
 
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
             [state-flow.helpers.kafka :as helpers.kafka))
 
@@ -45,7 +45,7 @@ You can also use `:let` inside a vector to perform some pure computation. This i
 
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
             [state-flow.helpers.kafka :as helpers.kafka))
 
