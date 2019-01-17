@@ -17,9 +17,9 @@ One of the main advantages of using a state monad for building the state transit
 Example:
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka))
+            [state-flow.helpers.kafka :as helpers.kafka]))
 
 (flow "Make a request and consume a message"
   (helpers.http/make-request my-post-request-fn)
@@ -32,9 +32,9 @@ All steps have a return value. To take advantage of that, you can use a let-like
 
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka))
+            [state-flow.helpers.kafka :as helpers.kafka]))
 
 (flow "Make a get request and consume a message with the return of the request as payload"
   [my-entity (helpers.http/make-request get-entity-req-fn)]
@@ -45,9 +45,9 @@ You can also use `:let` inside a vector to perform some pure computation. This i
 
 ```clojure
 (ns postman.example
-  (:require [state-flow.core :refer [flow]
+  (:require [state-flow.core :refer [flow]]
             [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka))
+            [state-flow.helpers.kafka :as helpers.kafka]))
 
 (flow "Make a get request and consume a message with a payload built from the return value of the request"
   [my-entity (helpers.http/make-request get-entity-req-fn)
