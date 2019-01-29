@@ -10,11 +10,12 @@ The StateFlow library aim to provide a compositional way in which one could impl
 
 Defining a test is done by using the `flow` macro, which expects a description as first parameter and a variable number of `steps` or `step` bindings as remaining parameters. The return value of a call to `flow` is also a `step`, so it is possible to use flows within flows (within flows within flows...).
 
-To have a general idea, this is what a flow that saves something in the database, queries the database to get the entity back
-and then saves an updated version to the database.
+This is what a flow that saves something in the database, queries the database to get the entity back
+and then saves an updated version to the database would look like:
 
 ```clojure
-(:require [state-flow.core :as state-flow])
+(ns example
+ (:require [state-flow.core :as state-flow]))
 
 (def my-flow
   (state-flow/flow "testing some stuff"
@@ -30,15 +31,13 @@ Flow definition and flow execution happen in different stages. To run a flow you
 (state-flow/run! my-flow initial-state)
 ```
 
-The initial state is usually a representation of your service components, a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) or other similar facility. You can also run the same flow with different initial states without any problem.
+The initial state is usually a representation of your service components, a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states without any problem.
 
 ## Flow steps
 
-A step is essentially a state monad, which is a record containing a function from a state (a map containing the components) to a pair `[<return-value>, <updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
+A step is essentially a `State` record containing a function from a state to a pair `[<return-value>, <possibly-updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
 
-One of the main advantages of using a state monad for building the state transition steps is to take advantage of the return value to avoid using the world state as a global mutable cache of intermediate results. Another advantage is to provide us with great tools to write and compose general flows into more complicated flows.
-
-Using the utilities from the [cats library](https://github.com/funcool/cats) and the state monad primitives you can easily create and compose new steps from existing steps.
+One of the main advantages of using this approach for building the state transition steps is to take advantage of the return value to compose new steps from simpler steps. Another advantage is that since the State record implements `Monad` and other protocols from [cats library](https://github.com/funcool/cats), we can use its utilities and macros that make creating and composing flow steps a lot easier.
 
 * Returning current state
 
@@ -125,7 +124,10 @@ Usage:
    {:payload "payload"}))
 ```
 
-If the backend, the first test will define the following test, for instance:
+In the backend, the first test will define the following test, for instance:
+
 ```clojure
 (deftest my-flow->my-first-test
-  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4}
+  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4})))
+```
+
