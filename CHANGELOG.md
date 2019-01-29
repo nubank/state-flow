@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.1]
+- Add state related functions
+- Move wrap-fn to state namespace
+- Improve documentation
+
 ## [1.9.0]
 - Clean up helpers
 

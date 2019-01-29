@@ -4,23 +4,15 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
-            [cats.monad.state :as state]
             [clojure.test :refer :all]
             [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
-            [state-flow.state :as sf.state]
+            [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
 (def times-to-try 100)
-
-(defn wrap-fn
-  "Wraps a (possibly side-effecting) function to a state monad"
-  [my-fn]
-  (state/state (fn [s]
-                 (d/pair (my-fn) s))
-               sf.state/error-context))
 
 (defn update-description
   [old new]
@@ -30,12 +22,12 @@
 
 (defn push-meta
   [description]
-  (sf.state/swap
+  (state/swap
    (fn [s]
      (update-in s [:meta :description] #(update-description % description)))))
 
 (def pop-meta
-  (sf.state/swap
+  (state/swap
    (fn [s]
      (update-in s [:meta :description] #(pop %)))))
 
@@ -90,7 +82,7 @@
        [full-desc# (get-description)]
        (if (state/state? ~left-value)
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
-         (wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
+         (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                        ~left-value))))))
 
 (defn match-expr
@@ -129,6 +121,6 @@
     result))
 
 (defn as-step-fn
-  "Transform a state monad into a postman step function"
-  [m]
-  (fn [world] (state/exec m world)))
+  "Transform a flow step into a state transition function"
+  [flow]
+  (fn [s] (state/exec flow s)))

@@ -4,7 +4,7 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
-            [cats.monad.state :as state :refer [state]]
+            [cats.monad.state :as state]
             [cats.protocols :as p]
             [cats.util :as util]))
 
@@ -70,3 +70,16 @@
 (defn swap
   [f]
   (state/swap f error-context))
+
+(defn wrap-fn
+  "Wraps a (possibly side-effecting) function to a state monad"
+  [my-fn]
+  (state/state (fn [s]
+                 (d/pair (my-fn) s))
+               error-context))
+
+(def state? state/state?)
+(def run state/run)
+(def eval state/eval)
+(def exec state/exec)
+(def gets state/gets)
