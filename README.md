@@ -8,84 +8,95 @@ The StateFlow library aim to provide a compositional way in which one could impl
 
 ## Using flow
 
-`flow` expects a description a first parameter and a variable number of steps as remaining parameters. The return value of a call to `flow` is also a step, so it is possible to use flows within flows (within flows within flows...).
+Defining a test is done by using the `flow` macro, which expects a description as first parameter and a variable number of `steps` or `step` bindings as remaining parameters. The return value of a call to `flow` is also a `step`, so it is possible to use flows within flows (within flows within flows...).
 
-A step is just a state monad, which is a record containing a function from a state (a map containing the components) to a pair `[<return-value>, <updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
-
-One of the main advantages of using a state monad for building the state transition steps is to take advantage of the return value to avoid using the world state as a global mutable cache of intermediate results. Another advantage is to provide us with great tools to write and compose general flows into more complicated flows.
-
-Example:
-```clojure
-(ns postman.example
-  (:require [state-flow.core :refer [flow]]
-            [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka]))
-
-(flow "Make a request and consume a message"
-  (helpers.http/make-request my-post-request-fn)
-  (helpers.kafka/consume {:message my-payload :topic :my-topic}))
-```
-
-### Using the return values
-
-All steps have a return value. To take advantage of that, you can use a let-like syntax inside the flow to lexically bind the return value of a step to a variable within the flow.
+This is what a flow that saves something in the database, queries the database to get the entity back
+and then saves an updated version to the database would look like:
 
 ```clojure
-(ns postman.example
-  (:require [state-flow.core :refer [flow]]
-            [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka]))
+(ns example
+ (:require [state-flow.core :as state-flow]))
 
-(flow "Make a get request and consume a message with the return of the request as payload"
-  [my-entity (helpers.http/make-request get-entity-req-fn)]
-  (helpers.kafka/consume {:message my-entity :topic :my-topic}))
+(def my-flow
+  (state-flow/flow "testing some stuff"
+    (save-entity)
+    [entity (fetch-entity)
+     :let   [transformed-entity (transform entity)]]
+    (update-entity transformed-entity)))
 ```
 
-You can also use `:let` inside a vector to perform some pure computation. This is similar to clojure `for` list comprehension. For instance:
+Flow definition and flow execution happen in different stages. To run a flow you can do:
 
 ```clojure
-(ns postman.example
-  (:require [state-flow.core :refer [flow]]
-            [state-flow.helpers.http :as helpers.http]
-            [state-flow.helpers.kafka :as helpers.kafka]))
-
-(flow "Make a get request and consume a message with a payload built from the return value of the request"
-  [my-entity (helpers.http/make-request get-entity-req-fn)
-   :let [my-payload (transform-entity my-entity)]]
-  (helpers.kafka/consume {:message my-payload :topic :my-topic}))
+(state-flow/run! my-flow initial-state)
 ```
 
-This way we can easily combine flows. The return value of a flow is the return value of the last step passed to `flow`.
+The initial state is usually a representation of your service components, a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states without any problem.
 
+## Flow steps
+
+A step is essentially a `State` record containing a function from a state to a pair `[<return-value>, <possibly-updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
+
+One of the main advantages of using this approach for building the state transition steps is to take advantage of the return value to compose new steps from simpler steps. Another advantage is that since the State record implements `Monad` and other protocols from [cats library](https://github.com/funcool/cats), we can use its utilities and macros that make creating and composing flow steps a lot easier.
+
+* Returning current state
+
+```clojure
+(state-flow.state/get)
+;=> (State. (fn [s] [s s]))
+```
+
+* Returning a function application on the current state
+
+```clojure
+(state-flow.state/gets f)
+;=> (State. (fn [s] [(f s) s]))
+```
+
+* Inserting a new state
+
+```clojure
+(state-flow.state/put new-s)
+;=> (State. (fn [s] [s new-s]))
+```
+
+* Changing the state by applying a function transforming it
+
+```clojure
+(state-flow.state/swap f)
+;=> (State. (fn [s] [s (f s)]))
+```
+
+* Wraps a function into a state monad (useful for delaying side-effects that should happen only when a flow is running)
+
+```clojure
+(state-flow.state/wrap-fn f)
+;=> (State. (fn [s] [(f) s]))
+```
 ### Testing with verify
 
 `verify` is a function that takes three arguments: a description, a value or step and another value or midje checker
 and produces a step that when executed, verifies that the second argument matches the third argument. It replicates the functionality of a `fact` from midje.
 In fact, if a simple value is passed as second argument, what it does is simply call `fact` internally when the flow is executed.
 
-If we pass a step as second argument, it will try to evaluate the step several times until its return value matches the third argument or there is a timeout. This can be useful for avoiding asynchronous problems, when we need to wait for the state to become consistent.
-
 Verify returns a step that will make the check and return something. If the second argument is a value, it will return this argument. If the second argument is itself a step, it will return the last return value of the step that was passed. This makes it possible to use the result of verify on a later part of the flow execution if that is desired.
 
-Say we have a function for making a POST request that stores data in datomic (`store-data-request`),
-and we also have a funtion that fetches this data from db (`fetch-data`). We want to check that after we make the POST, the data is persisted:
+Say we have a step for making a POST request that stores data in datomic (`store-data-request`),
+and we also have a step that fetches this data from db (`fetch-data`). We want to check that after we make the POST, the data is persisted:
 
 ```clojure
-(:require [state-flow.core :refer [flow verify]]
-          [state-flow.helpers.core :as helpers]
-          [state-flow.helpers.http :as helpers.http])
+(:require
+  [state-flow.core :refer [flow verify]])
 
 (defn stores-data-in-db
   [data]
   (flow "save data"
-    (helpers.http/make-request (fn [] (store-data-request data))
-    [saved-data (helpers/with-db #(fetch-data %))]
+    (store-data-request data)
+    [saved-data (fetch-data)]
     (verify "data is stored in db"
       saved-data
       expected-data)))
 ```
-
-`GET` and `POST` requests can be done by simple function calls without requiring any components as dependency. Because of this, `make-request` requires that you pass a 0-arity function that will be called only when the flow is executed.
 
 ### Testing with match? (Experimental)
 
@@ -113,36 +124,10 @@ Usage:
    {:payload "payload"}))
 ```
 
-If the backend, the first test will define the following test, for instance:
+In the backend, the first test will define the following test, for instance:
+
 ```clojure
 (deftest my-flow->my-first-test
-  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4}
+  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4})))
 ```
 
-### Running the flow
-
-A `flow` doesn't do anything by itself, it just defines a function from initial state to a return value and a final state. Therefore, we need to do something to run it. To do that, we use `state-flow.core/run!` with an initial value (usually the initialized components).
-
-```clojure
-(def my-flow (flow "my flow" do-this do-that verify-this verify-that))
-(run! my-flow {:system {...}})
-```
-
-A good approach is to define a custom `run!` function in `postman.aux.init` like this:
-
-```clojure
-(ns postman.aux.init
-  (:refer-clojure :exclude [run!])
-  (:require [my-service.components :as components]
-            [state-flow.core :as state-flow]
-            [schema.core :as s]))
-
-(defn init! [world]
-  (let [system (components/create-and-start-system!)]
-    (assoc world :system system)))
-
-(defn run!
-  [flow]
-  (s/with-fn-validation (state-flow/run! flow (init! {}))))
-```
-This way, one can have schema validation and also always initialize the system components with the default initializing function.
