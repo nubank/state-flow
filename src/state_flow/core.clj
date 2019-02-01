@@ -50,6 +50,11 @@
     pop-meta
     (m/return ret#)))
 
+(defmacro defflow
+  [sym descr & flows]
+  `(def ~(vary-meta sym assoc ::test true)
+     (flow ~descr ~@flows)))
+
 (defn retry
   "Tries at most n times, returns a vector with true and first element that succeeded
   or false and result of the first try"
@@ -126,3 +131,8 @@
   "Transform a flow step into a state transition function"
   [flow]
   (fn [s] (state/exec flow s)))
+
+(defn ns->flows
+  "Returns all flows defined with `defflow`"
+  [ns]
+  (->> ns ns-interns vals (filter (comp ::test meta))))

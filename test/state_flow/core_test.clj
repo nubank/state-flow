@@ -2,8 +2,9 @@
   (:require [cats.core :as m]
             [cats.data :as d]
             [matcher-combinators.matchers :as matchers]
+            [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]
-            [state-flow.core :as state-flow]
+            [state-flow.core :as state-flow :refer [defflow]]
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]
             [com.stuartsierra.component :as component]))
@@ -136,3 +137,24 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
+
+
+(defflow flow-with-defflow
+  "Flow declaration here"
+  (println "Hello"))
+
+(facts "on `defflow`"
+  (fact "defines a flow"
+    (state/state? flow-with-defflow)
+    => truthy)
+  (fact "contains proper metadata"
+    (meta #'flow-with-defflow)
+    => (match {:column           number?
+               :file             string?
+               :line             number?
+               :name             'flow-with-defflow
+               ::state-flow/test true})))
+
+(facts "`ns->flows` only lists flows vars defined in namespace"
+  (state-flow/ns->flows 'state-flow.core-test)
+  => [#'flow-with-defflow])
