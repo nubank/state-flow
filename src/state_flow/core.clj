@@ -41,6 +41,8 @@
     (m/return (description->string desc-list))))
 
 (defmacro flow
+  "Defines a flow"
+  {:style/indent :defn}
   [description & flows]
   `(m/do-let
     (push-meta ~description)
