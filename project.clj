@@ -11,14 +11,7 @@
             [lein-ancient "0.6.15"]
             [changelog-check "0.1.0"]]
 
-  :repositories  [["nu-maven" {:url "s3p://nu-maven/releases/"}]
-                  ["central" {:url "http://repo1.maven.org/maven2/" :snapshots false}]
-                  ["clojars" {:url "https://clojars.org/repo/"}]]
-
-  :deploy-repositories [["releases" {:url "s3p://nu-maven/releases/" :no-auth true}]]
-
-  :dependencies [[cljdev "0.7.0"]
-                 [org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.3.2"]
                  [funcool/cats "2.3.2"]]
