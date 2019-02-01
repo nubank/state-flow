@@ -85,7 +85,7 @@
        (if (state/state? ~left-value)
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
          (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
-                       ~left-value))))))
+                             ~left-value))))))
 
 (defn match-expr
   [desc value checker]
