@@ -4,9 +4,11 @@
             [matcher-combinators.matchers :as matchers]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
+            [matcher-combinators.midje :refer [match]]
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component]
+            [cats.monad.exception :as e]))
 
 (def increment-two
   (m/mlet [world (sf.state/get)]
@@ -136,3 +138,27 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
+
+(facts state-flow/assert
+  (let [[result final-state] (state-flow/run
+                               (state-flow/flow "A flow that fails"
+                                (state-flow/assert "some assertion that will fail"
+                                  (= 1 2))
+                                (m/return {::another ::test-state}))
+                               {:initial ::test-state})]
+    (fact "returns the proper exception"
+      (try (e/extract result)
+           (catch clojure.lang.ExceptionInfo ex
+             (ex-data ex)))
+      => (match {:reason ::state-flow/assertion-failed
+                 :form   '((= 1 2))}))
+
+    (fact "short circuits the flow"
+      (dissoc final-state :meta) => {:initial ::test-state}))
+
+  (fact "no-op when successful"
+    (second (state-flow/run
+              (state-flow/assert "some assertion that will pass"
+                (= 1 1))
+              {:yo 1}))
+    => (match {:yo 1})))
