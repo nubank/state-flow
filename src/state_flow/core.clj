@@ -4,7 +4,7 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
-            [clojure.test :refer :all]
+            [clojure.test :as ctest :refer [is]]
             [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
@@ -50,11 +50,6 @@
     pop-meta
     (m/return ret#)))
 
-(defmacro defflow
-  [sym descr & flows]
-  `(def ~(vary-meta sym assoc ::test true)
-     (flow ~descr ~@flows)))
-
 (defn retry
   "Tries at most n times, returns a vector with true and first element that succeeded
   or false and result of the first try"
@@ -95,7 +90,7 @@
 (defn match-expr
   [desc value checker]
   (let [test-name (symbol (clojure.string/replace desc " " "-"))]
-    (list `deftest test-name (list `is (list 'match? checker value)))))
+    (list `ctest/deftest test-name (list `is (list 'match? checker value)))))
 
 (defmacro match?
   "Builds a clojure.test test using matcher combinators"
@@ -132,7 +127,18 @@
   [flow]
   (fn [s] (state/exec flow s)))
 
-(defn ns->flows
+(defmacro deftest
+  "Define a test to be run.
+
+  Receives a function `initialize-state`, a function with no
+  arguments that returns the initial state."
+  [sym descr initialize-state cleanup & flows]
+  `(def ~(vary-meta sym merge {::test       true
+                               ::initialize initialize-state
+                               ::cleanup    cleanup})
+     (flow ~descr ~@flows)))
+
+(defn ns->tests
   "Returns all flows defined with `defflow`"
   [ns]
   (->> ns ns-interns vals (filter (comp ::test meta))))

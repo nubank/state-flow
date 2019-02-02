@@ -4,7 +4,7 @@
             [matcher-combinators.matchers :as matchers]
             [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]
-            [state-flow.core :as state-flow :refer [defflow]]
+            [state-flow.core :as state-flow :refer [deftest]]
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]
             [com.stuartsierra.component :as component]))
@@ -138,23 +138,33 @@
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
 
-
-(defflow flow-with-defflow
+(deftest flow-with-defflow
   "Flow declaration here"
+  (constantly ::initialize-state)
+  (constantly ::cleanup)
   (println "Hello"))
 
-(facts "on `defflow`"
+(facts `state-flow/deftest
   (fact "defines a flow"
     (state/state? flow-with-defflow)
     => truthy)
+
   (fact "contains proper metadata"
     (meta #'flow-with-defflow)
-    => (match {:column           number?
-               :file             string?
-               :line             number?
-               :name             'flow-with-defflow
-               ::state-flow/test true})))
+    => (match {:column                 number?
+               :file                   string?
+               :line                   number?
+               :name                   'flow-with-defflow
+               ::state-flow/test       true
+               ::state-flow/initialize fn?
+               ::state-flow/cleanup    fn?})
 
-(facts "`ns->flows` only lists flows vars defined in namespace"
-  (state-flow/ns->flows 'state-flow.core-test)
+    ((::state-flow/initialize (meta #'flow-with-defflow)))
+    => ::initialize-state
+
+    ((::state-flow/cleanup (meta #'flow-with-defflow)))
+    => ::cleanup))
+
+(facts "`ns->tests` only lists flows vars defined in namespace"
+  (state-flow/ns->tests 'state-flow.core-test)
   => [#'flow-with-defflow])
