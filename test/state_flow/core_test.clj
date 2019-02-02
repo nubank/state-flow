@@ -138,33 +138,65 @@
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
 
-(deftest flow-with-defflow
-  "Flow declaration here"
-  (constantly ::initialize-state)
-  (constantly ::cleanup)
-  (println "Hello"))
+(def initial-test-state {::initialized-state true})
 
-(facts `state-flow/deftest
-  (fact "defines a flow"
-    (state/state? flow-with-defflow)
-    => truthy)
+(defn initialize-tests-state [] initial-test-state)
+
+(deftest test-with-success
+  "Flow declaration here"
+  initialize-tests-state
+  (constantly ::cleanup)
+  (state-flow/verify "a" 1 1)
+  (state/swap #(assoc % :yo 1)))
+
+(deftest test-with-failure
+  "Flow declaration here"
+  initialize-tests-state
+  (constantly ::cleanup)
+  (state-flow/verify "a" 1 2)
+  (m/mlet [s1 (state/get)]
+          (println s1)
+          (m/return s1))
+  (state/swap #(assoc % :yo 1)))
+
+(facts state-flow/deftest
+  (fact "defines a test"
+    (state/state? test-with-success) => truthy
+    (state/state? test-with-failure) => truthy)
 
   (fact "contains proper metadata"
-    (meta #'flow-with-defflow)
+    (meta #'test-with-success)
     => (match {:column                 number?
                :file                   string?
                :line                   number?
-               :name                   'flow-with-defflow
+               :name                   'test-with-success
                ::state-flow/test       true
                ::state-flow/initialize fn?
                ::state-flow/cleanup    fn?})
 
-    ((::state-flow/initialize (meta #'flow-with-defflow)))
-    => ::initialize-state
+    (meta #'test-with-failure)
+    => (match {:column                 number?
+               :file                   string?
+               :line                   number?
+               :name                   'test-with-failure
+               ::state-flow/test       true
+               ::state-flow/initialize fn?
+               ::state-flow/cleanup    fn?}))
 
-    ((::state-flow/cleanup (meta #'flow-with-defflow)))
-    => ::cleanup))
+  (fact "state functions are properly populated"
+   ((::state-flow/initialize (meta #'test-with-success)))
+   => initial-test-state
 
-(facts "`ns->tests` only lists flows vars defined in namespace"
-  (state-flow/ns->tests 'state-flow.core-test)
-  => [#'flow-with-defflow])
+   ((::state-flow/cleanup (meta #'test-with-success)))
+   => ::cleanup))
+
+(facts state-flow/ns->tests
+  (fact "only lists flows vars defined in namespace"
+    (state-flow/ns->tests 'state-flow.core-test)
+    => [#'test-with-success
+        #'test-with-failure]))
+
+(facts state-flow/run-test
+  (fact "returns result and runs state functions"
+    (state-flow/run-test test-with-success)
+    => (state-flow/run test-with-success initial-test-state)))

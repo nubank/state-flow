@@ -142,3 +142,16 @@
   "Returns all flows defined with `defflow`"
   [ns]
   (->> ns ns-interns vals (filter (comp ::test meta))))
+
+(defn run-test*
+  [v]
+  (let [{::keys [cleanup initialize]} (meta v)
+        initial-state (initialize)
+        [_ final-state :as result] (run @v initial-state)]
+    (cleanup final-state)
+    result))
+
+(defmacro run-test
+  "Runs test `test-name`defined with `deftest`"
+  [test-name]
+  `(run-test* (var ~test-name)))
