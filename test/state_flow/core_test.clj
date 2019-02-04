@@ -8,7 +8,8 @@
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]
             [com.stuartsierra.component :as component]
-            [cats.monad.exception :as e]))
+            [cats.monad.exception :as e]
+            [clojure.test :refer [is]]))
 
 (def increment-two
   (m/mlet [world (sf.state/get)]
@@ -161,4 +162,21 @@
               (state-flow/assert "some assertion that will pass"
                 (= 1 1))
               {:yo 1}))
-    => (match {:yo 1})))
+    => (match {:yo 1}))
+
+  (fact "works with clojure test"
+    (-> (state-flow/run
+          (state-flow/assert "some assertion that will not fail"
+            (is (= 1 1)))
+          {})
+        first
+        e/failure?)
+    => falsey
+
+    (-> (state-flow/run
+          (state-flow/assert "some assertion that will fail"
+            (is (= 1 2)))
+          {})
+        first
+        e/failure?)
+    => truthy))
