@@ -52,35 +52,6 @@
       (state/run (state-flow/probe-state "just with monadic left value"
                                          (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
 
-(facts "on match?"
-
-  (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (state-flow/match? "test-1" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
-
-  (fact "works with non-state values"
-    (state-flow/run (state-flow/match? "test-2" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
-
-  (fact "works with matcher combinators (embeds by default)"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta {:description []}})))
-
-  (fact "works with matcher combinators equals"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta {:description []}})))
-
-  (fact "works with matcher combinators in any order"
-    (let [val {:value [1 2 3]}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val)
-      => (d/pair [1 2 3]
-                 {:value [1 2 3]
-                  :meta {:description []}}))))
-
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
   (state/swap (fn [s] (update s :value #(+ 2 %)))))
@@ -137,66 +108,3 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
-
-(def initial-test-state {::initialized-state true})
-
-(defn initialize-tests-state [] initial-test-state)
-
-(deftest test-with-success
-  "Flow declaration here"
-  initialize-tests-state
-  (constantly ::cleanup)
-  (state-flow/verify "a" 1 1)
-  (state/swap #(assoc % :yo 1)))
-
-(deftest test-with-failure
-  "Flow declaration here"
-  initialize-tests-state
-  (constantly ::cleanup)
-  (state-flow/verify "a" 1 2)
-  (m/mlet [s1 (state/get)]
-          (println s1)
-          (m/return s1))
-  (state/swap #(assoc % :yo 1)))
-
-(facts state-flow/deftest
-  (fact "defines a test"
-    (state/state? test-with-success) => truthy
-    (state/state? test-with-failure) => truthy)
-
-  (fact "contains proper metadata"
-    (meta #'test-with-success)
-    => (match {:column                 number?
-               :file                   string?
-               :line                   number?
-               :name                   'test-with-success
-               ::state-flow/test       true
-               ::state-flow/initialize fn?
-               ::state-flow/cleanup    fn?})
-
-    (meta #'test-with-failure)
-    => (match {:column                 number?
-               :file                   string?
-               :line                   number?
-               :name                   'test-with-failure
-               ::state-flow/test       true
-               ::state-flow/initialize fn?
-               ::state-flow/cleanup    fn?}))
-
-  (fact "state functions are properly populated"
-   ((::state-flow/initialize (meta #'test-with-success)))
-   => initial-test-state
-
-   ((::state-flow/cleanup (meta #'test-with-success)))
-   => ::cleanup))
-
-(facts state-flow/ns->tests
-  (fact "only lists flows vars defined in namespace"
-    (state-flow/ns->tests 'state-flow.core-test)
-    => [#'test-with-success
-        #'test-with-failure]))
-
-(facts state-flow/run-test
-  (fact "returns result and runs state functions"
-    (state-flow/run-test test-with-success)
-    => (state-flow/run test-with-success initial-test-state)))

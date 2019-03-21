@@ -87,23 +87,6 @@
          (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
 
-(defn match-expr
-  [desc value checker]
-  (let [test-name (symbol (clojure.string/replace desc " " "-"))]
-    (list `ctest/deftest test-name (list `is (list 'match? checker value)))))
-
-(defmacro match?
-  "Builds a clojure.test test using matcher combinators"
-  [desc value checker]
-  `(flow ~desc
-     [full-desc# (get-description)]
-     (if (state/state? ~value)
-       (m/mlet [extracted-value# ~value]
-         (state/wrap-fn #(do (eval (match-expr full-desc# extracted-value# ~checker))
-                             extracted-value#)))
-       (state/wrap-fn #(do (eval (match-expr full-desc# ~value ~checker))
-                           ~value)))))
-
 (defn run
   [flow initial-state]
   (assert (state/state? flow) "First argument must be a State Monad")
