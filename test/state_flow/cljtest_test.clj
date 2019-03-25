@@ -35,6 +35,13 @@
                  {:value {:a 2 :b 5}
                   :meta {:description []}})))
 
+  (fact "works for failure cases"
+    (let [val {:value {:a 2 :b 5}}]
+      (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 1 :b 5})) val)
+      => (d/pair {:a 2 :b 5}
+                 {:value {:a 2 :b 5}
+                  :meta {:description []}})))
+
   (fact "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}]
       (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val)
