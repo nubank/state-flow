@@ -57,15 +57,10 @@
     (cljtest/match? "a" increment-two 3)
     (state/swap #(assoc % :yo 1))))
 
-(deftest test-with-failure
-  "Flow declaration here"
-  (constantly {})
-  (constantly ::cleanup)
-  (cljtest/match? "a" 1 2)
-  (m/mlet [s1 (state/get)]
-          (println s1)
-          (m/return s1))
-  (state/swap #(assoc % :yo 1)))
+(deftest test-with-failure {}
+  (flow "Flow declaration here"
+    (cljtest/match? "a" 1 2)
+    (state/swap #(assoc % :yo 1))))
 
 (facts state-flow/deftest
   (fact "contains proper metadata"
@@ -106,6 +101,10 @@
     (second (test-with-success {}))
     => {:meta {:description []} :yo 1})
 
-  (fact "returns result and runs state functions"
+  (fact "returns result and runs state functions with failure"
+    (second (test-with-failure {}))
+    => {:meta {:description []} :yo 1})
+
+  (fact "returns result and runs state functions (at runtime)"
     (second (test-with-runtime-success {:value 1}))
     => {:meta {:description []} :yo 1 :value 1}))
