@@ -2,6 +2,7 @@
   (:require [cats.core :as m]
             [cats.data :as d]
             [cats.monad.state :as state]
+            [clojure.test :as ctest]
             [matcher-combinators.matchers :as matchers]
             [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]
@@ -63,6 +64,7 @@
   (flow "Flow declaration here"
     (cljtest/match? "a" increment-two 3)
     (state/swap #(assoc % :yo 1))))
+
 
 (deftest test-with-failure {}
   (flow "Flow declaration here"
