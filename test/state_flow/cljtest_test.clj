@@ -51,16 +51,16 @@
 
 (facts "defflow"
   (fact "defines flow with default parameters"
-    (macroexpand-1 '(defflow my-flow (match? 1 1)))
+    (macroexpand-1 '(defflow my-flow (cljtest/match? 1 1)))
     => '(clojure.test/deftest
           my-flow
           (state-flow.core/run*
            {}
-           (state-flow.core/flow (clojure.core/str my-flow) (match? 1 1)))))
+           (state-flow.core/flow (clojure.core/str my-flow) (cljtest/match? 1 1)))))
   (fact "defines flow with optional parameters"
-    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (match? 1 1)))
+    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? 1 1)))
       => '(clojure.test/deftest
             my-flow
             (state-flow.core/run*
              {:init (constantly {:value 1})}
-             (state-flow.core/flow (clojure.core/str my-flow) (match? 1 1))))))
+             (state-flow.core/flow (clojure.core/str my-flow) (cljtest/match? 1 1))))))
