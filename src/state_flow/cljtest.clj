@@ -35,4 +35,4 @@
                                forms
                                (cons {} forms))]
     `(ctest/deftest ~name
-       (core/run* ~parameters (core/flow (str ~name) ~@flows)))))
+       (core/run* ~parameters (core/flow ~(str name) ~@flows)))))

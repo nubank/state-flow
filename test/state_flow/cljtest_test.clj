@@ -51,16 +51,44 @@
 
 (facts "defflow"
   (fact "defines flow with default parameters"
-    (macroexpand-1 '(defflow my-flow (cljtest/match? 1 1)))
+    (macroexpand-1 '(defflow my-flow (cljtest/match? "equals" 1 1)))
     => '(clojure.test/deftest
           my-flow
           (state-flow.core/run*
-           {}
-           (state-flow.core/flow (clojure.core/str my-flow) (cljtest/match? 1 1)))))
+            {}
+           (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))))
+
   (fact "defines flow with optional parameters"
-    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? 1 1)))
+    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? "equals" 1 1)))
       => '(clojure.test/deftest
             my-flow
             (state-flow.core/run*
-             {:init (constantly {:value 1})}
-             (state-flow.core/flow (clojure.core/str my-flow) (cljtest/match? 1 1))))))
+              {:init (constantly {:value 1})}
+              (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))))
+
+  (fact "defines flow with binding and flow inside match?"
+    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
+                                                         :map {:a 1 :b 2}})}
+                      [value (state/gets :value)]
+                      (cljtest/match? value 1)
+                      (cljtest/match? (state/gets :map) {:b 2})))
+    => '(clojure.test/deftest
+          my-flow
+          (state-flow.core/run*
+            {:init (constantly {:map {:a 1 :b 2} :value 1})}
+            (state-flow.core/flow
+              "my-flow"
+              [value (state/gets :value)]
+              (cljtest/match? value 1)
+              (cljtest/match? (state/gets :map) {:b 2}))))))
+
+(defflow my-flow {:init (constantly {:value 1
+                                     :map {:a 1 :b 2}})}
+  [value (state/gets :value)]
+  (cljtest/match? "" value 1)
+  (cljtest/match? "" (state/gets :map) {:b 2}))
+
+(facts "we can run a defined test"
+  (second ((:test (meta #'my-flow)))) => {:value 1
+                                          :map {:a 1 :b 2}
+                                          :meta {:description []}})
