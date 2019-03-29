@@ -1,13 +1,10 @@
 (ns state-flow.core-test
   (:require [cats.core :as m]
             [cats.data :as d]
-            [matcher-combinators.matchers :as matchers]
-            [matcher-combinators.midje :refer [match]]
-            [midje.sweet :refer :all]
-            [state-flow.core :as state-flow :refer [deftest]]
             [cats.monad.state :as state]
-            [state-flow.state :as sf.state]
-            [com.stuartsierra.component :as component]))
+            [midje.sweet :refer :all]
+            [state-flow.core :as state-flow]
+            [state-flow.state :as sf.state]))
 
 (def increment-two
   (m/mlet [world (sf.state/get)]
@@ -104,6 +101,31 @@
 
   (fact "run! throws exception"
     (state-flow/run! bogus-flow {:value 0}) => (throws Exception)))
+
+(facts state-flow/run*
+
+  (fact "flow with initializer"
+    (second (state-flow/run* {:init (constantly {:value 0})} nested-flow))
+    => {:meta  {:description []}
+        :value 4})
+
+  (fact "flow with cleanup"
+    (-> (state-flow/run* {:init    (constantly {:value 0
+                                                :atom  (atom 1)})
+                          :cleanup #(reset! (:atom %) 0)}
+          nested-flow)
+        second
+        :atom
+        deref)
+    => 0)
+
+  (fact "flow with initializer"
+    (state-flow/run* {:init   (constantly {:value 0})
+                      :runner (fn [flow state]
+                                [nil (state/exec flow state)])}
+      nested-flow)
+    => [nil {:meta  {:description []}
+             :value 4}]))
 
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]

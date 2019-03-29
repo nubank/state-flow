@@ -4,9 +4,8 @@
             [cats.monad.state :as state]
             [clojure.test :as ctest]
             [matcher-combinators.matchers :as matchers]
-            [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]
-            [state-flow.cljtest :as cljtest :refer [deftest]]
+            [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as sf.state]))
 
@@ -50,70 +49,18 @@
                  {:value [1 2 3]
                   :meta {:description []}}))))
 
-(def initial-test-state {::initialized-state true})
-
-(defn initialize-tests-state [] initial-test-state)
-
-(deftest test-with-success {}
-  (flow "Flow declaration here"
-    (cljtest/match? "a" 1 1)
-    (state/swap #(assoc % :yo 1))))
-
-(deftest test-with-runtime-success
-  {:initializer-fn (constantly {:value 1})}
-  (flow "Flow declaration here"
-    (cljtest/match? "a" increment-two 3)
-    (state/swap #(assoc % :yo 1))))
-
-
-(deftest test-with-failure {}
-  (flow "Flow declaration here"
-    (cljtest/match? "a" 1 2)
-    (state/swap #(assoc % :yo 1))))
-
-(facts state-flow/deftest
-  (fact "contains proper metadata"
-    (meta #'test-with-success)
-    => (match {:column              number?
-               :file                string?
-               :line                number?
-               :name                'test-with-success
-               ::cljtest/test       true
-               ::cljtest/initialize fn?
-               ::cljtest/cleanup    fn?})
-
-    (meta #'test-with-failure)
-    => (match {:column              number?
-               :file                string?
-               :line                number?
-               :name                'test-with-failure
-               ::cljtest/test       true
-               ::cljtest/initialize fn?
-               ::cljtest/cleanup    fn?}))
-
-  (fact "state functions are properly populated"
-    ((::cljtest/initialize (meta #'test-with-success)))
-    => {}
-
-    ((::cljtest/cleanup (meta #'test-with-success)) {})
-    => {}))
-
-(facts state-flow/ns->tests
-  (fact "only lists flows vars defined in namespace"
-    (cljtest/ns->tests 'state-flow.cljtest-test)
-    => [#'test-with-success
-        #'test-with-runtime-success
-        #'test-with-failure]))
-
-(facts state-flow/run-test
-  (fact "returns result and runs state functions"
-    (second (test-with-success {}))
-    => {:meta {:description []} :yo 1})
-
-  (fact "returns result and runs state functions with failure"
-    (second (test-with-failure {}))
-    => {:meta {:description []} :yo 1})
-
-  (fact "returns result and runs state functions (at runtime)"
-    (second (test-with-runtime-success {:value 1}))
-    => {:meta {:description []} :yo 1 :value 1}))
+(facts "defflow"
+  (fact "defines flow with default parameters"
+    (macroexpand-1 '(defflow my-flow (match? 1 1)))
+    => '(clojure.test/deftest
+          my-flow
+          (state-flow.core/run*
+           {}
+           (state-flow.core/flow (clojure.core/str my-flow) (match? 1 1)))))
+  (fact "defines flow with optional parameters"
+    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (match? 1 1)))
+      => '(clojure.test/deftest
+            my-flow
+            (state-flow.core/run*
+             {:init (constantly {:value 1})}
+             (state-flow.core/flow (clojure.core/str my-flow) (match? 1 1))))))

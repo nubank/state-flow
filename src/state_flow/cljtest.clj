@@ -26,39 +26,12 @@
          (state/wrap-fn #(do (match+meta full-desc# ~value ~checker ~the-meta)
                              ~value))))))
 
-(defmacro deftest
-  "Define a test to be run.
-
-  Receives optional parameters
-  `initializer-fn`, a function with no arguments that returns the initial state.
-  `cleanup-fn`, function receiving the final state to perform cleanup if necessary"
-  [sym
-   {:keys [initializer-fn
-           cleanup-fn
-           flow-runner]
-    :or   {initializer-fn `(constantly {})
-           cleanup-fn     `identity
-           flow-runner    `core/run!}}
-   & flows]
-  `(def ~(vary-meta sym merge {::test       true
-                               ::initialize initializer-fn
-                               ::cleanup    cleanup-fn})
-     (fn [initial-state#] (~flow-runner (core/flow ~(str sym) ~@flows) initial-state#))))
-
-(defn ns->tests
-  "Returns all flows defined with `deftest`"
-  [ns]
-  (->> ns ns-interns vals (filter (comp ::test meta))))
-
-(defn run-test*
-  [v]
-  (let [{::keys [cleanup initialize]} (meta v)
-        initial-state                 (initialize)
-        [_ final-state :as result]    (@v initial-state)]
-    (cleanup final-state)
-    result))
-
-(defmacro run-test
-  "Runs test `test-name`defined with `deftest`"
-  [test-name]
-  `(run-test* (var ~test-name)))
+(defmacro defflow
+  {:arglists '([name & flows]
+               [name parameters & flows])}
+  [name & forms]
+  (let [[parameters & flows] (if (map? (first forms))
+                               forms
+                               (cons {} forms))]
+    `(ctest/deftest ~name
+       (core/run* ~parameters (core/flow (str ~name) ~@flows)))))

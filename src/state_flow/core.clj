@@ -105,36 +105,24 @@
         (throw (ex-info message {}))))
     result))
 
+(defn run*
+  "Run a flow with specified parameters
+
+  Receives optional parameter maps
+  `init`, a function with no arguments that returns the initial state.
+  `cleanup`, function receiving the final state to perform cleanup if necessary
+  `runner`, function that will receive a flow and an initial state and execute the flow"
+  [{:keys [init cleanup runner]
+    :or   {init    (constantly {})
+           cleanup identity
+           runner  run!}}
+   flow]
+  (let [initial-state              (init)
+        [_ final-state :as result] (runner flow initial-state)]
+    (cleanup final-state)
+    result))
+
 (defn as-step-fn
   "Transform a flow step into a state transition function"
   [flow]
   (fn [s] (state/exec flow s)))
-
-(defmacro deftest
-  "Define a test to be run.
-
-  Receives a function `initialize-state`, a function with no
-  arguments that returns the initial state."
-  [sym descr initialize-state cleanup & flows]
-  `(def ~(vary-meta sym merge {::test       true
-                               ::initialize initialize-state
-                               ::cleanup    cleanup})
-     (flow ~descr ~@flows)))
-
-(defn ns->tests
-  "Returns all flows defined with `defflow`"
-  [ns]
-  (->> ns ns-interns vals (filter (comp ::test meta))))
-
-(defn run-test*
-  [v]
-  (let [{::keys [cleanup initialize]} (meta v)
-        initial-state (initialize)
-        [_ final-state :as result] (run @v initial-state)]
-    (cleanup final-state)
-    result))
-
-(defmacro run-test
-  "Runs test `test-name`defined with `deftest`"
-  [test-name]
-  `(run-test* (var ~test-name)))
