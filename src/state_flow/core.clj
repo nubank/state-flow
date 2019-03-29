@@ -2,10 +2,7 @@
   (:refer-clojure :exclude [run!])
   (:require [cats.context :as ctx]
             [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.exception :as e]
-            [clojure.test :as ctest :refer [is]]
-            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [state-flow.state :as state]
