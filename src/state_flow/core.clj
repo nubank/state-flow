@@ -2,10 +2,7 @@
   (:refer-clojure :exclude [run!])
   (:require [cats.context :as ctx]
             [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.exception :as e]
-            [clojure.test :refer :all]
-            [matcher-combinators.test]
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [state-flow.state :as state]
@@ -41,6 +38,8 @@
     (m/return (description->string desc-list))))
 
 (defmacro flow
+  "Defines a flow"
+  {:style/indent :defn}
   [description & flows]
   `(m/do-let
     (push-meta ~description)
@@ -83,24 +82,7 @@
        (if (state/state? ~left-value)
          (probe-state full-desc# ~left-value ~right-value ~the-meta)
          (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
-                       ~left-value))))))
-
-(defn match-expr
-  [desc value checker]
-  (let [test-name (symbol (clojure.string/replace desc " " "-"))]
-    (list `deftest test-name (list `is (list 'match? checker value)))))
-
-(defmacro match?
-  "Builds a clojure.test test using matcher combinators"
-  [desc value checker]
-  `(flow ~desc
-     [full-desc# (get-description)]
-     (if (state/state? ~value)
-       (m/mlet [extracted-value# ~value]
-         (state/wrap-fn #(do (eval (match-expr full-desc# extracted-value# ~checker))
-                             extracted-value#)))
-       (state/wrap-fn #(do (eval (match-expr full-desc# ~value ~checker))
-                           ~value)))))
+                             ~left-value))))))
 
 (defn run
   [flow initial-state]
@@ -118,6 +100,23 @@
             message (str "Flow " "\"" description "\"" " failed with exception")]
         (log/info (m/extract (first result)) message)
         (throw (ex-info message {}))))
+    result))
+
+(defn run*
+  "Run a flow with specified parameters
+
+  Receives optional parameter maps
+  `init`, a function with no arguments that returns the initial state.
+  `cleanup`, function receiving the final state to perform cleanup if necessary
+  `runner`, function that will receive a flow and an initial state and execute the flow"
+  [{:keys [init cleanup runner]
+    :or   {init    (constantly {})
+           cleanup identity
+           runner  run!}}
+   flow]
+  (let [initial-state              (init)
+        [_ final-state :as result] (runner flow initial-state)]
+    (cleanup final-state)
     result))
 
 (defn as-step-fn

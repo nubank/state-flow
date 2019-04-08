@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.10.0]
+- Improved support for clojure test
+
 ## [1.9.1]
 - Add state related functions
 - Move wrap-fn to state namespace
