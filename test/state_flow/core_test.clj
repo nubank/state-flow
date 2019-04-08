@@ -1,12 +1,10 @@
 (ns state-flow.core-test
   (:require [cats.core :as m]
             [cats.data :as d]
-            [matcher-combinators.matchers :as matchers]
+            [cats.monad.state :as state]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
-            [cats.monad.state :as state]
-            [state-flow.state :as sf.state]
-            [com.stuartsierra.component :as component]))
+            [state-flow.state :as sf.state]))
 
 (def increment-two
   (m/mlet [world (sf.state/get)]
@@ -50,35 +48,6 @@
                                          (sf.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
       (state/run (state-flow/probe-state "just with monadic left value"
                                          (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
-
-(facts "on match?"
-
-  (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (state-flow/match? "test-1" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
-
-  (fact "works with non-state values"
-    (state-flow/run (state-flow/match? "test-2" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
-
-  (fact "works with matcher combinators (embeds by default)"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta {:description []}})))
-
-  (fact "works with matcher combinators equals"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta {:description []}})))
-
-  (fact "works with matcher combinators in any order"
-    (let [val {:value [1 2 3]}]
-      (state-flow/run (state-flow/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val)
-      => (d/pair [1 2 3]
-                 {:value [1 2 3]
-                  :meta {:description []}}))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
@@ -132,6 +101,31 @@
 
   (fact "run! throws exception"
     (state-flow/run! bogus-flow {:value 0}) => (throws Exception)))
+
+(facts state-flow/run*
+
+  (fact "flow with initializer"
+    (second (state-flow/run* {:init (constantly {:value 0})} nested-flow))
+    => {:meta  {:description []}
+        :value 4})
+
+  (fact "flow with cleanup"
+    (-> (state-flow/run* {:init    (constantly {:value 0
+                                                :atom  (atom 1)})
+                          :cleanup #(reset! (:atom %) 0)}
+          nested-flow)
+        second
+        :atom
+        deref)
+    => 0)
+
+  (fact "flow with initializer"
+    (state-flow/run* {:init   (constantly {:value 0})
+                      :runner (fn [flow state]
+                                [nil (state/exec flow state)])}
+      nested-flow)
+    => [nil {:meta  {:description []}
+             :value 4}]))
 
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
