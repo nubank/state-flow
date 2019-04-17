@@ -56,18 +56,28 @@
       [false (first lazy-seq)]
       [true  (first remaining)])))
 
+(defn probe
+  "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
+  ([state check-fn {:keys [sleep-time times-to-try]
+                    :or {sleep-time sleep-time
+                         times-to-try times-to-try}}]
+   (m/mlet [world (state/get)
+            :let [runs   (repeatedly #(do (Thread/sleep sleep-time) (state/eval state world)))
+                  result (retry times-to-try #(check-fn %) runs)]]
+     (m/return result)))
+  ([state check-fn]
+   (probe state check-fn {:sleep-time sleep-time :times-to-try times-to-try})))
+
 (defmacro add-desc-and-meta
   [[fname & rest] desc meta]
   (with-meta `(~fname {:midje/name ~desc} ~@rest) meta))
 
-(defmacro probe-state
+(defmacro verify-probe
   "Given a fact description, a state and a right-value,
   returns a State that runs left up to times-to-retry times every sleep-time ms until left-value equals right value."
   [desc state right-value metadata]
   `(ctx/with-context (ctx/infer ~state)
-     (m/mlet [world# (state/get)
-              :let [runs#       (repeatedly #(do (Thread/sleep sleep-time) (state/eval ~state world#)))
-                    [_# result#] (retry ~times-to-try #(extended-= % ~right-value) runs#)]]
+     (m/mlet [[_# result#] (probe ~state #(extended-= % ~right-value))]
        (do (add-desc-and-meta (fact result# => ~right-value) ~desc ~metadata)
            (m/return result#)))))
 
@@ -80,7 +90,7 @@
     `(flow ~desc
        [full-desc# (get-description)]
        (if (state/state? ~left-value)
-         (probe-state full-desc# ~left-value ~right-value ~the-meta)
+         (verify-probe full-desc# ~left-value ~right-value ~the-meta)
          (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
                              ~left-value))))))
 

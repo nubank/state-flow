@@ -13,6 +13,17 @@
   (m/mlet [world (sf.state/get)]
     (m/return (+ 2 (-> world :value)))))
 
+(def get-value (comp deref :value))
+(def get-value-state (state/gets get-value))
+
+(defn delayed-increment-two
+  [delay-ms]
+  "Changes world in the future"
+  (state/state (fn [world]
+                 (future (do (Thread/sleep delay-ms)
+                             (swap! (:value world) + 2)))
+                 (d/pair nil world))))
+
 (facts "on match?"
 
   (fact "add two to state 1, result is 3, doesn't change world"
@@ -41,6 +52,16 @@
       => (d/pair {:a 2 :b 5}
                  {:value {:a 2 :b 5}
                   :meta {:description []}})))
+
+  (fact "add two with small delay"
+    (let [world {:value (atom 0)}]
+      (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
+      (first (state-flow/run (cljtest/match? "" get-value-state 2) world)) => 2))
+
+  (fact "add two with too much delay (timeout)"
+    (let [world {:value (atom 0)}]
+      (state-flow/run (delayed-increment-two 4000) world) => (d/pair nil world)
+      (first (state-flow/run (cljtest/match? "" get-value-state 2) world)) => 0))
 
   (fact "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}]
@@ -90,5 +111,5 @@
 
 (facts "we can run a defined test"
   (second ((:test (meta #'my-flow)))) => {:value 1
-                                          :map {:a 1 :b 2}
-                                          :meta {:description []}})
+                                          :map   {:a 1 :b 2}
+                                          :meta  {:description []}})
