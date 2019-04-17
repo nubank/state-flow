@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.11.0]
+- Implement test probing for match?
+
 ## [1.10.0]
 - Improved support for clojure test
 
