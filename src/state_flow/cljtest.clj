@@ -2,6 +2,7 @@
   (:require [cats.core :as m]
             [clojure.test :as ctest :refer [is]]
             [matcher-combinators.test]
+            [matcher-combinators.core :as matcher-combinators]
             [state-flow.core :as core]
             [state-flow.state :as state]))
 
@@ -14,6 +15,15 @@
   [desc value checker meta]
   (with-meta (match-expr desc value checker) meta))
 
+(defn match-probe
+  ([state matcher params]
+   (m/fmap second
+           (core/probe state
+                       #(matcher-combinators/match? (matcher-combinators/match matcher %))
+                       params)))
+  ([state matcher]
+   (match-probe state matcher {})))
+
 (defmacro match?
   "Builds a clojure.test assertion using matcher combinators"
   [desc value checker]
@@ -21,7 +31,7 @@
     `(core/flow ~desc
        [full-desc# (core/get-description)]
        (if (state/state? ~value)
-         (m/mlet [extracted-value# ~value]
+         (m/mlet [extracted-value# (match-probe ~value ~checker)]
            (state/wrap-fn #(do (match+meta full-desc# extracted-value# ~checker ~the-meta)
                                extracted-value#)))
          (state/wrap-fn #(do (match+meta full-desc# ~value ~checker ~the-meta)
