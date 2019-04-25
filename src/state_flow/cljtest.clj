@@ -26,7 +26,7 @@
 
 (defmacro match?
   "Builds a clojure.test assertion using matcher combinators"
-  [desc value checker]
+  [checker value desc]
   (let [the-meta (meta &form)]
     `(core/flow ~desc
        [full-desc# (core/get-description)]
