@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0]
+- BREAKING CHANGE: `state-flow.cljtest/match?` has a new parameter order to
+  better match `clojure.test/is`
+- Bump dependencies
+- Remove broken tests
+
 ## [1.12.0]
 - Fix license name in `project.clj`
 
