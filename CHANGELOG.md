@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.12.0]
+- Fix license name in `project.clj`
+
 ## [1.11.0]
 - Implement test probing for match?
 
