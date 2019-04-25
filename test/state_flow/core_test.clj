@@ -54,14 +54,7 @@
   (fact "add two with too much delay"
     (def world {:value (atom 0)})
     (state-flow/run (delayed-increment-two 4000) world)
-    (state-flow/run (state-flow/verify "description" get-value-state 0) world))
-
-  (fact "extended equality works"
-    (let [val {:a 2 :b 5}]
-      (state/run (state-flow/probe-state "contains with monadic left value"
-                                         (sf.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
-      (state/run (state-flow/probe-state "just with monadic left value"
-                                         (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
+    (state-flow/run (state-flow/verify "description" get-value-state 0) world)))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
