@@ -58,10 +58,10 @@
 
   (fact "extended equality works"
     (let [val {:a 2 :b 5}]
-      (state/run (state-flow/probe-state "contains with monadic left value"
-                                         (sf.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
-      (state/run (state-flow/probe-state "just with monadic left value"
-                                         (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
+      (state/run (state-flow/verify-probe "contains with monadic left value"
+                                          (sf.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
+      (state/run (state-flow/verify-probe "just with monadic left value"
+                                          (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value

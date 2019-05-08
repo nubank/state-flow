@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.12.1]
+- Fix and update matcher-combinators dependency
+
 ## [1.12.0]
 - Fix license name in `project.clj`
 
