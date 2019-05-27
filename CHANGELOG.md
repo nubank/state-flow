@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.13.0]
+- Add optional parameters to `match?`, making it possible to tweak times-to-try and sleep-time of test probing 
+
 ## [1.12.1]
 - Fix and update matcher-combinators dependency
 

@@ -37,26 +37,32 @@
       (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)
       => (d/pair {:a 2 :b 5}
                  {:value {:a 2 :b 5}
-                  :meta {:description []}})))
+                  :meta  {:description []}})))
 
   (fact "works with matcher combinators equals"
     (let [val {:value {:a 2 :b 5}}]
       (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) val)
       => (d/pair {:a 2 :b 5}
                  {:value {:a 2 :b 5}
-                  :meta {:description []}})))
+                  :meta  {:description []}})))
 
   (fact "works for failure cases"
     (let [val {:value {:a 2 :b 5}}]
       (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 1 :b 5})) val)
       => (d/pair {:a 2 :b 5}
                  {:value {:a 2 :b 5}
-                  :meta {:description []}})))
+                  :meta  {:description []}})))
 
   (fact "add two with small delay"
     (let [world {:value (atom 0)}]
       (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
       (first (state-flow/run (cljtest/match? "" get-value-state 2) world)) => 2))
+
+  (fact "we can tweak timeout and times to try"
+    (let [world {:value (atom 0)}]
+      (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
+      (first (state-flow/run (cljtest/match? "" get-value-state 2 {:sleep-time   0
+                                                                   :times-to-try 1}) world)) => 0))
 
   (fact "add two with too much delay (timeout)"
     (let [world {:value (atom 0)}]
@@ -68,7 +74,7 @@
       (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val)
       => (d/pair [1 2 3]
                  {:value [1 2 3]
-                  :meta {:description []}}))))
+                  :meta  {:description []}}))))
 
 (facts "defflow"
   (fact "defines flow with default parameters"
