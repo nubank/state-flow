@@ -6,7 +6,7 @@
             [state-flow.core :as core]
             [state-flow.state :as state]))
 
-(defn match-expr
+(defn ^:private match-expr
   [desc value checker]
   (let [test-name (symbol (clojure.string/replace desc " " "-"))]
     (list `ctest/testing desc (list `is (list 'match? checker value)))))
@@ -26,12 +26,13 @@
 
 (defmacro match?
   "Builds a clojure.test assertion using matcher combinators"
-  [desc value checker]
-  (let [the-meta (meta &form)]
+  [desc value checker & forms]
+  (let [the-meta (meta &form)
+        params   (if (map? (first forms)) (first forms) {})]
     `(core/flow ~desc
        [full-desc# (core/get-description)]
        (if (state/state? ~value)
-         (m/mlet [extracted-value# (match-probe ~value ~checker)]
+         (m/mlet [extracted-value# (match-probe ~value ~checker ~params)]
            (state/wrap-fn #(do (match+meta full-desc# extracted-value# ~checker ~the-meta)
                                extracted-value#)))
          (state/wrap-fn #(do (match+meta full-desc# ~value ~checker ~the-meta)
