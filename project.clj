@@ -15,15 +15,15 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.3.2"]
                  [funcool/cats "2.3.2"]
-                 [nubank/matcher-combinators "0.9.0"]]
+                 [nubank/matcher-combinators "1.1.0"]]
 
   :exclusions   [log4j]
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["config"]
                    :dependencies [[ns-tracker "0.3.1"]
-                                  [org.clojure/tools.namespace "0.2.11"]
-                                  [midje "1.9.1"]
+                                  [org.clojure/tools.namespace "0.3.0"]
+                                  [midje "1.9.9"]
                                   [org.clojure/java.classpath "0.3.0"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
