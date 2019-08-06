@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.14.0]
+- Allow for empty flows
+
 ## [1.13.0]
 - Add optional parameters to `match?`, making it possible to tweak times-to-try and sleep-time of test probing 
 
