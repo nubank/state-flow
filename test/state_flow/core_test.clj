@@ -87,6 +87,9 @@
     (state-flow/flow "child1" increment-two-value)
     (state-flow/flow "child2" bogus increment-two-value)))
 
+(def empty-flow
+  (state-flow/flow "empty"))
+
 (fact "on push-meta"
   (state/exec (m/>> (state-flow/push-meta "mydesc")
                     (state-flow/push-meta "mydesc2")) {}) => {:meta {:description ["mydesc"  "mydesc2"]}})
@@ -104,6 +107,11 @@
     (second (state-flow/run nested-flow {:value 0}))
     => {:meta {:description []}
         :value 4})
+
+  (fact "empty flow"
+    (second (state-flow/run empty-flow {:value 0}))
+    => {:meta {:description []}
+        :value 0})
 
   (fact "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
