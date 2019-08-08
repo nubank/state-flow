@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.0]
+- Require flows to have a string description to prevent the first subflow from
+  being used as the description.
+
 ## [1.14.0]
 - Allow for empty flows
 
