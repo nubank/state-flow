@@ -44,6 +44,9 @@
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
                                forms
-                               (cons {} forms))]
+                               (cons {} forms))
+        wrapper              (or (:wrapper-fn parameters)
+                                 (fn [flow] (flow)))
+        flow-parameters      (dissoc parameters :wrapper-fn)]
     `(ctest/deftest ~name
-       (core/run* ~parameters (core/flow ~(str name) ~@flows)))))
+       (~wrapper (core/run* ~flow-parameters (core/flow ~(str name) ~@flows))))))

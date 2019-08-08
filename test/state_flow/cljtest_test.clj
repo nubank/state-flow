@@ -119,3 +119,12 @@
   (second ((:test (meta #'my-flow)))) => {:value 1
                                           :map   {:a 1 :b 2}
                                           :meta  {:description []}})
+
+(defn foo [] 1)
+
+(defn wrapper [flow]
+  (with-redefs [foo (constantly 2)]
+    (flow)))
+
+(defflow only-works-with-wrapper {:wrapper-fn wrapper}
+  (cljtest/match? "" (foo) 2))

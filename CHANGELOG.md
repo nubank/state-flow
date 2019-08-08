@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.15.0]
+- add `:wrapper-fn` parameter to `defflow` parameters, which allows you to wrap a whole flow with things like `with-redefs`.
+
 ## [1.14.0]
 - Allow for empty flows
 
