@@ -131,6 +131,14 @@
     (cleanup final-state)
     result))
 
+(defmacro wrap-with
+  [wrapper-fn flow]
+  `(m/do-let
+    [world# (state/get)
+     pair#  (m/return (~wrapper-fn (run! ~flow world#)))]
+    (state/put (second pair#))
+    (m/return (first pair#))))
+
 (defn as-step-fn
   "Transform a flow step into a state transition function"
   [flow]

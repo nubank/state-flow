@@ -4,7 +4,8 @@
             [cats.monad.state :as state]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
-            [state-flow.state :as sf.state]))
+            [state-flow.state :as sf.state]
+            [state-flow.cljtest :as cljtest]))
 
 (def increment-two
   (m/mlet [world (sf.state/get)]
@@ -152,3 +153,14 @@
 (facts "on as-step-fn"
   (let [increment-two-step (state-flow/as-step-fn (state/swap #(+ 2 %)))]
     (increment-two-step 1) => 3))
+
+(defn put2 [w] (assoc w :value 2))
+(defn put3 [w] (assoc w :value 3))
+
+(defmacro wrapper
+  [flow]
+  `(with-redefs [put2 put3]
+     ~flow))
+
+(facts "test wrap-with"
+  (second (state/run (state-flow/wrap-with wrapper (state/swap put2)) {})) => {:value 3})
