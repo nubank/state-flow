@@ -113,6 +113,20 @@
     => {:meta {:description []}
         :value 0})
 
+  (fact "flow without description fails at macro-expansion time"
+        (macroexpand `(state-flow/flow [original (state/gets :value)
+                                        :let [doubled (* 2 original)]]
+                                       (sf.state/swap #(assoc % :value doubled))))
+        => (throws IllegalArgumentException))
+
+  (fact "but flows with an expression that resolves to a string also aren't valid,
+        due to resolution limitations at macro-expansion time"
+        (let [my-desc "trolololo"]
+          (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
+                                                    :let [doubled (* 2 original)]]
+                                         (sf.state/swap #(assoc % :value doubled)))))
+        => (throws IllegalArgumentException))
+
   (fact "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
       @left => (throws Exception "My exception")
