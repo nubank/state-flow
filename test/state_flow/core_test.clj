@@ -90,9 +90,6 @@
 (def empty-flow
   (state-flow/flow "empty"))
 
-(def flow-with-description-missing
-  )
-
 (fact "on push-meta"
   (state/exec (m/>> (state-flow/push-meta "mydesc")
                     (state-flow/push-meta "mydesc2")) {}) => {:meta {:description ["mydesc"  "mydesc2"]}})
