@@ -41,6 +41,8 @@
   "Defines a flow"
   {:style/indent :defn}
   [description & flows]
+  (when-not (string? description)
+    (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
   (let [flows' (or flows
                    '[(state/swap identity)])]
     `(m/do-let
