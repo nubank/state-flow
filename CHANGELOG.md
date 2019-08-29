@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.15.1]
+- Allow `(str ...)` to be a valid flow description
+
 ## [1.15.0]
 - Require flows to have a string description to prevent the first subflow from
   being used as the description.
