@@ -29,13 +29,28 @@
      (update-in s [:meta :description] #(pop %)))))
 
 (defn description->string
-  [description]
-  (clojure.string/join " -> " description))
+  [descriptions lines]
+  (clojure.string/join " -> "
+                       (map (fn [desc line] (if (nil? line)
+                                              desc
+                                              (str desc "(" line ")")))
+                            descriptions
+                            lines)))
 
 (defn get-description
   []
-  (m/mlet [desc-list (state/gets #(-> % :meta :description))]
-    (m/return (description->string desc-list))))
+  (m/mlet [desc-list (state/gets #(-> % :meta :description))
+           lines-list (state/gets #(-> % :meta :lines))]
+    (m/return (description->string desc-list lines-list))))
+
+
+(defn- with-lines [flows]
+  (mapcat
+    (fn [flow]
+      [`(state/swap (fn [s#] (update-in s# [:meta :lines] (fn [l#] (update-description l# ~(-> flow meta :line))))))
+       flow
+       `(state/swap (fn [s#] (update-in s# [:meta :lines] (fn [l#] (pop l#)))))])
+    flows))
 
 (defmacro flow
   "Defines a flow"
@@ -47,7 +62,7 @@
                    '[(state/swap identity)])]
     `(m/do-let
        (push-meta ~description)
-       [ret# (m/do-let ~@flows')]
+       [ret# (m/do-let ~@(with-lines flows'))]
        pop-meta
        (m/return ret#))))
 
