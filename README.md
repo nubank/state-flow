@@ -16,56 +16,18 @@ Flow macro syntax:
 ```
 
 The flow macro defines a sequence of steps to be executed having some state as a reference.
-It can be thought about as a function mapping some state to a pair of values; a return value and a possibly changed state: `(fn [s] [ret s'])`
+It can be thought about as a function mapping some state to a pair of `(fn [<state>] [<return-value>, <possibly-updated-state>])`
 
-Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)` and it will return a pair `[<return> <final-state>]`
+Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
+Each step will be executed in sequence, passing the state to the next step and the result will be a pair `[<return-value>, <final-state>]`.
+The return value of running the flow is the return value of the last step that was run.
+
+If you are using the library for integration testing, the initial state is usually a representation of your service components,
+a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states without any problem.
 
 ### Primitives
 
 The primitives are the fundamental building blocks of a flow.
-
-#### gets
-
-```clojure
-(state/gets get-fn) => (fn [s] [(get-fn s) s])
-```
-
-```clojure
-(def get-value (state/gets :value))
-```
-#### 
-
-
-There are many ways you can think about primitives, but with those three you 
-
-This is what a flow that saves something in the database, queries the database to get the entity back
-and then saves an updated version to the database would look like:
-
-```clojure
-(ns example
- (:require [state-flow.core :as state-flow]))
-
-(def my-flow
-  (state-flow/flow "testing some stuff"
-    (save-entity)
-    [entity (fetch-entity)
-     :let   [transformed-entity (transform entity)]]
-    (update-entity transformed-entity)))
-```
-
-Flow definition and flow execution happen in different stages. To run a flow you can do:
-
-```clojure
-(state-flow/run! my-flow initial-state)
-```
-
-The initial state is usually a representation of your service components, a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states without any problem.
-
-## Flow steps
-
-A step is essentially a `State` record containing a function from a state to a pair `[<return-value>, <possibly-updated-state>]`. Think about it as a state transition function ~on steroids~ that has a return value).
-
-One of the main advantages of using this approach for building the state transition steps is to take advantage of the return value to compose new steps from simpler steps. Another advantage is that since the State record implements `Monad` and other protocols from [cats library](https://github.com/funcool/cats), we can use its utilities and macros that make creating and composing flow steps a lot easier.
 
 * Returning current state
 
@@ -95,12 +57,40 @@ One of the main advantages of using this approach for building the state transit
 ;=> (State. (fn [s] [s (f s)]))
 ```
 
-* Wraps a function into a state monad (useful for delaying side-effects that should happen only when a flow is running)
 
 ```clojure
-(state-flow.state/wrap-fn f)
-;=> (State. (fn [s] [(f) s]))
+(def get-value (state/gets :value))
 ```
+
+### Bindings
+
+
+This is what a flow that saves something in the database, queries the database to get the entity back
+and then saves an updated version to the database would look like:
+
+```clojure
+(ns example
+ (:require [state-flow.core :as state-flow]))
+
+(def my-flow
+  (state-flow/flow "testing some stuff"
+    (save-entity)
+    [entity (fetch-entity)
+     :let   [transformed-entity (transform entity)]]
+    (update-entity transformed-entity)))
+```
+
+Flow definition and flow execution happen in different stages. To run a flow you can do:
+
+```clojure
+(state-flow/run! my-flow initial-state)
+```
+
+
+## Flow steps
+
+
+
 ### clojure.test
 
 * `match?` macro now expands to a clojure.test `testing` and uses `meta` variables from the position it has been written, therefore giving correct line number when a test fails.
