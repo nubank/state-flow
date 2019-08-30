@@ -83,3 +83,4 @@
 (def eval state/eval)
 (def exec state/exec)
 (def gets state/gets)
+(def return m/return)

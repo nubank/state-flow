@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.15.1]
+- Add alias for m/return as state/return
+
 ## [1.15.0]
 - Require flows to have a string description to prevent the first subflow from
   being used as the description.
