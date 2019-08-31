@@ -147,7 +147,7 @@ Or with custom parameters:
   (match? "embeds" (state/gets :map) {:b 2}))
 ```
 
-### Midje Support
+## Midje Support
 
 The way to write midje tests with StateFlow is by using `verify`.
 `verify` is a function that takes three arguments: a description, a value or step and another value or midje checker
