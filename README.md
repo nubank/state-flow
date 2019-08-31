@@ -27,12 +27,14 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 
 ### Primitives
 
-The primitives are the fundamental building blocks of a flow.
+The primitives are the fundamental building blocks of a flow and are enough to build
+any kinds of flow.
+Below we list the main primitives and the kind of function they represent:
 
 * Returning current state
 
 ```clojure
-(state-flow.state/get)
+state-flow.state/get
 ;=> (State. (fn [s] [s s]))
 ```
 
@@ -56,47 +58,72 @@ The primitives are the fundamental building blocks of a flow.
 (state-flow.state/swap f)
 ;=> (State. (fn [s] [s (f s)]))
 ```
-
+* Returning a value
 
 ```clojure
-(def get-value (state/gets :value))
+(state-flow.state/return v)
+;=> (State. (fn [s] [v s]))
 ```
 
 ### Bindings
 
+The bindings are where we can take advantage of the return values of flows to compose other flows and have the following syntax:
 
-This is what a flow that saves something in the database, queries the database to get the entity back
-and then saves an updated version to the database would look like:
+`[(<symbol> <flow/primitive>)+]`
 
-```clojure
-(ns example
- (:require [state-flow.core :as state-flow]))
+They work pretty much like `let` bindings but the left symbol binds to the return value of the flow on the right.
 
-(def my-flow
-  (state-flow/flow "testing some stuff"
-    (save-entity)
-    [entity (fetch-entity)
-     :let   [transformed-entity (transform entity)]]
-    (update-entity transformed-entity)))
-```
+### Flow Example
 
-Flow definition and flow execution happen in different stages. To run a flow you can do:
+Supposing our system state is made out of a simple map with `{:value <number>}`, we can make a flow that just
+fetches the `<value>` inside `<number>`:
 
 ```clojure
-(state-flow/run! my-flow initial-state)
+(def get-value (state/gets :value))
+(state-flow/run! get-value {:value 4})
+; => [4 {:value 4}]
 ```
 
+For updating the state we can use `state/swap`. If we want to write a flow that will increment value by one, it could be done like this:
 
-## Flow steps
+```clojure
+(def inc-value (state/swap #(update-in % [:value] inc)))
+(state-flow/run! inc-value {:value 4})
+; => [{:value 4} {:value 5}]
+```
 
+Using bindings is the most effective way we can compose simple flows into more complex flows.
+If instead of returning the value we wanted to return the value multiplied by two, we could do it like this:
 
+```clojure
+(def double-value
+  (flow "get double value"
+    [value get-value]
+    (state/return (* value 2))))
+(state-flow/run! double-value {:value 4})
+; => [8 {:value 4 :meta {:description []}}]
+```
 
-### clojure.test
+Or we could increment the value first and then return it doubled:
 
-* `match?` macro now expands to a clojure.test `testing` and uses `meta` variables from the position it has been written, therefore giving correct line number when a test fails.
-* Optional parameters for setting initial-state, cleanup and flow runner
+```clojure
+(def inc-and-double-value
+  (flow "increment and double value"
+    inc-value
+    [value get-value]
+    (state/return (* value 2))))
+(state-flow/run! double-value {:value 4})
+; => [10 {:value 5 :meta {:description []}}]
+```
 
-Usage will look something like this:
+## Clojure.test Support
+
+The way we can use flows to make `clojure.test` tests is by using `match?`.
+`match?` is a flow that will make a `clojure.test` assertion.
+
+The assertions should be wrapped in a `defflow`. `defflow` will define a test (using `deftest`)
+that when run, will execute the flow with the parameters that we set. Here are some very simple examples
+of tests defined using `defflow`:
 
 ```clojure
 (defflow my-flow
@@ -119,7 +146,6 @@ Or with custom parameters:
   (match? "embeds" (state/gets :map) {:b 2}))
 ```
 
-example flow migration: https://github.com/nubank/arnaldo/pull/169/files
 Testing with `match?` uses `clojure.test` and `matcher-combinators` library as a backend internally. The syntax is similar to midje's, though: `match?` asks for a string description, a value (or step returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
 
 Usage:
@@ -151,8 +177,9 @@ In the backend, the first test will define the following test, for instance:
   (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4})))
 ```
 
-### Midje
+### Midje Support
 
+The way to write midje tests with StateFlow is by using `verify`.
 `verify` is a function that takes three arguments: a description, a value or step and another value or midje checker
 and produces a step that when executed, verifies that the second argument matches the third argument. It replicates the functionality of a `fact` from midje.
 In fact, if a simple value is passed as second argument, what it does is simply call `fact` internally when the flow is executed.
@@ -175,4 +202,3 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
       saved-data
       expected-data)))
 ```
-
