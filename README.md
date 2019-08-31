@@ -119,7 +119,8 @@ Or we could increment the value first and then return it doubled:
 ## Clojure.test Support
 
 The way we can use flows to make `clojure.test` tests is by using `match?`.
-`match?` is a flow that will make a `clojure.test` assertion.
+`match?` is a flow that will make a `clojure.test` assertion and the `nubank/matcher-combinators` library
+for the actual checking and failure messages. `match?` asks for a string description, a value (or a flow returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
 
 The assertions should be wrapped in a `defflow`. `defflow` will define a test (using `deftest`)
 that when run, will execute the flow with the parameters that we set. Here are some very simple examples
@@ -144,37 +145,6 @@ Or with custom parameters:
   [value (state/gets :value)]
   (match? "value is correct" value 1)
   (match? "embeds" (state/gets :map) {:b 2}))
-```
-
-Testing with `match?` uses `clojure.test` and `matcher-combinators` library as a backend internally. The syntax is similar to midje's, though: `match?` asks for a string description, a value (or step returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
-
-Usage:
-```clojure
-(:require [state-flow.core :refer [flow match?]]
-              [matcher-combinators.matchers :as matchers]])
-
-(flow "my flow"
-
-  ;;embeds
-  (match? "my first test" {:a 2 :b 3 :c 4} {:a 2 :b 3})
-
-  ;;exact match
-  (match? "my second test" {:a 2 :b 3 :c 4} (matchers/equals {:a 2 :b 3 :c 4})
-
- ;; in any order
- (match? "my third test" [1 2 3] (matchers/in-any-order [1 3 2]))
-
-  ;; with flow
- (match? "my fourth test"
-   (kafka/last-message :my-topic)
-   {:payload "payload"}))
-```
-
-In the backend, the first test will define the following test, for instance:
-
-```clojure
-(deftest my-flow->my-first-test
-  (is (match? {:a 2 :b 3} {:a 2 :b 3 :c 4})))
 ```
 
 ### Midje Support
