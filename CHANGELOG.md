@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.0]
+- [BREAKING] Move `verify` to `state-flow.midje` namespace.
+
 ## [1.15.1]
 - Add alias for m/return as state/return
 
