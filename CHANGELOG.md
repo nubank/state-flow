@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.1]
+- Allow `(str ...)` to be a valid flow description
+
 ## [2.0.0]
 - [BREAKING] Move `verify` to from `state-flow.core` to the `state-flow.midje` namespace.
 

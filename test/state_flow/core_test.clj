@@ -82,6 +82,12 @@
                                        (sf.state/swap #(assoc % :value doubled))))
         => (throws IllegalArgumentException))
 
+  (fact "flow with a `(str ..)` expr for the description is fine"
+      (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
+                                                  :let [doubled (* 2 original)]]
+                                     (sf.state/swap #(assoc % :value doubled))))
+        => list?)
+
   (fact "but flows with an expression that resolves to a string also aren't valid,
         due to resolution limitations at macro-expansion time"
         (let [my-desc "trolololo"]
