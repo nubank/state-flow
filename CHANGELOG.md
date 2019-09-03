@@ -1,7 +1,13 @@
 # Changelog
 
-## [1.15.1]
+## [2.0.1]
 - Allow `(str ...)` to be a valid flow description
+
+## [2.0.0]
+- [BREAKING] Move `verify` to from `state-flow.core` to the `state-flow.midje` namespace.
+
+## [1.15.1]
+- Add alias for m/return as state/return
 
 ## [1.15.0]
 - Require flows to have a string description to prevent the first subflow from
