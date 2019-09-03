@@ -14,7 +14,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.3.2"]
                  [funcool/cats "2.3.2"]
-                 [nubank/matcher-combinators "1.1.0"]]
+                 [nubank/matcher-combinators "1.2.1"]]
 
   :exclusions   [log4j]
 

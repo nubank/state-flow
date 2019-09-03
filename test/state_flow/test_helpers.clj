@@ -4,6 +4,7 @@
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]))
 
+(def get-value (comp deref :value))
 (def get-value-state (state/gets get-value))
 
 (def increment-two
