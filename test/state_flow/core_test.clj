@@ -3,65 +3,28 @@
             [cats.data :as d]
             [cats.monad.state :as state]
             [midje.sweet :refer :all]
+            [state-flow.test-helpers :as test-helpers]
+            [state-flow.midje :as midje]
             [state-flow.core :as state-flow]
             [state-flow.state :as sf.state]))
-
-(def increment-two
-  (m/mlet [world (sf.state/get)]
-    (m/return (+ 2 (-> world :value)))))
-
-(def get-value (comp deref :value))
-(def get-value-state (state/gets get-value))
-
-(defn delayed-increment-two
-  [delay-ms]
-  "Changes world in the future"
-  (state/state (fn [world]
-                 (future (do (Thread/sleep delay-ms)
-                             (swap! (:value world) + 2)))
-                 (d/pair nil world))))
 
 (defn double-key [k]
   (state/swap (fn [w] (update w k #(* 2 %)))))
 
 (facts state-flow/probe
   (fact "add two to state 1, result is 3, doesn't change world"
-    (first (state-flow/run (state-flow/probe increment-two #(= % 3)) {:value 1})) => [true 3])
+    (first (state-flow/run (state-flow/probe test-helpers/increment-two #(= % 3)) {:value 1})) => [true 3])
 
   (fact "add two with small delay"
     (let [world {:value (atom 0)}]
-      (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
-      (state-flow/run (state-flow/probe get-value-state #(= 2 %)) world) => (d/pair [true 2] world)))
+      (state-flow/run (test-helpers/delayed-increment-two 100) world) => (d/pair nil world)
+      (state-flow/run (state-flow/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [true 2] world)))
 
   (fact "add two with too much delay"
     (let [world {:value (atom 0)}]
-      (state-flow/run (delayed-increment-two 4000) world) => (d/pair nil world)
-      (state-flow/run (state-flow/probe get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
+      (state-flow/run (test-helpers/delayed-increment-two 4000) world) => (d/pair nil world)
+      (state-flow/run (state-flow/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
 
-(facts "on verify"
-
-  (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (state-flow/verify "description" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
-
-  (fact "works with non-state values"
-    (state-flow/run (state-flow/verify "description" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
-
-  (fact "add two with small delay"
-    (def world {:value (atom 0)})
-    (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
-    (state-flow/run (state-flow/verify "description" get-value-state 2) world) => (d/pair 2 (merge world {:meta {:description []}})))
-
-  (fact "add two with too much delay"
-    (def world {:value (atom 0)})
-    (state-flow/run (delayed-increment-two 4000) world)
-    (state-flow/run (state-flow/verify "description" get-value-state 0) world))
-
-  (fact "extended equality works"
-    (let [val {:a 2 :b 5}]
-      (state/run (state-flow/verify-probe "contains with monadic left value"
-                                          (sf.state/get) (contains {:a 2}) {}) val) => (d/pair val val)
-      (state/run (state-flow/verify-probe "just with monadic left value"
-                                          (sf.state/get) (just {:a 2 :b 5}) {}) val) => (d/pair val val))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
@@ -71,7 +34,7 @@
   (state-flow/flow "root"
     (state-flow/flow "child1" increment-two-value)
     (state-flow/flow "child2" increment-two-value)
-    (state-flow/verify "value incremented by 4"
+    (midje/verify "value incremented by 4"
       (state/gets #(-> % :value)) 4)))
 
 (def flow-with-bindings
@@ -79,7 +42,7 @@
     [original (state/gets :value)
      :let [doubled (* 2 original)]]
     (sf.state/swap #(assoc % :value doubled))
-    (state-flow/verify "value is doubled"
+    (midje/verify "value is doubled"
       (state/gets #(-> % :value)) doubled)))
 
 (def bogus-flow
