@@ -1,5 +1,4 @@
-(defproject nubank/state-flow "1.15.1"
-
+(defproject nubank/state-flow "2.0.0"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -11,18 +10,18 @@
             [lein-ancient "0.6.15"]
             [changelog-check "0.1.0"]]
 
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.taoensso/timbre "4.10.0"]
-                 [com.stuartsierra/component "0.3.2"]
+                 [com.stuartsierra/component "0.4.0"]
                  [funcool/cats "2.3.2"]
-                 [nubank/matcher-combinators "1.1.0"]]
+                 [nubank/matcher-combinators "1.2.1"]]
 
   :exclusions   [log4j]
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["config"]
-                   :dependencies [[ns-tracker "0.3.1"]
-                                  [org.clojure/tools.namespace "0.3.0"]
+                   :dependencies [[ns-tracker "0.4.0"]
+                                  [org.clojure/tools.namespace "0.3.1"]
                                   [midje "1.9.9"]
                                   [org.clojure/java.classpath "0.3.0"]]}}
 
