@@ -119,7 +119,7 @@ Or we could increment the value first and then return it doubled:
 ## Clojure.test Support
 
 The way we can use flows to make `clojure.test` tests is by using `match?`.
-`match?` is a flow that will make a `clojure.test` assertion and the `nubank/matcher-combinators` library
+`match?` is a flow that will make a `clojure.test` assertion and the [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/) library
 for the actual checking and failure messages. `match?` asks for a string description, a value (or a flow returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
 
 The assertions should be wrapped in a `defflow`. `defflow` will define a test (using `deftest`)
@@ -161,7 +161,8 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
 
 ```clojure
 (:require
-  [state-flow.core :refer [flow verify]])
+  [state-flow.core :refer [flow]]
+  [state-flow.midje :refer [verify]])
 
 (defn stores-data-in-db
   [data]
