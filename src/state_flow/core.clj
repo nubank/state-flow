@@ -37,7 +37,7 @@
 
 (defn string-expr? [x]
   (or (string? x)
-      (and (sequential? x)
+      (and (list? x)
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
