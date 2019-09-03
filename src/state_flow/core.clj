@@ -35,11 +35,17 @@
   (m/mlet [desc-list (state/gets #(-> % :meta :description))]
     (m/return (description->string desc-list))))
 
+(defn string-expr? [x]
+  (or (string? x)
+      (and (list? x)
+           (or (= (first x) 'str)
+               (= (first x) 'clojure.core/str)))))
+
 (defmacro flow
   "Defines a flow"
   {:style/indent :defn}
   [description & flows]
-  (when-not (string? description)
+  (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
   (let [flows' (or flows
                    '[(state/swap identity)])]
