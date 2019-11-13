@@ -13,8 +13,8 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.4.0"]
-                 [funcool/cats "2.3.2"]
-                 [nubank/matcher-combinators "1.2.1"]]
+                 [funcool/cats "2.3.3"]
+                 [nubank/matcher-combinators "1.2.4"]]
 
   :exclusions   [log4j]
 
