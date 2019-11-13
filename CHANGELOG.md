@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.2]
+- Update cats and matcher-combinators to latest versions
+
 ## [2.0.1]
 - Allow `(str ...)` to be a valid flow description
 
