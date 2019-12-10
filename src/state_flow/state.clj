@@ -68,8 +68,8 @@
   (state/put s error-context))
 
 (defn swap
-  [f]
-  (state/swap f error-context))
+  [f & args]
+  (state/swap (fn [s] (apply f s args)) error-context))
 
 (defn wrap-fn
   "Wraps a (possibly side-effecting) function to a state monad"

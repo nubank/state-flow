@@ -13,7 +13,7 @@
            _ (sf.state/put (+ x 1))]
     (m/return x)))
 
-(def double-state (sf.state/swap #(* 2 %)))
+(def double-state (sf.state/swap * 2))
 
 (fact "postincrement"
   (state/run postincrement 1) => (d/pair 1 2))

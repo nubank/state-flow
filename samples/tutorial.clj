@@ -21,7 +21,7 @@ Runner
 (state-flow/run! get-value {:value 4})
 ; => [4 {:value 4}]
 
-(def inc-value (state/swap #(update-in % [:value] inc)))
+(def inc-value (state/swap update :value inc))
 (state-flow/run! inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 
@@ -100,5 +100,3 @@ Asynchronous tests
 
 (state-flow/run! with-async-success {:value (atom 4)})
 ;=> [5 {:value (atom 5)}]
-
-

@@ -87,7 +87,7 @@ fetches the `<value>` inside `<number>`:
 For updating the state we can use `state/swap`. If we want to write a flow that will increment value by one, it could be done like this:
 
 ```clojure
-(def inc-value (state/swap #(update-in % [:value] inc)))
+(def inc-value (state/swap update :value inc)))
 (state-flow/run! inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 ```
