@@ -77,13 +77,6 @@
                  {:value [1 2 3]
                   :meta  {:description []}}))))
 
-(defmacro tap [x]
-  `(let [res# ~x]
-     (clojure.pprint/pprint '~x)
-     (clojure.pprint/pprint res#)
-
-     res#))
-
 (facts "on `testing`"
        (fact "works for failure cases"
              (let [val {:value {:a 2 :b 5}}]
