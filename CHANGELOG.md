@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.4]
+- update `times-to-try` default from `100` to `5` and `sleep-time` default from `10` to `200`
+
 ## [2.0.3]
 - Add `state-flow.state/modify` to align with rest of the fn names from Haskell's State Monad
 - Deprecate `state-flow.state/swap` (use `modify` instead)

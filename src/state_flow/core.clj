@@ -6,8 +6,8 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-(def sleep-time 10)
-(def times-to-try 100)
+(def sleep-time 200)
+(def times-to-try 5)
 
 (defn update-description
   [old new]
@@ -50,10 +50,10 @@
   (let [flows' (or flows
                    '[(state/swap identity)])]
     `(m/do-let
-       (push-meta ~description)
-       [ret# (m/do-let ~@flows')]
-       pop-meta
-       (m/return ret#))))
+      (push-meta ~description)
+      [ret# (m/do-let ~@flows')]
+      pop-meta
+      (m/return ret#))))
 
 (defn retry
   "Tries at most n times, returns a vector with true and first element that succeeded

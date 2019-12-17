@@ -1,8 +1,8 @@
 (ns state-flow.cljtest
   (:require [cats.core :as m]
             [clojure.test :as ctest :refer [is]]
-            [matcher-combinators.test]
             [matcher-combinators.core :as matcher-combinators]
+            [matcher-combinators.test]
             [state-flow.core :as core]
             [state-flow.state :as state]))
 

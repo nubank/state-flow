@@ -3,10 +3,10 @@
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [cats.monad.state :as state]
             [cats.protocols :as p]
             [midje.sweet :refer :all]
-            [state-flow.state :as sf.state]
-            [cats.monad.state :as state]))
+            [state-flow.state :as sf.state]))
 
 (def postincrement
   (m/mlet [x (sf.state/get)
@@ -22,8 +22,8 @@
   (m/mlet [x postincrement
            y postincrement
            z (sf.state/get)]
-          (m/return (fact "z is equal to initial state incremented by two"
-                      z => (+ x 2)))))
+    (m/return (fact "z is equal to initial state incremented by two"
+                z => (+ x 2)))))
 
 (state/run state-with-fact-check 0)
 
