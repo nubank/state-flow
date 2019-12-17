@@ -4,11 +4,11 @@
 
 An integration testing framework for building and composing test flows with support for clojure.test and midje
 
-The StateFlow library aim to provide a compositional way in which one could implement integration tests. The main advantage of this approach is to reduce coupling between test steps and allow for more reusability and composability of flows.
+StateFlow provides a compositional approach to implementing integration tests. The goal is to reduce coupling between test steps in order to support reuse and composition of flows.
 
 ## The flow macro
 
-Defining a flow is done by using the `flow` macro, which expects a description as first parameter and a variable number of steps that can be other flows, bindings or primitives.
+Defining a flow is done with the `flow` macro, which expects a description and a variable number of steps that can be other flows, bindings or primitives.
 
 Flow macro syntax:
 ```clojure
@@ -27,56 +27,63 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 
 ### Primitives
 
-The primitives are the fundamental building blocks of a flow and are enough to build
-any kinds of flow.
-Below we list the main primitives and the kind of function they represent:
+Primitives are the fundamental building blocks of flows and are
+enough to build any kind of flow. Each one returns a function of the
+state. These functions are wrapped in Records in order to support
+background processing, but you can just think of them as functions.
+
+Below we list the main primitives and a model for the sort of function
+each represents. The names of the primatives are derived from
+https://wiki.haskell.org/State_Monad, which you should read if you
+want to understand how StateFlow works, but you should not need to
+read in order to use StateFlow.
 
 * Returning current state
 
 ```clojure
 state-flow.state/get
-;=> (State. (fn [s] [s s]))
+;=> (fn [s] [s s])
 ```
 
-* Returning a function application on the current state
+* Returning the application of a function on the current state
 
 ```clojure
 (state-flow.state/gets f)
-;=> (State. (fn [s] [(f s) s]))
+;=> (fn [s] [(f s) s])
 ```
 
-* Inserting a new state
+* Resetting a new state
 
 ```clojure
 (state-flow.state/put new-s)
-;=> (State. (fn [s] [s new-s]))
+;=> (fn [s] [s new-s])
 ```
 
-* Changing the state by applying a function transforming it
+* Updating the state by applying a function
 
 ```clojure
-(state-flow.state/swap f)
-;=> (State. (fn [s] [s (f s)]))
+(state-flow.state/modify f)
+;=> (fn [s] [s (f s)])
 ```
-* Returning a value
+* Returning an arbitrary value
 
 ```clojure
 (state-flow.state/return v)
-;=> (State. (fn [s] [v s]))
+;=> (fn [s] [v s])
 ```
 
 ### Bindings
 
-The bindings are where we can take advantage of the return values of flows to compose other flows and have the following syntax:
+Bindings take advantage of the return values of flows to compose other flows and have the following syntax:
 
 `[(<symbol> <flow/primitive>)+]`
 
-They work pretty much like `let` bindings but the left symbol binds to the return value of the flow on the right.
+They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the flow on the right.
 
 ### Flow Example
 
-Supposing our system state is made out of a simple map with `{:value <number>}`, we can make a flow that just
-fetches the `<value>` inside `<number>`:
+Suppose our system state is made out of a simple map with `{:value <value>}`. We can make a flow that just
+fetches the value bound to `:value`.
 
 ```clojure
 (def get-value (state/gets :value))
@@ -84,16 +91,17 @@ fetches the `<value>` inside `<number>`:
 ; => [4 {:value 4}]
 ```
 
-For updating the state we can use `state/swap`. If we want to write a flow that will increment value by one, it could be done like this:
+We can use `state/modify` to modify the state. Here's a flow that increments the value:
 
 ```clojure
-(def inc-value (state/swap #(update-in % [:value] inc)))
+(def inc-value (state/modify #(update % :value inc)))
 (state-flow/run! inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 ```
 
-Using bindings is the most effective way we can compose simple flows into more complex flows.
-If instead of returning the value we wanted to return the value multiplied by two, we could do it like this:
+Bindings enable us to compose simple flows into more complex flows.
+If, instead of returning the value, we wanted to return the value
+multiplied by two, we could do it like this:
 
 ```clojure
 (def double-value
@@ -112,7 +120,7 @@ Or we could increment the value first and then return it doubled:
     inc-value
     [value get-value]
     (state/return (* value 2))))
-(state-flow/run! double-value {:value 4})
+(state-flow/run! inc-and-double-value {:value 4})
 ; => [10 {:value 5 :meta {:description []}}]
 ```
 

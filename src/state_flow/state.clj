@@ -60,16 +60,34 @@
 (util/make-printable (type error-context))
 
 (defn get
+  "Returns the equivalent of (fn [state] [state, state])"
   []
   (state/get error-context))
 
-(defn put
-  [s]
-  (state/put s error-context))
+(defn gets
+  [f]
+  "Returns the equivalent of (fn [state] [state, (f state)])"
+  (state/gets f))
 
-(defn swap
+(defn put
+  "Returns the equivalent of (fn [state] [state, new-state])"
+  [new-state]
+  (state/put new-state error-context))
+
+(defn modify
+  "Returns the equivalent of (fn [state] [state, (swap! state f)])"
   [f]
   (state/swap f error-context))
+
+(defn return
+  "Returns the equivalent of (fn [state] [v, state])"
+  [v]
+  (m/return v))
+
+(defn ^:deprecated swap
+  "DEPRECATED: use modify"
+  [f]
+  (modify f))
 
 (defn wrap-fn
   "Wraps a (possibly side-effecting) function to a state monad"
@@ -82,5 +100,3 @@
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
-(def gets state/gets)
-(def return m/return)
