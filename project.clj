@@ -20,8 +20,10 @@
 
   :exclusions   [log4j]
 
-  :cljfmt {:indents {mlet [[:block 1]]
-                     flow [[:block 1]]}}
+  :cljfmt {:indents {mlet  [[:block 1]]
+                     facts [[:block 1]]
+                     fact  [[:block 1]]
+                     flow  [[:block 1]]}}
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["config"]

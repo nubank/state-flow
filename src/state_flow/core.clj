@@ -50,10 +50,10 @@
   (let [flows' (or flows
                    '[(state/swap identity)])]
     `(m/do-let
-       (push-meta ~description)
-       [ret# (m/do-let ~@flows')]
-       pop-meta
-       (m/return ret#))))
+      (push-meta ~description)
+      [ret# (m/do-let ~@flows')]
+      pop-meta
+      (m/return ret#))))
 
 (defn retry
   "Tries at most n times, returns a vector with true and first element that succeeded

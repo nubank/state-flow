@@ -3,10 +3,10 @@
             [cats.data :as d]
             [cats.monad.state :as state]
             [midje.sweet :refer :all]
-            [state-flow.test-helpers :as test-helpers]
-            [state-flow.midje :as midje]
             [state-flow.core :as state-flow]
-            [state-flow.state :as sf.state]))
+            [state-flow.midje :as midje]
+            [state-flow.state :as sf.state]
+            [state-flow.test-helpers :as test-helpers]))
 
 (defn double-key [k]
   (state/swap (fn [w] (update w k #(* 2 %)))))
@@ -25,7 +25,6 @@
       (state-flow/run (test-helpers/delayed-increment-two 4000) world) => (d/pair nil world)
       (state-flow/run (state-flow/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
 
-
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
   (state/swap (fn [s] (update s :value #(+ 2 %)))))
@@ -35,7 +34,7 @@
     (state-flow/flow "child1" increment-two-value)
     (state-flow/flow "child2" increment-two-value)
     (midje/verify "value incremented by 4"
-      (state/gets #(-> % :value)) 4)))
+                  (state/gets #(-> % :value)) 4)))
 
 (def flow-with-bindings
   (state-flow/flow "root"
@@ -43,7 +42,7 @@
      :let [doubled (* 2 original)]]
     (sf.state/swap #(assoc % :value doubled))
     (midje/verify "value is doubled"
-      (state/gets #(-> % :value)) doubled)))
+                  (state/gets #(-> % :value)) doubled)))
 
 (def bogus-flow
   (state-flow/flow "root"
@@ -77,24 +76,24 @@
         :value 0})
 
   (fact "flow without description fails at macro-expansion time"
-        (macroexpand `(state-flow/flow [original (state/gets :value)
-                                        :let [doubled (* 2 original)]]
-                                       (sf.state/swap #(assoc % :value doubled))))
-        => (throws IllegalArgumentException))
+    (macroexpand `(state-flow/flow [original (state/gets :value)
+                                    :let [doubled (* 2 original)]]
+                    (sf.state/swap #(assoc % :value doubled))))
+    => (throws IllegalArgumentException))
 
   (fact "flow with a `(str ..)` expr for the description is fine"
-      (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
-                                                  :let [doubled (* 2 original)]]
-                                     (sf.state/swap #(assoc % :value doubled))))
-        => list?)
+    (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
+                                                :let [doubled (* 2 original)]]
+                                   (sf.state/swap #(assoc % :value doubled))))
+    => list?)
 
   (fact "but flows with an expression that resolves to a string also aren't valid,
         due to resolution limitations at macro-expansion time"
-        (let [my-desc "trolololo"]
-          (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
-                                                    :let [doubled (* 2 original)]]
-                                         (sf.state/swap #(assoc % :value doubled)))))
-        => (throws IllegalArgumentException))
+    (let [my-desc "trolololo"]
+      (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
+                                                :let [doubled (* 2 original)]]
+                                     (sf.state/swap #(assoc % :value doubled)))))
+    => (throws IllegalArgumentException))
 
   (fact "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
@@ -118,7 +117,7 @@
     (-> (state-flow/run* {:init    (constantly {:value 0
                                                 :atom  (atom 1)})
                           :cleanup #(reset! (:atom %) 0)}
-          nested-flow)
+                         nested-flow)
         second
         :atom
         deref)
@@ -128,7 +127,7 @@
     (state-flow/run* {:init   (constantly {:value 0})
                       :runner (fn [flow state]
                                 [nil (state/exec flow state)])}
-      nested-flow)
+                     nested-flow)
     => [nil {:meta  {:description []}
              :value 4}]))
 
