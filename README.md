@@ -30,7 +30,7 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 Primitives are the fundamental building blocks of flows and are
 enough to build any kind of flow. Each one returns a function of the
 state. These functions are wrapped in Records in order to support
-background processing, but you can just think of them as functions.
+Protocols, but you can just think of them as functions.
 
 Below we list the main primitives and a model for the sort of function
 each represents. The names of the primatives are derived from
