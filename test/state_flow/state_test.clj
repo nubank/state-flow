@@ -13,7 +13,7 @@
            _ (sf.state/put (+ x 1))]
     (m/return x)))
 
-(def double-state (sf.state/swap #(* 2 %)))
+(def double-state (sf.state/modify #(* 2 %)))
 
 (fact "postincrement"
   (state/run postincrement 1) => (d/pair 1 2))
@@ -30,7 +30,7 @@
 (def will-fail
   (m/>> double-state
         double-state
-        (sf.state/swap (fn [s] (throw (Exception. "My exception"))))
+        (sf.state/modify (fn [s] (throw (Exception. "My exception"))))
         double-state))
 
 (fact "Error short-circuits execution"
