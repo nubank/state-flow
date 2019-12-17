@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.3]
+- update `times-to-try` default from `100` to `3`
+
 ## [2.0.2]
 - Update cats and matcher-combinators to latest versions
 
