@@ -41,7 +41,7 @@
   (state-flow/flow "root"
     [original (state/gets :value)
      :let [doubled (* 2 original)]]
-    (sf.state/swap #(assoc % :value doubled))
+    (sf.state/modify #(assoc % :value doubled))
     (midje/verify "value is doubled"
       (state/gets #(-> % :value)) doubled)))
 
@@ -79,13 +79,13 @@
   (fact "flow without description fails at macro-expansion time"
         (macroexpand `(state-flow/flow [original (state/gets :value)
                                         :let [doubled (* 2 original)]]
-                                       (sf.state/swap #(assoc % :value doubled))))
+                                       (sf.state/modify #(assoc % :value doubled))))
         => (throws IllegalArgumentException))
 
   (fact "flow with a `(str ..)` expr for the description is fine"
       (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
                                                   :let [doubled (* 2 original)]]
-                                     (sf.state/swap #(assoc % :value doubled))))
+                                     (sf.state/modify #(assoc % :value doubled))))
         => list?)
 
   (fact "but flows with an expression that resolves to a string also aren't valid,
@@ -93,7 +93,7 @@
         (let [my-desc "trolololo"]
           (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
                                                     :let [doubled (* 2 original)]]
-                                         (sf.state/swap #(assoc % :value doubled)))))
+                                         (sf.state/modify #(assoc % :value doubled)))))
         => (throws IllegalArgumentException))
 
   (fact "nested-flow-with exception, returns exception and state before exception"
