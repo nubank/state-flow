@@ -1,7 +1,11 @@
 # Changelog
 
-## [2.0.3]
+## [2.0.4]
 - update `times-to-try` default from `100` to `5` and `sleep-time` default from `10` to `200`
+
+## [2.0.3]
+- Add `state-flow.state/modify` to align with rest of the fn names from Haskell's State Monad
+- Deprecate `state-flow.state/swap` (use `modify` instead)
 
 ## [2.0.2]
 - Update cats and matcher-combinators to latest versions
@@ -23,7 +27,7 @@
 - Allow for empty flows
 
 ## [1.13.0]
-- Add optional parameters to `match?`, making it possible to tweak times-to-try and sleep-time of test probing 
+- Add optional parameters to `match?`, making it possible to tweak times-to-try and sleep-time of test probing
 
 ## [1.12.1]
 - Fix and update matcher-combinators dependency

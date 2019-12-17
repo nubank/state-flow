@@ -9,7 +9,7 @@ The primitive steps
 
 (state/gets getter) => (fn [s] [(getter s) s])
 
-(state/swap setter) => (fn [s] [s (setter s)])
+(state/modify setter) => (fn [s] [s (setter s)])
 
 (m/return value) => (fn [s] [value s])
 """
@@ -21,7 +21,7 @@ Runner
 (state-flow/run! get-value {:value 4})
 ; => [4 {:value 4}]
 
-(def inc-value (state/swap #(update-in % [:value] inc)))
+(def inc-value (state/modify #(update % :value inc)))
 (state-flow/run! inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 
@@ -77,10 +77,10 @@ Tests
 Asynchronous tests
 """
 (def delayed-inc-value
-  (state/swap (fn [world]
-                (future (do (Thread/sleep 200)
-                            (swap! (:value world) inc)))
-                world)))
+  (state/modify (fn [world]
+                  (future (do (Thread/sleep 200)
+                              (swap! (:value world) inc)))
+                  world)))
 
 (def get-value-deref
   (state/gets (comp deref :value)))
@@ -100,5 +100,3 @@ Asynchronous tests
 
 (state-flow/run! with-async-success {:value (atom 4)})
 ;=> [5 {:value (atom 5)}]
-
-
