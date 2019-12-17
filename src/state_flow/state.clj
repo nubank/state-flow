@@ -29,7 +29,6 @@
     (-mreturn [_ v]
       (state/state (partial d/pair v) error-context))
 
-
     (-mbind [_ self f]
       (state/state (fn [s]
                      (let [mp ((e/wrap (p/-extract self)) s)]
