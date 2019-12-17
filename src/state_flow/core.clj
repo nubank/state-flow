@@ -7,7 +7,7 @@
             [taoensso.timbre :as log]))
 
 (def sleep-time 10)
-(def times-to-try 100)
+(def times-to-try 3)
 
 (defn update-description
   [old new]
