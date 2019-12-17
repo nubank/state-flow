@@ -2,8 +2,9 @@
   (:require [cats.core :as m]
             [cats.data :as d]
             [cats.monad.state :as state]
-            [clojure.test :as ctest]
+            [clojure.test :as ctest :refer [is]]
             [matcher-combinators.matchers :as matchers]
+            [matcher-combinators.test]
             [midje.sweet :refer :all]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
@@ -75,6 +76,25 @@
       => (d/pair [1 2 3]
                  {:value [1 2 3]
                   :meta  {:description []}}))))
+
+(defmacro tap [x]
+  `(let [res# ~x]
+     (clojure.pprint/pprint '~x)
+     (clojure.pprint/pprint res#)
+
+     res#))
+
+(facts "on `testing`"
+       (fact "works for failure cases"
+             (let [val {:value {:a 2 :b 5}}]
+               (state-flow/run (state-flow/flow "desc"
+                                 [v (state/gets :value)]
+                                 (cljtest/testing "contains with monadic left value"
+                                   (is (= {:a 1 :b 5} v))))
+                 val)
+               => (d/pair false
+                          {:value {:a 2 :b 5}
+                           :meta  {:description []}}))))
 
 (facts "defflow"
   (fact "defines flow with default parameters"
