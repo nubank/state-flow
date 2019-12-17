@@ -6,8 +6,8 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-(def sleep-time 10)
-(def times-to-try 3)
+(def sleep-time 200)
+(def times-to-try 5)
 
 (defn update-description
   [old new]

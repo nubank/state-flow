@@ -1,7 +1,7 @@
 # Changelog
 
 ## [2.0.3]
-- update `times-to-try` default from `100` to `3`
+- update `times-to-try` default from `100` to `5` and `sleep-time` default from `10` to `200`
 
 ## [2.0.2]
 - Update cats and matcher-combinators to latest versions
