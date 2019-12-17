@@ -41,13 +41,17 @@
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
+(defn wrap-with-assert-flow! [f]
+  `(do (assert (state/state? ~f) (str "Expected a flow but found a " (type ~f)))
+       ~f))
+
 (defmacro flow
   "Defines a flow"
   {:style/indent :defn}
   [description & flows]
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
-  (let [flows' (or flows
+  (let [flows' (or (map wrap-with-assert-flow! flows)
                    '[(state/swap identity)])]
     `(m/do-let
        (push-meta ~description)
