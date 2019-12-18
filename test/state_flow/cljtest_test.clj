@@ -77,18 +77,6 @@
                  {:value [1 2 3]
                   :meta  {:description []}}))))
 
-(facts "on `testing`"
-       (fact "works for failure cases"
-             (let [val {:value {:a 2 :b 5}}]
-               (state-flow/run (state-flow/flow "desc"
-                                 [v (state/gets :value)]
-                                 (cljtest/testing "contains with monadic left value"
-                                   (is (= {:a 1 :b 5} v))))
-                 val)
-               => (d/pair false
-                          {:value {:a 2 :b 5}
-                           :meta  {:description []}}))))
-
 (facts "defflow"
   (fact "defines flow with default parameters"
     (macroexpand-1 '(defflow my-flow (cljtest/match? "equals" 1 1)))
