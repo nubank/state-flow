@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.5]
+- Add `state-flow.labs` namespace for experimental features
+- Add `state-flow.labs.cljtest/testing`
+
 ## [2.0.4]
 - update `times-to-try` default from `100` to `5` and `sleep-time` default from `10` to `200`
 
