@@ -6,8 +6,6 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-(def sleep-time 200)
-(def times-to-try 5)
 
 (defn update-description
   [old new]
@@ -17,14 +15,14 @@
 
 (defn push-meta
   [description]
-  (state/swap
+  (state/modify
    (fn [s]
-     (update-in s [:meta :description] #(update-description % description)))))
+     (update-in s [::meta :description] #(update-description % description)))))
 
 (def pop-meta
   (state/swap
    (fn [s]
-     (update-in s [:meta :description] #(pop %)))))
+     (update-in s [::meta :description] #(pop %)))))
 
 (defn description->string
   [description]
@@ -32,8 +30,8 @@
 
 (defn get-description
   []
-  (m/mlet [desc-list (state/gets #(-> % :meta :description))]
-    (m/return (description->string desc-list))))
+  (m/mlet [desc-list (state/gets #(-> % ::meta :description))]
+    (state/return (description->string desc-list))))
 
 (defn string-expr? [x]
   (or (string? x)
@@ -48,37 +46,16 @@
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
   (let [flows' (or flows
-                   '[(state/swap identity)])]
+                   '[(state/return nil)])]
     `(m/do-let
       (push-meta ~description)
       [ret# (m/do-let ~@flows')]
       pop-meta
-      (m/return ret#))))
-
-(defn retry
-  "Tries at most n times, returns a vector with true and first element that succeeded
-  or false and result of the first try"
-  [times pred? lazy-seq]
-  (let [remaining (drop-while (complement pred?) (take times lazy-seq))]
-    (if (empty? remaining)
-      [false (first lazy-seq)]
-      [true  (first remaining)])))
-
-(defn probe
-  "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
-  ([state check-fn {:keys [sleep-time times-to-try]
-                    :or {sleep-time sleep-time
-                         times-to-try times-to-try}}]
-   (m/mlet [world (state/get)
-            :let [runs   (repeatedly #(do (Thread/sleep sleep-time) (state/eval state world)))
-                  result (retry times-to-try #(check-fn %) runs)]]
-     (m/return result)))
-  ([state check-fn]
-   (probe state check-fn {:sleep-time sleep-time :times-to-try times-to-try})))
+      (state/return ret#))))
 
 (defn run
   [flow initial-state]
-  (assert (state/state? flow) "First argument must be a State Monad")
+  (assert (state/state? flow) "First argument must be a flow")
   (assert (map? initial-state) "Initial state must be a map")
   (state/run flow initial-state))
 
@@ -87,7 +64,7 @@
   [flow initial-state]
   (let [result (run flow initial-state)]
     (when (e/failure? (first result))
-      (let [description (->> result second :meta :description
+      (let [description (->> result second ::meta :description
                              description->string)
             message (str "Flow " "\"" description "\"" " failed with exception")]
         (log/info (m/extract (first result)) message)
