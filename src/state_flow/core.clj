@@ -39,7 +39,7 @@
 
 (defn string-expr? [x]
   (or (string? x)
-      (and (list? x)
+      (and (sequential? x)
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
@@ -48,7 +48,7 @@
   {:style/indent :defn}
   [description & flows]
   (when-not (string-expr? description)
-    (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
+     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (let [flows' (or flows
                    '[(m/return nil)])]
     `(m/do-let

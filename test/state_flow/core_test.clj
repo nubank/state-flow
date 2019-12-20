@@ -66,7 +66,7 @@
           (macroexpand `(state-flow/flow (sf.state/return {})))
           (catch clojure.lang.Compiler$CompilerException e
             (.. e getCause getMessage)))
-        => (match #"first argument .* must be .* description string"))
+        => #"first argument .* must be .* description string")
 
   (fact "flow with a `(str ..)` expr for the description is fine"
     (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
@@ -76,11 +76,14 @@
 
   (fact "but flows with an expression that resolves to a string also aren't valid,
         due to resolution limitations at macro-expansion time"
-    (let [my-desc "trolololo"]
-      (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
-                                                :let [doubled (* 2 original)]]
-                      (sf.state/modify #(assoc % :value doubled)))))
-    => (throws IllegalArgumentException))
+        (let [my-desc "trolololo"]
+          (try
+            (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
+                                                      :let [doubled (* 2 original)]]
+                            (sf.state/modify #(assoc % :value doubled))))
+            (catch clojure.lang.Compiler$CompilerException e
+              (.. e getCause getMessage))))
+        => #"first argument .* must be .* description string")
 
   (fact "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
