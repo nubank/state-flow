@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.0]
+- Moved probe to its own namespace
+- Changed push-meta and pop-meta so that execution descriptions are logged
+
 ## [2.0.4]
 - update `times-to-try` default from `100` to `5` and `sleep-time` default from `10` to `200`
 
