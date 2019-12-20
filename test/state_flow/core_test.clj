@@ -6,24 +6,25 @@
             [state-flow.core :as state-flow]
             [state-flow.midje :as midje]
             [state-flow.state :as sf.state]
+            [state-flow.test :as state-flow.test]
             [state-flow.test-helpers :as test-helpers]))
 
 (defn double-key [k]
   (state/swap (fn [w] (update w k #(* 2 %)))))
 
-(facts state-flow/probe
+(facts state-flow.test/probe
   (fact "add two to state 1, result is 3, doesn't change world"
-    (first (state-flow/run (state-flow/probe test-helpers/increment-two #(= % 3)) {:value 1})) => [true 3])
+    (first (state-flow/run (state-flow.test/probe test-helpers/increment-two #(= % 3)) {:value 1})) => [true 3])
 
   (fact "add two with small delay"
     (let [world {:value (atom 0)}]
       (state-flow/run (test-helpers/delayed-increment-two 100) world) => (d/pair nil world)
-      (state-flow/run (state-flow/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [true 2] world)))
+      (state-flow/run (state-flow.test/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [true 2] world)))
 
   (fact "add two with too much delay"
     (let [world {:value (atom 0)}]
       (state-flow/run (test-helpers/delayed-increment-two 4000) world) => (d/pair nil world)
-      (state-flow/run (state-flow/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
+      (state-flow/run (state-flow.test/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value
@@ -53,17 +54,25 @@
   (state-flow/flow "empty"))
 
 (fact "on push-meta"
-  (state/exec (m/>> (state-flow/push-meta "mydesc")
-                    (state-flow/push-meta "mydesc2")) {}) => {:meta {:description ["mydesc"  "mydesc2"]}})
+  (state/exec (m/>> (#'state-flow/push-meta "mydesc")
+                    (#'state-flow/push-meta "mydesc2")) {}) => {:meta {:description [["mydesc"]
+                                                                                     ["mydesc" "mydesc2"]]}})
 
 (facts "on run flow"
   (fact "run flow of single step"
-    (state/exec (state-flow/flow "single step" increment-two-value) {:value 0}) => {:meta {:description []}
+    (state/exec (state-flow/flow "single step" increment-two-value) {:value 0}) => {:meta {:description [["single step"]
+                                                                                                         []]}
                                                                                     :value 2})
   (fact "flow with two steps"
     (second (state-flow/run (state-flow/flow "two step flow"
-                              increment-two-value
-                              increment-two-value) {:value 0})) => {:meta {:description []} :value 4})
+                              (state-flow/flow "first step" increment-two-value)
+                              (state-flow/flow "second step" increment-two-value))
+              {:value 0})) => {:meta {:description [["two step flow"]
+                                                    ["two step flow" "first step"]
+                                                    ["two step flow"]
+                                                    ["two step flow" "second step"]
+                                                    ["two step flow"]
+                                                    []]} :value 4})
 
   (fact "nested flow"
     (second (state-flow/run nested-flow {:value 0}))

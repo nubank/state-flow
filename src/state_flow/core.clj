@@ -20,7 +20,7 @@
      (update-in s [::meta :description] #(update-description % description)))))
 
 (def pop-meta
-  (state/swap
+  (state/modify
    (fn [s]
      (update-in s [::meta :description] #(pop %)))))
 
