@@ -4,6 +4,7 @@
             [cats.monad.state :as state]
             [clojure.test :as ctest]
             [matcher-combinators.matchers :as matchers]
+            [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
@@ -27,31 +28,34 @@
 (facts "on match?"
 
   (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (cljtest/match? "test-1" increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
+    (let [[ret state] (state-flow/run (cljtest/match? "test-1" increment-two 3) {:value 1})]
+      ret => 3
+      state => (match {:value 1})))
 
   (fact "works with non-state values"
-    (state-flow/run (cljtest/match? "test-2" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
+    (let [[ret state] (state-flow/run (cljtest/match? "test-2" 3 3) {})]
+      ret => 3
+      state => (match{})))
 
   (fact "works with matcher combinators (embeds by default)"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta  {:description []}})))
+    (let [val {:value {:a 2 :b 5}}
+          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)]
+      ret => {:a 2 :b 5}
+      state => (match {:value {:a 2 :b 5}})))
 
   (fact "works with matcher combinators equals"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta  {:description []}})))
+    (let [val {:value {:a 2 :b 5}}
+          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
+      ret => {:a 2 :b 5}
+      state => (match {:value {:a 2 :b 5}})))
 
   (fact "works for failure cases"
-    (let [val {:value {:a 2 :b 5}}]
-      (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 1 :b 5})) val)
-      => (d/pair {:a 2 :b 5}
-                 {:value {:a 2 :b 5}
-                  :meta  {:description []}})))
+    (let [val {:value {:a 2 :b 5}}
+          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value"
+                                        (state/gets :value)
+                                        (matchers/equals {:a 1 :b 5})) val)]
+      ret => {:a 2 :b 5}
+      state => (match {:value {:a 2 :b 5}})))
 
   (fact "add two with small delay"
     (let [world {:value (atom 0)}]
@@ -71,10 +75,8 @@
 
   (fact "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}]
-      (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val)
-      => (d/pair [1 2 3]
-                 {:value [1 2 3]
-                  :meta  {:description []}}))))
+      (second (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val))
+      => (match {:value [1 2 3]}))))
 
 (facts "defflow"
   (fact "defines flow with default parameters"
@@ -116,6 +118,5 @@
   (cljtest/match? "" (state/gets :map) {:b 2}))
 
 (facts "we can run a defined test"
-  (second ((:test (meta #'my-flow)))) => {:value 1
-                                          :map   {:a 1 :b 2}
-                                          :meta  {:description []}})
+  (second ((:test (meta #'my-flow)))) => (match {:value 1
+                                                 :map   {:a 1 :b 2}}))
