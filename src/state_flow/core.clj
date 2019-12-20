@@ -8,21 +8,25 @@
 
 
 (defn update-description
-  [old new]
-  (if (or (nil? old) (empty? old))
-    [new]
-    (conj old new)))
+  [description-log new-description]
+  (if (nil? description-log)
+    [[new-description]]
+    (conj description-log (conj (last description-log) new-description))))
+
+(defn exit
+  [description-log]
+  (conj description-log (pop (last description-log))))
 
 (defn push-meta
   [description]
   (state/modify
    (fn [s]
-     (update-in s [::meta :description] #(update-description % description)))))
+     (update-in s [:meta :description] #(update-description % description)))))
 
 (def pop-meta
   (state/modify
    (fn [s]
-     (update-in s [::meta :description] #(pop %)))))
+     (update-in s [:meta :description] #(exit %)))))
 
 (defn description->string
   [description]
@@ -30,7 +34,7 @@
 
 (defn get-description
   []
-  (m/mlet [desc-list (state/gets #(-> % ::meta :description))]
+  (m/mlet [desc-list (state/gets #(-> % :meta :description last))]
     (m/return (description->string desc-list))))
 
 (defn string-expr? [x]
@@ -64,7 +68,7 @@
   [flow initial-state]
   (let [result (run flow initial-state)]
     (when (e/failure? (first result))
-      (let [description (->> result second ::meta :description
+      (let [description (->> result second :meta :description last
                              description->string)
             message (str "Flow " "\"" description "\"" " failed with exception")]
         (log/info (m/extract (first result)) message)

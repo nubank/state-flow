@@ -74,26 +74,18 @@
                                                     ["two step flow"]
                                                     []]} :value 4})
 
-  (fact "nested flow"
-    (second (state-flow/run nested-flow {:value 0}))
-    => {:meta {:description []}
-        :value 4})
-
   (fact "empty flow"
-    (second (state-flow/run empty-flow {:value 0}))
-    => {:meta {:description []}
-        :value 0})
+    (state-flow/run empty-flow {}) => irrelevant)
 
   (fact "flow without description fails at macro-expansion time"
-    (macroexpand `(state-flow/flow [original (state/gets :value)
-                                    :let [doubled (* 2 original)]]
-                    (sf.state/modify #(assoc % :value doubled))))
+    (macroexpand `(state-flow/flow
+                    (sf.state/return {})))
     => (throws IllegalArgumentException))
 
   (fact "flow with a `(str ..)` expr for the description is fine"
     (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
                                                 :let [doubled (* 2 original)]]
-                                   (sf.state/modify #(assoc % :value doubled))))
+                    (sf.state/modify #(assoc % :value doubled))))
     => list?)
 
   (fact "but flows with an expression that resolves to a string also aren't valid,
@@ -101,7 +93,7 @@
     (let [my-desc "trolololo"]
       (macroexpand `(state-flow/flow ~'my-desc [original (state/gets :value)
                                                 :let [doubled (* 2 original)]]
-                                     (sf.state/modify #(assoc % :value doubled)))))
+                      (sf.state/modify #(assoc % :value doubled)))))
     => (throws IllegalArgumentException))
 
   (fact "nested-flow-with exception, returns exception and state before exception"
