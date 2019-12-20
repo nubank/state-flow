@@ -1,30 +1,13 @@
 (ns state-flow.core-test
   (:require [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.state :as state]
             [midje.sweet :refer :all]
             [state-flow.core :as state-flow]
             [state-flow.midje :as midje]
-            [state-flow.state :as sf.state]
-            [state-flow.test :as state-flow.test]
-            [state-flow.test-helpers :as test-helpers]))
+            [state-flow.state :as sf.state]))
 
 (defn double-key [k]
   (state/swap (fn [w] (update w k #(* 2 %)))))
-
-(facts state-flow.test/probe
-  (fact "add two to state 1, result is 3, doesn't change world"
-    (first (state-flow/run (state-flow.test/probe test-helpers/increment-two #(= % 3)) {:value 1})) => [true 3])
-
-  (fact "add two with small delay"
-    (let [world {:value (atom 0)}]
-      (state-flow/run (test-helpers/delayed-increment-two 100) world) => (d/pair nil world)
-      (state-flow/run (state-flow.test/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [true 2] world)))
-
-  (fact "add two with too much delay"
-    (let [world {:value (atom 0)}]
-      (state-flow/run (test-helpers/delayed-increment-two 4000) world) => (d/pair nil world)
-      (state-flow/run (state-flow.test/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
 
 (def bogus (state/state (fn [s] (throw (Exception. "My exception")))))
 (def increment-two-value

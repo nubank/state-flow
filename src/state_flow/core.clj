@@ -26,7 +26,7 @@
 (def pop-meta
   (state/modify
    (fn [s]
-     (update-in s [:meta :description] #(exit %)))))
+     (update-in s [:meta :description] exit))))
 
 (defn description->string
   [description]
