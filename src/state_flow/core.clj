@@ -31,7 +31,7 @@
 (defn get-description
   []
   (m/mlet [desc-list (state/gets #(-> % ::meta :description))]
-    (state/return (description->string desc-list))))
+    (m/return (description->string desc-list))))
 
 (defn string-expr? [x]
   (or (string? x)
@@ -46,12 +46,12 @@
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument of the flow must be a description string")))
   (let [flows' (or flows
-                   '[(state/return nil)])]
+                   '[(m/return nil)])]
     `(m/do-let
       (push-meta ~description)
       [ret# (m/do-let ~@flows')]
       pop-meta
-      (state/return ret#))))
+      (m/return ret#))))
 
 (defn run
   [flow initial-state]
