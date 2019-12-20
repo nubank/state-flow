@@ -2,7 +2,7 @@
   (:require [cats.core :as m]
             [cats.data :as d]
             [cats.monad.state :as state]
-            [clojure.test :as ctest]
+            [clojure.test :as ctest :refer [is]]
             [matcher-combinators.matchers :as matchers]
             [matcher-combinators.midje :refer [match]]
             [midje.sweet :refer :all]

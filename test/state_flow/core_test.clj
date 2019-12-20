@@ -62,9 +62,11 @@
     (state-flow/run empty-flow {}) => irrelevant)
 
   (fact "flow without description fails at macro-expansion time"
-    (macroexpand `(state-flow/flow
-                    (sf.state/return {})))
-    => (throws IllegalArgumentException))
+        (try
+          (macroexpand `(state-flow/flow (sf.state/return {})))
+          (catch clojure.lang.Compiler$CompilerException e
+            (.. e getCause getMessage)))
+        => (match #"first argument .* must be .* description string"))
 
   (fact "flow with a `(str ..)` expr for the description is fine"
     (macroexpand `(state-flow/flow (str "foo") [original (state/gets :value)
