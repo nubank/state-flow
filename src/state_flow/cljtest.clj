@@ -2,6 +2,7 @@
   (:require [cats.core :as m]
             [clojure.test :as ctest :refer [is]]
             [matcher-combinators.core :as matcher-combinators]
+            [matcher-combinators.test]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
