@@ -4,6 +4,7 @@
             [cats.monad.state :as state]
             [clojure.test :as ctest]
             [matcher-combinators.matchers :as matchers]
+            [matcher-combinators.test]
             [midje.sweet :refer :all]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
