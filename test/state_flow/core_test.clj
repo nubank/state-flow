@@ -99,7 +99,8 @@
     => (match {:value 4}))
 
   (fact "run! throws exception"
-    (state-flow/run! bogus-flow {:value 0}) => (throws Exception)))
+    (with-out-str
+      (state-flow/run! bogus-flow {:value 0})) => (throws Exception)))
 
 (facts state-flow/run*
 
