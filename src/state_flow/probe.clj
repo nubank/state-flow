@@ -29,4 +29,4 @@
                   result (retry times-to-try #(check-fn %) runs)]]
      (state/return result)))
   ([state check-fn]
-   (probe state check-fn {:sleep-time sleep-time :times-to-try times-to-try})))
+   (probe state check-fn {:sleep-time default-sleep-time :times-to-try default-times-to-try})))

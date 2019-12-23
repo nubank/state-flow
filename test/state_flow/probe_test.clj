@@ -18,5 +18,3 @@
     (let [world {:value (atom 0)}]
       (state-flow/run (test-helpers/delayed-increment-two 4000) world) => (d/pair nil world)
       (state-flow/run (probe/probe test-helpers/get-value-state #(= 2 %)) world) => (d/pair [false 0] world))))
-
-
