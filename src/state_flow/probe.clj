@@ -7,8 +7,8 @@
 ;; Helper functions for testing
 ;;
 
-(def sleep-time 200)
-(def times-to-try 5)
+(def default-sleep-time 200)
+(def default-times-to-try 5)
 
 (defn ^:private retry
   "Tries at most n times, returns a vector with true and first element that succeeded
@@ -22,8 +22,8 @@
 (defn probe
   "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
   ([state check-fn {:keys [sleep-time times-to-try]
-                    :or {sleep-time sleep-time
-                         times-to-try times-to-try}}]
+                    :or   {sleep-time   default-sleep-time
+                           times-to-try default-times-to-try}}]
    (m/mlet [world (state/get)
             :let [runs   (repeatedly #(do (Thread/sleep sleep-time) (state/eval state world)))
                   result (retry times-to-try #(check-fn %) runs)]]

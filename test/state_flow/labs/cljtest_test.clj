@@ -13,7 +13,7 @@
                         [v (state/gets :value)]
                         (labs.cljtest/testing "contains with monadic left value"
                           (is (= {:a 1 :b 5} v))))
-        val)
+        val))
       => (d/pair false
                  {:value {:a 2 :b 5}
-                  :meta  {:description []}}))))
+                  :meta  {:description []}})))
