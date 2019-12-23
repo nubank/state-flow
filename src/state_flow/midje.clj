@@ -4,7 +4,8 @@
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [state-flow.core :as core]
-            [state-flow.state :as state]))
+            [state-flow.state :as state]
+            [state-flow.probe :as probe]))
 
 (defmacro add-desc-and-meta
   [[fname & rest] desc meta]
@@ -15,7 +16,7 @@
   returns a State that runs left up to times-to-retry times every sleep-time ms until left-value equals right value."
   [desc state right-value metadata]
   `(ctx/with-context (ctx/infer ~state)
-     (m/mlet [[_# result#] (core/probe ~state #(extended-= % ~right-value))]
+     (m/mlet [[_# result#] (probe/probe ~state #(extended-= % ~right-value))]
        (do (add-desc-and-meta (fact result# => ~right-value) ~desc ~metadata)
            (m/return result#)))))
 

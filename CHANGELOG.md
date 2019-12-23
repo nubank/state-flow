@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.0]
+- Moved probe to its own namespace
+- Changed push-meta and pop-meta so that execution descriptions are logged
+
 ## [2.0.5]
 - Add `state-flow.labs` namespace for experimental features
 - Add `state-flow.labs.cljtest/testing`

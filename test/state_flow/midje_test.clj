@@ -11,15 +11,19 @@
 (facts "on verify"
 
   (fact "add two to state 1, result is 3, doesn't change world"
-    (state-flow/run (midje/verify "description" test-helpers/increment-two 3) {:value 1}) => (d/pair 3 {:value 1 :meta {:description []}}))
+    (let [[ret state] (state-flow/run (midje/verify "description" test-helpers/increment-two 3) {:value 1})]
+      ret => 3
+      state => {:value 1 :meta {:description [["description"] []]}}))
 
   (fact "works with non-state values"
-    (state-flow/run (midje/verify "description" 3 3) {}) => (d/pair 3 {:meta {:description []}}))
+    (state-flow/run (midje/verify "description" 3 3) {})
+    => (d/pair 3 {:meta {:description [["description"] []]}}))
 
   (fact "add two with small delay"
     (def world {:value (atom 0)})
     (state-flow/run (test-helpers/delayed-increment-two 100) world) => (d/pair nil world)
-    (state-flow/run (midje/verify "description" test-helpers/get-value-state 2) world) => (d/pair 2 (merge world {:meta {:description []}})))
+    (state-flow/run (midje/verify "description" test-helpers/get-value-state 2) world)
+    => (d/pair 2 (merge world {:meta {:description [["description"] []]}})))
 
   (fact "add two with too much delay"
     (def world {:value (atom 0)})

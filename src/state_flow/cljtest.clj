@@ -4,6 +4,7 @@
             [matcher-combinators.core :as matcher-combinators]
             [matcher-combinators.test]
             [state-flow.core :as core]
+            [state-flow.probe :as probe]
             [state-flow.state :as state]))
 
 (defn ^:private match-expr
@@ -18,7 +19,7 @@
 (defn match-probe
   ([state matcher params]
    (m/fmap second
-           (core/probe state
+           (probe/probe state
                        #(matcher-combinators/match? (matcher-combinators/match matcher %))
                        params)))
   ([state matcher]
