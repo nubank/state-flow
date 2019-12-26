@@ -42,5 +42,4 @@
         (is (= 8 state))))))
 
 (comment
-  )
-(t/run-tests)
+  (t/run-tests))

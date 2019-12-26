@@ -8,14 +8,13 @@
 (def get-value-state (state/gets get-value))
 
 (def increment-two
-  (m/mlet [world (sf.state/get)]
-    (m/return (+ 2 (-> world :value)))))
+  (m/mlet [state (sf.state/get)]
+    (m/return (+ 2 (-> state :value)))))
 
 (defn delayed-increment-two
   [delay-ms]
-  "Changes world in the future"
-  (state/state (fn [world]
+  "Changes state in the future"
+  (state/state (fn [state]
                  (future (do (Thread/sleep delay-ms)
-                             (swap! (:value world) + 2)))
-                 (d/pair nil world))))
-
+                             (swap! (:value state) + 2)))
+                 (d/pair nil state))))
