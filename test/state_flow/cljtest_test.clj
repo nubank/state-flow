@@ -1,122 +1,176 @@
 (ns state-flow.cljtest-test
-  (:require [cats.core :as m]
+  (:require [clojure.test :as t :refer [deftest testing is]]
+            [cats.core :as m]
             [cats.data :as d]
             [cats.monad.state :as state]
-            [clojure.test :as ctest :refer [is]]
+            [matcher-combinators.test]
             [matcher-combinators.matchers :as matchers]
-            [matcher-combinators.midje :refer [match]]
-            [midje.sweet :refer :all]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as sf.state]))
 
-(def increment-two
-  (m/mlet [world (sf.state/get)]
-    (m/return (+ 2 (-> world :value)))))
-
 (def get-value (comp deref :value))
 (def get-value-state (state/gets get-value))
 
-(defn delayed-increment-two
+(def add-two
+  (m/mlet [state (sf.state/get)]
+    (m/return (+ 2 (-> state :value)))))
+
+(defn delayed-add-two
   [delay-ms]
-  "Changes world in the future"
-  (state/state (fn [world]
+  "Changes state in the future"
+  (state/state (fn [state]
                  (future (do (Thread/sleep delay-ms)
-                             (swap! (:value world) + 2)))
-                 (d/pair nil world))))
+                             (swap! (:value state) + 2)))
+                 (d/pair nil state))))
 
-(facts "on match?"
+(defmacro run-flow [flow state]
+  `(let [report-data# (atom nil)
+         res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
+                        (state-flow/run
+                          ~flow
+                          ~state))]
+     {:report-data (->> (deref report-data#)
+                        ;; NOTE: :matcher-combinators.result/value is a Mismatch object, which is
+                        ;; a defrecord, so equality on a map won't pass, hence pouring it into a map
+                        ;; to facilitate equality checks.
+                        (clojure.walk/postwalk (fn [node#]
+                                                 (if (instance? matcher_combinators.model.Mismatch node#)
+                                                   (into {} node#)
+                                                   node#))))
+      :flow-res    (first res#)
+      :flow-state  (second res#)}))
 
-  (fact "add two to state 1, result is 3, doesn't change world"
-    (let [[ret state] (state-flow/run (cljtest/match? "test-1" increment-two 3) {:value 1})]
-      ret => 3
-      state => (match {:value 1})))
+(deftest test-match?
+  (testing "add two to state 1, result is 3, doesn't change state"
+    (let [[ret state] (state-flow/run (cljtest/match? "test-1" add-two 3) {:value 1})]
+      (is (= 3 ret))
+      (is (= 1 (:value state)))))
 
-  (fact "works with non-state values"
+  (testing "works with non-state values"
     (let [[ret state] (state-flow/run (cljtest/match? "test-2" 3 3) {})]
-      ret => 3
-      state => (match{})))
+      (is (= 3 ret))
+      (is (empty? (:value state)))))
 
-  (fact "works with matcher combinators (embeds by default)"
+  (testing "works with matcher combinators (embeds by default)"
     (let [val {:value {:a 2 :b 5}}
           [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)]
-      ret => {:a 2 :b 5}
-      state => (match {:value {:a 2 :b 5}})))
+      (is (= {:a 2 :b 5} ret))
+      (is (= {:a 2 :b 5} (:value state)))))
 
-  (fact "works with matcher combinators equals"
-    (let [val {:value {:a 2 :b 5}}
-          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
-      ret => {:a 2 :b 5}
-      state => (match {:value {:a 2 :b 5}})))
+  (testing "works with matcher combinators equals"
+        (let [val {:value {:a 2 :b 5}}
+              [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
+          (is (= {:a 2 :b 5} ret))
+          (is (= {:a 2 :b 5} (:value state)))))
 
-  (fact "works for failure cases"
-    (let [val {:value {:a 2 :b 5}}
-          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value"
-                                        (state/gets :value)
-                                        (matchers/equals {:a 1 :b 5})) val)]
-      ret => {:a 2 :b 5}
-      state => (match {:value {:a 2 :b 5}})))
+  (testing "failure case"
+    (let [{:keys [flow-res flow-state]}
+          (run-flow (cljtest/match? "contains with monadic left value"
+                                                      (state/gets :value)
+                                                      (matchers/equals {:a 1 :b 5}))
+                    {:value {:a 2 :b 5}})]
+      (is (= {:a 2 :b 5} flow-res))
+      (is (= {:a 2 :b 5} (:value flow-state)))))
 
-  (fact "add two with small delay"
-    (let [world {:value (atom 0)}]
-      (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
-      (first (state-flow/run (cljtest/match? "" get-value-state 2) world)) => 2))
+  (testing "add two with small delay"
+    (let [state  {:value (atom 0)}
+          {:keys [flow-res]}
+          (run-flow
+            (flow ""
+              (delayed-add-two 100)
+              (cljtest/match? "" get-value-state 2))
+            state)]
+      (is (= 2 flow-res))))
 
-  (fact "we can tweak timeout and times to try"
-    (let [world {:value (atom 0)}]
-      (state-flow/run (delayed-increment-two 100) world) => (d/pair nil world)
-      (first (state-flow/run (cljtest/match? "" get-value-state 2 {:sleep-time   0
-                                                                   :times-to-try 1}) world)) => 0))
+  (testing "we can tweak timeout and times to try"
+    (let [state  {:value (atom 0)}
+          {:keys [report-data flow-res flow-state]}
+          (run-flow
+           (flow ""
+             (delayed-add-two 100)
+             (cljtest/match? "" get-value-state 2 {:sleep-time   0
+                                                   :times-to-try 1}))
+           state)]
+      (is (match? {:matcher-combinators.result/type :mismatch
+                   :matcher-combinators.result/value {:expected 2 :actual 0}}
+                  (-> report-data :actual :match-result)))
+      (is (= 0 flow-res))))
 
-  (fact "add two with too much delay (timeout)"
-    (let [world {:value (atom 0)}]
-      (state-flow/run (delayed-increment-two 4000) world) => (d/pair nil world)
-      (first (state-flow/run (cljtest/match? "" get-value-state 2) world)) => 0))
+  (testing "add two with too much delay (timeout)"
+    (let [state  {:value (atom 0)}
+          {:keys [report-data flow-res flow-state]}
+          (run-flow
+           (flow ""
+             (delayed-add-two 4000)
+             (cljtest/match? "" get-value-state 2))
+           state)]
+      (is (match? {:matcher-combinators.result/type :mismatch
+                   :matcher-combinators.result/value {:expected 2 :actual 0}}
+                  (-> report-data :actual :match-result)))
+      (is (= 0 flow-res))))
 
-  (fact "works with matcher combinators in any order"
-    (let [val {:value [1 2 3]}]
-      (second (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/in-any-order [1 3 2])) val))
-      => (match {:value [1 2 3]}))))
+  (testing "works with matcher combinators in any order"
+    (let [val {:value [1 2 3]}
+          {:keys [flow-state]}
+          (run-flow (cljtest/match? "contains with monadic left value"
+                                    (state/gets :value)
+                                    (matchers/in-any-order [1 3 2])) val)]
+      (is (match? {:value [1 2 3]} flow-state)))))
 
-(facts "defflow"
-  (fact "defines flow with default parameters"
-    (macroexpand-1 '(defflow my-flow (cljtest/match? "equals" 1 1)))
-    => '(clojure.test/deftest
-          my-flow
-          (state-flow.core/run*
-           {}
-           (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))))
+;; TODO:(dchelimsky,2019-12-27) I do not understand why, but inlining these expansions
+;; in the deftest below causes test failures. I think it has to do with calling macroexpand
+;; within a macro body.
+(def flow-with-defaults
+  (macroexpand-1 '(defflow my-flow (cljtest/match? "equals" 1 1))))
+(def flow-with-optional-args
+  (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? "equals" 1 1))))
+(def flow-with-binding-and-match
+  (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
+                                                       :map {:a 1 :b 2}})}
+                    [value (state/gets :value)]
+                    (cljtest/match? value 1)
+                    (cljtest/match? (state/gets :map) {:b 2}))))
 
-  (fact "defines flow with optional parameters"
-    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? "equals" 1 1)))
-    => '(clojure.test/deftest
-          my-flow
-          (state-flow.core/run*
-           {:init (constantly {:value 1})}
-           (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))))
+(deftest test-defflow
+  (testing "defines flow with default parameters"
+    (is (= '(clojure.test/deftest
+              my-flow
+              (state-flow.core/run*
+                {}
+                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+           flow-with-defaults)))
 
-  (fact "defines flow with binding and flow inside match?"
-    (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
-                                                         :map {:a 1 :b 2}})}
-                      [value (state/gets :value)]
-                      (cljtest/match? value 1)
-                      (cljtest/match? (state/gets :map) {:b 2})))
-    => '(clojure.test/deftest
-          my-flow
-          (state-flow.core/run*
-           {:init (constantly {:map {:a 1 :b 2} :value 1})}
-           (state-flow.core/flow
-            "my-flow"
-             [value (state/gets :value)]
-             (cljtest/match? value 1)
-             (cljtest/match? (state/gets :map) {:b 2}))))))
+  (testing "defines flow with optional parameters"
+    (is (= '(clojure.test/deftest
+              my-flow
+              (state-flow.core/run*
+                {:init (constantly {:value 1})}
+                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+           flow-with-optional-args)))
+
+  (testing "defines flow with binding and flow inside match?"
+    (is (= '(clojure.test/deftest
+              my-flow
+              (state-flow.core/run*
+                {:init (constantly {:map {:a 1 :b 2} :value 1})}
+                (state-flow.core/flow
+                  "my-flow"
+                  [value (state/gets :value)]
+                  (cljtest/match? value 1)
+                  (cljtest/match? (state/gets :map) {:b 2}))))
+           flow-with-binding-and-match))))
 
 (defflow my-flow {:init (constantly {:value 1
-                                     :map {:a 1 :b 2}})}
+                                     :map   {:a 1 :b 2}})}
   [value (state/gets :value)]
   (cljtest/match? "" value 1)
   (cljtest/match? "" (state/gets :map) {:b 2}))
 
-(facts "we can run a defined test"
-  (second ((:test (meta #'my-flow)))) => (match {:value 1
-                                                 :map   {:a 1 :b 2}}))
+(deftest run-a-flow
+  (is (match? {:value 1
+               :map   {:a 1 :b 2}}
+              (second ((:test (meta #'my-flow)))))))
+
+(comment
+  (t/run-tests))
