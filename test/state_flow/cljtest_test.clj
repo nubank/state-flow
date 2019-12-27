@@ -5,6 +5,7 @@
             [cats.monad.state :as state]
             [matcher-combinators.test]
             [matcher-combinators.matchers :as matchers]
+            [state-flow.test-helpers :as th]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as sf.state]))
@@ -23,23 +24,6 @@
                  (future (do (Thread/sleep delay-ms)
                              (swap! (:value state) + 2)))
                  (d/pair nil state))))
-
-(defmacro run-flow [flow state]
-  `(let [report-data# (atom nil)
-         res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
-                        (state-flow/run
-                          ~flow
-                          ~state))]
-     {:report-data (->> (deref report-data#)
-                        ;; NOTE: :matcher-combinators.result/value is a Mismatch object, which is
-                        ;; a defrecord, so equality on a map won't pass, hence pouring it into a map
-                        ;; to facilitate equality checks.
-                        (clojure.walk/postwalk (fn [node#]
-                                                 (if (instance? matcher_combinators.model.Mismatch node#)
-                                                   (into {} node#)
-                                                   node#))))
-      :flow-res    (first res#)
-      :flow-state  (second res#)}))
 
 (deftest test-match?
   (testing "add two to state 1, result is 3, doesn't change state"
@@ -66,7 +50,7 @@
 
   (testing "failure case"
     (let [{:keys [flow-res flow-state]}
-          (run-flow (cljtest/match? "contains with monadic left value"
+          (th/run-flow (cljtest/match? "contains with monadic left value"
                                                       (state/gets :value)
                                                       (matchers/equals {:a 1 :b 5}))
                     {:value {:a 2 :b 5}})]
@@ -76,7 +60,7 @@
   (testing "add two with small delay"
     (let [state  {:value (atom 0)}
           {:keys [flow-res]}
-          (run-flow
+          (th/run-flow
             (flow ""
               (delayed-add-two 100)
               (cljtest/match? "" get-value-state 2))
@@ -86,7 +70,7 @@
   (testing "we can tweak timeout and times to try"
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-res flow-state]}
-          (run-flow
+          (th/run-flow
            (flow ""
              (delayed-add-two 100)
              (cljtest/match? "" get-value-state 2 {:sleep-time   0
@@ -100,7 +84,7 @@
   (testing "add two with too much delay (timeout)"
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-res flow-state]}
-          (run-flow
+          (th/run-flow
            (flow ""
              (delayed-add-two 4000)
              (cljtest/match? "" get-value-state 2))
@@ -113,7 +97,7 @@
   (testing "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}
           {:keys [flow-state]}
-          (run-flow (cljtest/match? "contains with monadic left value"
+          (th/run-flow (cljtest/match? "contains with monadic left value"
                                     (state/gets :value)
                                     (matchers/in-any-order [1 3 2])) val)]
       (is (match? {:value [1 2 3]} flow-state)))))
