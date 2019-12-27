@@ -1,6 +1,5 @@
 (ns state-flow.probe
-  (:require [midje.sweet :as midje]
-            [cats.core :as m]
+  (:require [cats.core :as m]
             [state-flow.state :as state]))
 
 ;;
