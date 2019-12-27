@@ -36,27 +36,27 @@
           (is (= {:a 2 :b 5} (:value state)))))
 
   (testing "failure case"
-    (let [{:keys [flow-res flow-state]}
+    (let [{:keys [flow-ret flow-state]}
           (th/run-flow (cljtest/match? "contains with monadic left value"
                                                       (state/gets :value)
                                                       (matchers/equals {:a 1 :b 5}))
                     {:value {:a 2 :b 5}})]
-      (is (= {:a 2 :b 5} flow-res))
+      (is (= {:a 2 :b 5} flow-ret))
       (is (= {:a 2 :b 5} (:value flow-state)))))
 
   (testing "add two with small delay"
     (let [state  {:value (atom 0)}
-          {:keys [flow-res]}
+          {:keys [flow-ret]}
           (th/run-flow
             (flow ""
               (th/delayed-add-two 100)
               (cljtest/match? "" get-value-state 2))
             state)]
-      (is (= 2 flow-res))))
+      (is (= 2 flow-ret))))
 
   (testing "we can tweak timeout and times to try"
     (let [state  {:value (atom 0)}
-          {:keys [report-data flow-res flow-state]}
+          {:keys [report-data flow-ret flow-state]}
           (th/run-flow
            (flow ""
              (th/delayed-add-two 100)
@@ -66,11 +66,11 @@
       (is (match? {:matcher-combinators.result/type :mismatch
                    :matcher-combinators.result/value {:expected 2 :actual 0}}
                   (-> report-data :actual :match-result)))
-      (is (= 0 flow-res))))
+      (is (= 0 flow-ret))))
 
   (testing "add two with too much delay (timeout)"
     (let [state  {:value (atom 0)}
-          {:keys [report-data flow-res flow-state]}
+          {:keys [report-data flow-ret flow-state]}
           (th/run-flow
            (flow ""
              (th/delayed-add-two 4000)
@@ -79,7 +79,7 @@
       (is (match? {:matcher-combinators.result/type :mismatch
                    :matcher-combinators.result/value {:expected 2 :actual 0}}
                   (-> report-data :actual :match-result)))
-      (is (= 0 flow-res))))
+      (is (= 0 flow-ret))))
 
   (testing "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}
