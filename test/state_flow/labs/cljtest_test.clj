@@ -6,7 +6,7 @@
             [state-flow.core :as state-flow]
             [state-flow.state :as state]))
 
-(deftest test-testing
+(deftest testing-macro
   (testing "works for failure cases"
     (let [{:keys [flow-res flow-state]}
           (th/run-flow (state-flow/flow "desc"

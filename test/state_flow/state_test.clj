@@ -6,7 +6,7 @@
             [cats.monad.state :as state]
             [state-flow.state :as sf.state]))
 
-(deftest test-state
+(deftest state
   (let [increment-state       (m/mlet [x (sf.state/get)
                                        _ (sf.state/put (inc x))]
                                       (m/return x))
