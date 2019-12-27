@@ -10,24 +10,11 @@
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as sf.state]))
 
-(def get-value (comp deref :value))
-(def get-value-state (state/gets get-value))
-
-(def add-two
-  (m/mlet [state (sf.state/get)]
-    (m/return (+ 2 (-> state :value)))))
-
-(defn delayed-add-two
-  [delay-ms]
-  "Changes state in the future"
-  (state/state (fn [state]
-                 (future (do (Thread/sleep delay-ms)
-                             (swap! (:value state) + 2)))
-                 (d/pair nil state))))
+(def get-value-state (state/gets (comp deref :value)))
 
 (deftest test-match?
   (testing "add two to state 1, result is 3, doesn't change state"
-    (let [[ret state] (state-flow/run (cljtest/match? "test-1" add-two 3) {:value 1})]
+    (let [[ret state] (state-flow/run (cljtest/match? "test-1" th/add-two 3) {:value 1})]
       (is (= 3 ret))
       (is (= 1 (:value state)))))
 
@@ -62,7 +49,7 @@
           {:keys [flow-res]}
           (th/run-flow
             (flow ""
-              (delayed-add-two 100)
+              (th/delayed-add-two 100)
               (cljtest/match? "" get-value-state 2))
             state)]
       (is (= 2 flow-res))))
@@ -72,7 +59,7 @@
           {:keys [report-data flow-res flow-state]}
           (th/run-flow
            (flow ""
-             (delayed-add-two 100)
+             (th/delayed-add-two 100)
              (cljtest/match? "" get-value-state 2 {:sleep-time   0
                                                    :times-to-try 1}))
            state)]
@@ -86,7 +73,7 @@
           {:keys [report-data flow-res flow-state]}
           (th/run-flow
            (flow ""
-             (delayed-add-two 4000)
+             (th/delayed-add-two 4000)
              (cljtest/match? "" get-value-state 2))
            state)]
       (is (match? {:matcher-combinators.result/type :mismatch
