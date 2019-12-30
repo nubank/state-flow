@@ -50,7 +50,7 @@
   (when-not (string-expr? description)
      (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (let [flows' (or flows
-                   '[(m/return nil)])]
+                   `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description)
       [ret# (m/do-let ~@flows')]
@@ -64,7 +64,7 @@
   (state/run flow initial-state))
 
 (defn run!
-  "Like run, but prints a log and throws error when flow fails with an exception"
+  "Like run, but prints a log and throws an error when the flow fails with an exception"
   [flow initial-state]
   (let [result (run flow initial-state)]
     (when (e/failure? (first result))
