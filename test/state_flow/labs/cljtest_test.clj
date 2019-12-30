@@ -1,6 +1,6 @@
 (ns state-flow.labs.cljtest-test
   (:require [clojure.test :as t :refer [deftest testing is]]
-            [matcher-combinators.test]
+            [matcher-combinators.test] ;; loads match? assertions
             [state-flow.test-helpers :as th]
             [state-flow.labs.cljtest :as labs.cljtest]
             [state-flow.core :as state-flow]

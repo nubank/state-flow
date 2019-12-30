@@ -1,10 +1,10 @@
 (ns state-flow.cljtest-test
   (:require [clojure.test :as t :refer [deftest testing is]]
+            [matcher-combinators.test] ;; loads match? assertions
+            [matcher-combinators.matchers :as matchers]
             [cats.core :as m]
             [cats.data :as d]
             [cats.monad.state :as state]
-            [matcher-combinators.test]
-            [matcher-combinators.matchers :as matchers]
             [state-flow.test-helpers :as th]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
