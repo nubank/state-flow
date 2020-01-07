@@ -1,6 +1,6 @@
 (ns state-flow.midje-test
   (:require [clojure.test :as t :refer [deftest testing is]]
-            [matcher-combinators.test] ;; loads match? assertions
+            [matcher-combinators.test :refer [match?]]
             [cats.data :as d]
             [cats.monad.state :as state]
             [midje.sweet :refer [contains just]]
