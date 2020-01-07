@@ -6,7 +6,6 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-
 (defn update-description
   [description-log new-description]
   (if (nil? description-log)
@@ -21,12 +20,14 @@
   [description]
   (state/modify
    (fn [s]
-     (update-in s [:meta :description] #(update-description % description)))))
+     (with-meta s
+       (update (meta s) :description update-description description)))))
 
 (def pop-meta
   (state/modify
    (fn [s]
-     (update-in s [:meta :description] exit))))
+     (with-meta s
+       (update (meta s) :description exit)))))
 
 (defn description->string
   [description]
@@ -34,7 +35,7 @@
 
 (defn get-description
   []
-  (m/mlet [desc-list (state/gets #(-> % :meta :description last))]
+  (m/mlet [desc-list (state/gets #(-> % meta :description last))]
     (m/return (description->string desc-list))))
 
 (defn string-expr? [x]

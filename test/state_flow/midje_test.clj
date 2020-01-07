@@ -13,11 +13,10 @@
   (testing "add two to state 1, result is 3, doesn't change world"
     (let [[ret state] (state-flow/run (midje/verify "description" test-helpers/add-two 3) {:value 1})]
       (is (= 3 ret))
-      (is (match? {:value 1 :meta {:description [["description"] []]}}
-                  state))))
+      (is (match? {:value 1} state))))
 
   (testing "works with non-state values"
-    (is (= (d/pair 3 {:meta {:description [["description"] []]}})
+    (is (= (d/pair 3 {})
            (state-flow/run (midje/verify "description" 3 3) {}))))
 
   (testing "add two with small delay"
