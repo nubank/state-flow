@@ -142,6 +142,3 @@
   (is (match? {:value 1
                :map   {:a 1 :b 2}}
               (second ((:test (meta #'my-flow)))))))
-
-(comment
-  (t/run-tests))

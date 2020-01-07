@@ -127,6 +127,3 @@
 (deftest as-step-fn
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
-
-(comment
-  (t/run-tests))

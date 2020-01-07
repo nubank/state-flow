@@ -24,6 +24,3 @@
                                          double-state) 2)]
         (is (e/failure? res))
         (is (= 8 state))))))
-
-(comment
-  (t/run-tests))

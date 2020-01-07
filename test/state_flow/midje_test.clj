@@ -37,6 +37,3 @@
                                         (sf.state/get) (contains {:a 2}) {}) val)
          (state/run (midje/verify-probe "just with monadic left value"
                                         (sf.state/get) (just {:a 2 :b 5}) {}) val)))))
-
-(comment
-  (t/run-tests))

@@ -21,6 +21,3 @@
                  (state-flow/run (test-helpers/delayed-add-two 4000) state)))
           (is (= (d/pair [false 0] state)
                  (state-flow/run (probe/probe test-helpers/get-value-state #(= 2 %)) state))))))
-
-(comment
-  (t/run-tests))
