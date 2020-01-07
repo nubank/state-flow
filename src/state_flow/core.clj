@@ -6,28 +6,29 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-(defn update-description
+(defn push-description
   [description-log new-description]
   (if (nil? description-log)
     [[new-description]]
     (conj description-log (conj (last description-log) new-description))))
 
-(defn exit
+(defn pop-description
   [description-log]
   (conj description-log (pop (last description-log))))
+
+(defn update-meta [s k & args]
+  (with-meta s (apply update (meta s) k args)))
 
 (defn push-meta
   [description]
   (state/modify
    (fn [s]
-     (with-meta s
-       (update (meta s) :description update-description description)))))
+     (update-meta s :description push-description description))))
 
 (def pop-meta
   (state/modify
    (fn [s]
-     (with-meta s
-       (update (meta s) :description exit)))))
+     (update-meta s :description pop-description))))
 
 (defn description->string
   [description]
