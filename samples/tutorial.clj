@@ -36,14 +36,14 @@ The flow macro
       inc-value)))
 
 (state-flow/run! my-first-flow {:value 4})
-; => [{:value 4 :meta {:description ["my first flow"]}} {:value 5 :meta {:description []}}]
+; => [{:value 4} {:value 5}]
 
 (def inc-two
   (flow "inc 2 times"
     inc-value
     inc-value))
 (state-flow/run! inc-two {:value 4})
-; => [{:value 5 :meta {:description ["inc 2 times"]}} {:value 6 :meta {:description []}}]
+; => [{:value 5} {:value 6}]
 
 """
 Bindings
@@ -55,7 +55,7 @@ Bindings
      :let [value2 (* 2 value)]]
     (m/return value2)))
 (state-flow/run! with-bindings {:value 4})
-; => [8 {:value 4 :meta {:description []}}]
+; => [8 {:value 4}]
 
 """
 Tests
