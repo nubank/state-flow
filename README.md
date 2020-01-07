@@ -109,7 +109,7 @@ multiplied by two, we could do it like this:
     [value get-value]
     (state/return (* value 2))))
 (state-flow/run! double-value {:value 4})
-; => [8 {:value 4 :meta {:description []}}]
+; => [8 {:value 4}]
 ```
 
 Or we could increment the value first and then return it doubled:
@@ -121,7 +121,7 @@ Or we could increment the value first and then return it doubled:
     [value get-value]
     (state/return (* value 2))))
 (state-flow/run! inc-and-double-value {:value 4})
-; => [10 {:value 5 :meta {:description []}}]
+; => [10 {:value 5}]
 ```
 
 ## Clojure.test Support

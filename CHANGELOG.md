@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.1.1]
+- Moved flow descriptions to the State object's meta
+
 ## [2.1.0]
 - Moved probe to its own namespace
 - Changed push-meta and pop-meta so that execution descriptions are logged

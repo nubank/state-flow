@@ -29,27 +29,13 @@
 (def empty-flow
   (flow "empty"))
 
-(deftest push-meta
-  (is (= {:meta {:description [["mydesc"]
-                               ["mydesc" "mydesc2"]]}}
-         (state/exec (cats/>> (#'state-flow/push-meta "mydesc")
-                              (#'state-flow/push-meta "mydesc2")) {}))))
-
 (deftest run-flow
   (testing "with single step"
-    (is (= {:meta  {:description [["single step"]
-                                  []]}
-            :value 2}
+    (is (= {:value 2}
            (second (state-flow/run (flow "single step" add-two) {:value 0})))))
 
   (testing "with two steps"
-    (is (= {:meta {:description [["flow"]
-                                 ["flow" "step 1"]
-                                 ["flow"]
-                                 ["flow" "step 2"]
-                                 ["flow"]
-                                 []]}
-            :value 4}
+    (is (= {:value 4}
            (second (state-flow/run (flow "flow"
                                      (flow "step 1" add-two)
                                      (flow "step 2" add-two))
@@ -84,12 +70,7 @@
   (testing "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
       (is (thrown-with-msg? Exception #"My exception" @left))
-      (is (= {:meta  {:description [["root"]
-                                    ["root" "child1"]
-                                    ["root"]
-                                    ["root" "child2"]]}
-              :value 2}
-             right))))
+      (is (= {:value 2} right))))
 
   (testing "flow allows do-let style binding"
     (is (match?
@@ -127,3 +108,46 @@
 (deftest as-step-fn
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
+
+(deftest get-description
+  (testing "within top level flow"
+    (is (= "level 1"
+           (first (state-flow/run (flow "level 1"
+                                    (state-flow/get-description))
+                    {})))))
+
+  (testing "within nested flows "
+    (is (= "level 1 -> level 2"
+           (first (state-flow/run (flow "level 1"
+                                    (flow "level 2"
+                                      (state-flow/get-description)))
+                    {}))))
+
+
+    (is (= "level 1 -> level 2 -> level 3"
+           (first (state-flow/run (flow "level 1"
+                                    (flow "level 2"
+                                      (flow "level 3"
+                                        (state-flow/get-description))))
+                    {})))))
+
+  (testing "after nested flows complete"
+    (testing "within nested flows "
+      (is (= "level 1"
+             (first (state-flow/run (flow "level 1"
+                                      (flow "level 2")
+                                      (state-flow/get-description))
+                      {}))))
+
+      (is (= "level 1 -> level 2"
+             (first (state-flow/run (flow "level 1"
+                                      (flow "level 2"
+                                        (flow "level 3")
+                                        (state-flow/get-description)))
+                      {}))))
+      (is (= "level 1"
+             (first (state-flow/run (flow "level 1"
+                                      (flow "level 2"
+                                        (flow "level 3"))
+                                      (state-flow/get-description))
+                      {})))))))
