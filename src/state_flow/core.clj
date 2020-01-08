@@ -70,7 +70,7 @@
   [flow initial-state]
   (let [result (run flow initial-state)]
     (when (e/failure? (first result))
-      (let [description (->> result second :meta :description last
+      (let [description (->> result second meta :description last
                              description->string)
             message (str "Flow " "\"" description "\"" " failed with exception")]
         (log/info (m/extract (first result)) message)
