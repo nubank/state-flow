@@ -31,7 +31,7 @@
   (let [the-meta (meta &form)
         params   (if (map? (first forms)) (first forms) {})]
     `(core/flow ~desc
-       [full-desc# (core/get-description)]
+       [full-desc# (core/current-description)]
        (if (state/state? ~value)
          (m/mlet [extracted-value# (match-probe ~value ~checker ~params)]
            (state/wrap-fn #(do (match+meta full-desc# extracted-value# ~checker ~the-meta)
