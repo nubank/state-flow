@@ -35,11 +35,12 @@
            (second (state-flow/run (flow "single step" add-two) {:value 0})))))
 
   (testing "with two steps"
-    (is (= {:value 4}
-           (second (state-flow/run (flow "flow"
-                                     (flow "step 1" add-two)
-                                     (flow "step 2" add-two))
-                     {:value 0})))))
+    (let [[l r] (state-flow/run (flow "flow"
+                                  (flow "step 1" add-two)
+                                  (flow "step 2" add-two))
+                  {:value 0})]
+      (is (= {:value 4} r))
+      (is (= "flow" (state-flow/top-level-description r)))))
 
   (testing "empty flow runs without exception"
     (is (nil? (first (state-flow/run empty-flow {})))))
@@ -75,10 +76,7 @@
   (testing "flow allows do-let style binding"
     (is (match?
          {:value 4}
-         (second (state-flow/run flow-with-bindings {:value 2})))))
-
-  (testing "run! throws exception"
-    (is (thrown? Exception (test-helpers/run-flow bogus-flow {:value 0})))))
+         (second (state-flow/run flow-with-bindings {:value 2}))))))
 
 (deftest state-flow-run*
 
@@ -105,49 +103,57 @@
                     second
                     second)))))
 
+(deftest state-flow-run!
+  (testing "run! throws exception"
+    (is (thrown-with-msg? Exception #"root -> child2"
+                          (test-helpers/run-flow bogus-flow {:value 0})))))
+
 (deftest as-step-fn
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
 
-(deftest get-description
+(deftest descriptions
   (testing "within top level flow"
-    (is (= "level 1"
-           (first (state-flow/run (flow "level 1"
-                                    (state-flow/get-description))
-                    {})))))
+    (let [[return state] (state-flow/run (flow "level 1"
+                                           (state-flow/current-description))
+                           {})]
+      (is (= "level 1" return))
+      (is (= "level 1" (state-flow/top-level-description state)))))
 
   (testing "within nested flows "
-    (is (= "level 1 -> level 2"
-           (first (state-flow/run (flow "level 1"
-                                    (flow "level 2"
-                                      (state-flow/get-description)))
-                    {}))))
+    (let [[return state] (state-flow/run (flow "level 1"
+                                           (flow "level 2"
+                                             (state-flow/current-description)))
+                           {})]
+      (is (= "level 1 -> level 2" return))
+      (is (= "level 1" (state-flow/top-level-description state))))
 
 
-    (is (= "level 1 -> level 2 -> level 3"
-           (first (state-flow/run (flow "level 1"
-                                    (flow "level 2"
-                                      (flow "level 3"
-                                        (state-flow/get-description))))
-                    {})))))
+    (let [[return state] (state-flow/run (flow "level 1"
+                                           (flow "level 2"
+                                             (flow "level 3"
+                                               (state-flow/current-description))))
+                           {})]
+      (is (= "level 1 -> level 2 -> level 3" return))
+      (is (= "level 1" (state-flow/top-level-description state)))))
 
   (testing "after nested flows complete"
     (testing "within nested flows "
       (is (= "level 1"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2")
-                                      (state-flow/get-description))
+                                      (state-flow/current-description))
                       {}))))
 
       (is (= "level 1 -> level 2"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2"
                                         (flow "level 3")
-                                        (state-flow/get-description)))
+                                        (state-flow/current-description)))
                       {}))))
       (is (= "level 1"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2"
                                         (flow "level 3"))
-                                      (state-flow/get-description))
+                                      (state-flow/current-description))
                       {})))))))

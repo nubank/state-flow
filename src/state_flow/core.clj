@@ -1,45 +1,70 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
-  (:require [cats.context :as ctx]
+  (:require [clojure.string :as str]
             [cats.core :as m]
             [cats.monad.exception :as e]
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
-(defn push-description
-  [description-log new-description]
-  (if (nil? description-log)
-    [[new-description]]
-    (conj description-log (conj (last description-log) new-description))))
+;; From time to time we see the following error when trying to pretty-print
+;; Failure records:
+;;
+;;   Unhandled java.lang.IllegalArgumentException
+;;   Multiple methods in multimethod 'simple-dispatch' match dispatch
+;;   value: class cats.monad.exception.Failure -> interface
+;;   clojure.lang.IDeref and interface clojure.lang.IPersistentMap, and
+;;   neither is preferred
+;;
+;; This prevents that from happening:
+(defmethod clojure.pprint/simple-dispatch cats.monad.exception.Failure [f]
+  (pr f))
 
-(defn pop-description
-  [description-log]
-  (conj description-log (pop (last description-log))))
-
-(defn update-meta [s k & args]
-  (with-meta s (apply update (meta s) k args)))
+(defn ^:private alter-meta!*
+  "like clojure.core/alter-meta! but works on objects other than ref-types"
+  [s f & args]
+  (with-meta s (apply f (meta s) args)))
 
 (defn push-meta
+  "Returns a flow that will modify the state metadata.
+
+  For internal use. Subject to change."
   [description]
   (state/modify
    (fn [s]
-     (update-meta s :description push-description description))))
+     (-> s
+         (alter-meta!* update :description-stack (fnil conj []) description)
+         (alter-meta!* update :top-level-description #(or % description))))))
 
 (def pop-meta
+  "Returns a flow that will modify the state metadata.
+
+  For internal use. Subject to change."
   (state/modify
    (fn [s]
-     (update-meta s :description pop-description))))
+     (alter-meta!* s update :description-stack pop))))
 
-(defn description->string
-  [description]
-  (clojure.string/join " -> " description))
+(defn- format-description
+  [strs]
+  (str/join " -> " strs))
 
-(defn get-description
+(defn- description-stack [s]
+  (-> s meta :description-stack))
+
+(defn top-level-description
+  "Returns the description passed to the top level flow (or the
+  stringified symbol passed to defflow)."
+  [s]
+  (-> s meta :top-level-description))
+
+(defn current-description
+  "Returns a flow that returns the description as of the point of execution.
+
+  For internal use. Subject to change."
   []
-  (m/mlet [desc-list (state/gets #(-> % meta :description last))]
-    (m/return (description->string desc-list))))
+  (m/mlet [desc-list (state/gets description-stack)]
+    (m/return (format-description desc-list))))
 
-(defn string-expr? [x]
+(defn- string-expr? [x]
   (or (string? x)
       (and (sequential? x)
            (or (= (first x) 'str)
@@ -51,8 +76,7 @@
   [description & flows]
   (when-not (string-expr? description)
      (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
-  (let [flows' (or flows
-                   `[(m/return nil)])]
+  (let [flows' (or flows `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description)
       [ret# (m/do-let ~@flows')]
@@ -68,14 +92,13 @@
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
   [flow initial-state]
-  (let [result (run flow initial-state)]
-    (when (e/failure? (first result))
-      (let [description (->> result second meta :description last
-                             description->string)
+  (let [pair (run flow initial-state)]
+    (when (e/failure? (first pair))
+      (let [description (->> pair second description-stack format-description)
             message (str "Flow " "\"" description "\"" " failed with exception")]
-        (log/info (m/extract (first result)) message)
+        (log/info (m/extract (first pair)) message)
         (throw (ex-info message {}))))
-    result))
+    pair))
 
 (defn run*
   "Run a flow with specified parameters
