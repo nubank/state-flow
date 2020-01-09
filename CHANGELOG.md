@@ -1,5 +1,8 @@
 # Changelog
 
+## [DEV]
+- Add flow declaration line numbers to failure output
+
 ## [2.1.2]
 - Added state-flow.core/top-level-description fn
   - mostly for tooling built on top of state-flow
