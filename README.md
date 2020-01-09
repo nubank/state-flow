@@ -83,7 +83,7 @@ It's also possible to do non-flow bindings inside the same vector using the `:le
 
 ```clojure
 [(<symbol> <flow/primitive>)
- :let [<symbol> <non-monadic value>]]
+ :let [<symbol> <non-flow expression>]]
  ```
 
 ### Flow Example
