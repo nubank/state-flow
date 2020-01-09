@@ -1,24 +1,22 @@
 (ns state-flow.test-helpers
-  (:require [cats.core :as m]
-            [cats.data :as d]
-            [cats.monad.state :as state]
-            [state-flow.core]
-            [state-flow.state :as sf.state]))
+  (:require [state-flow.core]
+            [state-flow.state :as state]))
 
 (def get-value (comp deref :value))
 (def get-value-state (state/gets get-value))
 
 (def add-two
-  (m/mlet [state (sf.state/get)]
-    (m/return (+ 2 (-> state :value)))))
+  (state/gets (comp (partial + 2) :value)))
 
 (defn delayed-add-two
   [delay-ms]
   "Changes state in the future"
-  (state/state (fn [state]
-                 (future (do (Thread/sleep delay-ms)
-                             (swap! (:value state) + 2)))
-                 (d/pair nil state))))
+  (state/modify (fn [state]
+                      (future (do (Thread/sleep delay-ms)
+                                  (swap! (:value state) + 2)))
+                      state)))
+
+
 
 (defmacro run-flow
   "Same as state-flow.core/run! except does not report exceptions to *out* or test results from

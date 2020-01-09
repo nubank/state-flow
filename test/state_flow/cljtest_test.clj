@@ -2,19 +2,16 @@
   (:require [clojure.test :as t :refer [deftest testing is]]
             [matcher-combinators.test :refer [match?]]
             [matcher-combinators.matchers :as matchers]
-            [cats.core :as m]
-            [cats.data :as d]
-            [cats.monad.state :as state]
-            [state-flow.test-helpers :as th]
+            [state-flow.test-helpers :as test-helpers]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
-            [state-flow.state :as sf.state]))
+            [state-flow.state :as state]))
 
 (def get-value-state (state/gets (comp deref :value)))
 
 (deftest test-match?
   (testing "add two to state 1, result is 3, doesn't change state"
-    (let [[ret state] (state-flow/run (cljtest/match? "test-1" th/add-two 3) {:value 1})]
+    (let [[ret state] (state-flow/run (cljtest/match? "test-1" test-helpers/add-two 3) {:value 1})]
       (is (= 3 ret))
       (is (= 1 (:value state)))))
 
@@ -30,36 +27,36 @@
       (is (= {:a 2 :b 5} (:value state)))))
 
   (testing "works with matcher combinators equals"
-        (let [val {:value {:a 2 :b 5}}
-              [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
-          (is (= {:a 2 :b 5} ret))
-          (is (= {:a 2 :b 5} (:value state)))))
+    (let [val {:value {:a 2 :b 5}}
+          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
+      (is (= {:a 2 :b 5} ret))
+      (is (= {:a 2 :b 5} (:value state)))))
 
   (testing "failure case"
     (let [{:keys [flow-ret flow-state]}
-          (th/run-flow (cljtest/match? "contains with monadic left value"
-                                                      (state/gets :value)
-                                                      (matchers/equals {:a 1 :b 5}))
-                    {:value {:a 2 :b 5}})]
+          (test-helpers/run-flow (cljtest/match? "contains with monadic left value"
+                                                 (state/gets :value)
+                                                 (matchers/equals {:a 1 :b 5}))
+                                 {:value {:a 2 :b 5}})]
       (is (= {:a 2 :b 5} flow-ret))
       (is (= {:a 2 :b 5} (:value flow-state)))))
 
   (testing "add two with small delay"
     (let [state  {:value (atom 0)}
           {:keys [flow-ret]}
-          (th/run-flow
-            (flow ""
-              (th/delayed-add-two 100)
-              (cljtest/match? "" get-value-state 2))
-            state)]
+          (test-helpers/run-flow
+           (flow ""
+             (test-helpers/delayed-add-two 100)
+             (cljtest/match? "" get-value-state 2))
+           state)]
       (is (= 2 flow-ret))))
 
   (testing "we can tweak timeout and times to try"
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-ret flow-state]}
-          (th/run-flow
+          (test-helpers/run-flow
            (flow ""
-             (th/delayed-add-two 100)
+             (test-helpers/delayed-add-two 100)
              (cljtest/match? "" get-value-state 2 {:sleep-time   0
                                                    :times-to-try 1}))
            state)]
@@ -71,9 +68,9 @@
   (testing "add two with too much delay (timeout)"
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-ret flow-state]}
-          (th/run-flow
+          (test-helpers/run-flow
            (flow ""
-             (th/delayed-add-two 4000)
+             (test-helpers/delayed-add-two 4000)
              (cljtest/match? "" get-value-state 2))
            state)]
       (is (match? {:matcher-combinators.result/type :mismatch
@@ -84,9 +81,9 @@
   (testing "works with matcher combinators in any order"
     (let [val {:value [1 2 3]}
           {:keys [flow-state]}
-          (th/run-flow (cljtest/match? "contains with monadic left value"
-                                    (state/gets :value)
-                                    (matchers/in-any-order [1 3 2])) val)]
+          (test-helpers/run-flow (cljtest/match? "contains with monadic left value"
+                                                 (state/gets :value)
+                                                 (matchers/in-any-order [1 3 2])) val)]
       (is (match? {:value [1 2 3]} flow-state)))))
 
 ;; TODO:(dchelimsky,2019-12-27) I do not understand why, but inlining these expansions
