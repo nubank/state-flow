@@ -27,7 +27,7 @@
   (let [the-meta  (meta &form)
         fact-sexp `(fact ~left-value => ~right-value)]
     `(core/flow ~desc
-       [full-desc# (core/get-description)]
+       [full-desc# (core/current-description)]
        (if (state/state? ~left-value)
          (verify-probe full-desc# ~left-value ~right-value ~the-meta)
          (state/wrap-fn #(do (add-desc-and-meta ~fact-sexp full-desc# ~the-meta)
