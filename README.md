@@ -79,6 +79,12 @@ Bindings take advantage of the return values of flows to compose other flows and
 `[(<symbol> <flow/primitive>)+]`
 
 They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the flow on the right.
+It's also possible to do non-flow bindings inside the same vector using the `:let` keyword:
+
+```clojure
+[(<symbol> <flow/primitive>)
+ :let [<symbol> <non-flow expression>]]
+ ```
 
 ### Flow Example
 
