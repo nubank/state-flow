@@ -43,12 +43,21 @@
    (fn [s]
      (alter-meta!* s update :description-stack pop))))
 
-(defn- format-description
+(defn ^:private format-description
   [strs]
   (str/join " -> " strs))
 
-(defn- description-stack [s]
+(defn ^:private description-stack [s]
   (-> s meta :description-stack))
+
+(defn ^:private string-expr? [x]
+  (or (string? x)
+      (and (sequential? x)
+           (or (= (first x) 'str)
+               (= (first x) 'clojure.core/str)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Public API
 
 (defn top-level-description
   "Returns the description passed to the top level flow (or the
@@ -63,12 +72,6 @@
   []
   (m/mlet [desc-list (state/gets description-stack)]
     (m/return (format-description desc-list))))
-
-(defn- string-expr? [x]
-  (or (string? x)
-      (and (sequential? x)
-           (or (= (first x) 'str)
-               (= (first x) 'clojure.core/str)))))
 
 (defmacro flow
   "Defines a flow"
