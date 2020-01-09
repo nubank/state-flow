@@ -56,6 +56,14 @@
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
+(defn current-description
+  "Returns a flow that returns the description as of the point of execution.
+
+  For internal use. Subject to change."
+  []
+  (m/mlet [desc-list (state/gets description-stack)]
+          (m/return (format-description desc-list))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
 
@@ -64,14 +72,6 @@
   stringified symbol passed to defflow)."
   [s]
   (-> s meta :top-level-description))
-
-(defn current-description
-  "Returns a flow that returns the description as of the point of execution.
-
-  For internal use. Subject to change."
-  []
-  (m/mlet [desc-list (state/gets description-stack)]
-    (m/return (format-description desc-list))))
 
 (defmacro flow
   "Defines a flow"

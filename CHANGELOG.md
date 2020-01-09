@@ -1,8 +1,11 @@
 # Changelog
 
-## DEV
+## [2.1.2]
 - Added state-flow.core/top-level-description fn
   - mostly for tooling built on top of state-flow
+- Removed state-flow.core/get-description
+  - This is for internal use, but if you happen to have been using it, you can
+    use state-flow.core/current-description instead.
 
 ## [2.1.1]
 - Moved flow descriptions to the State object's meta
