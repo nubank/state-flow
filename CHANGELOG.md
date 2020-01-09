@@ -1,11 +1,15 @@
 # Changelog
 
+## DEV
+- Added state-flow.core/top-level-description fn
+  - mostly for tooling built on top of state-flow
+
 ## [2.1.1]
 - Moved flow descriptions to the State object's meta
 
 ## [2.1.0]
 - Moved probe to its own namespace
-- Changed push-meta and pop-meta so that execution descriptions are logged
+- Changed push-meta and pop-meta so that execution descriptions are logged (internal)
 
 ## [2.0.5]
 - Add `state-flow.labs` namespace for experimental features
