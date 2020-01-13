@@ -28,12 +28,14 @@
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  [description]
+  [description {:keys [line]}]
   (state/modify
    (fn [s]
      (-> s
-         (alter-meta!* update :description-stack (fnil conj []) description)
-         (alter-meta!* update :top-level-description #(or % description))))))
+         (alter-meta!* update :top-level-description #(or % description))
+         (alter-meta!* update :description-stack (fnil conj []) (str description
+                                                                     (when line
+                                                                       (format " (line %s)" line))))))))
 
 (def pop-meta
   "Returns a flow that will modify the state metadata.
@@ -79,9 +81,10 @@
   [description & flows]
   (when-not (string-expr? description)
      (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
-  (let [flows' (or flows `[(m/return nil)])]
+  (let [flow-meta (meta &form)
+        flows'    (or flows `[(m/return nil)])]
     `(m/do-let
-      (push-meta ~description)
+      (push-meta ~description ~flow-meta)
       [ret# (m/do-let ~@flows')]
       pop-meta
       (m/return ret#))))
