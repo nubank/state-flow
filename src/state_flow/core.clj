@@ -97,8 +97,8 @@
   (let [pair (state/run flow initial-state)]
     (if-let [m (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$"))]
       (d/pair (#'cats.monad.exception/->Failure
-               (ex-info (format "Expected flow, got %s" (last m))
-                        {})) (second pair))
+               (ex-info (format "Expected flow, got %s" (last m)) {}))
+              (second pair))
       pair)))
 
 (defn run!
