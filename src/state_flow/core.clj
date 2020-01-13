@@ -95,9 +95,9 @@
   (assert (state/state? flow) "First argument must be a flow")
   (assert (map? initial-state) "Initial state must be a map")
   (let [pair (state/run flow initial-state)]
-    (if-let [m (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$"))]
+    (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
       (d/pair (#'cats.monad.exception/->Failure
-               (ex-info (format "Expected flow, got %s" (last m)) {}))
+               (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
               (second pair))
       pair)))
 
