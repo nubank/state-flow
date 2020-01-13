@@ -1,4 +1,4 @@
-(defproject nubank/state-flow "2.1.2"
+(defproject nubank/state-flow "2.1.3"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -16,7 +16,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.4.0"]
                  [funcool/cats "2.3.3"]
-                 [nubank/matcher-combinators "1.2.6"]]
+                 [nubank/matcher-combinators "1.2.7"]]
 
   :exclusions   [log4j]
 
