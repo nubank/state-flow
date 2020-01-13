@@ -1,6 +1,10 @@
 # Changelog
 
 ## [DEV]
+
+
+## [2.1.3]
+- Improve error when a non-flow expression is provided as a subflow
 - Add flow declaration line numbers to failure output
 
 ## [2.1.2]
