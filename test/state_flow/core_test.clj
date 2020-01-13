@@ -216,3 +216,22 @@
                     (flow "level 3"))
                   (flow "level 2 again"
                     (flow "level 3 again"))))))))
+
+(deftest illegal-flow-args
+  (testing "produce friendly failure messages"
+    (is (re-find #"Expected flow.*got.*identity"
+                 (->> (state-flow/run
+                        (flow "flow" identity)
+                        {})
+                      first
+                      :failure
+                      .getMessage)))
+    (is (re-find #"Expected flow.*got.*identity"
+                 (->> (state-flow/run
+                        (flow "flow"
+                          [x identity]
+                          (state/gets))
+                        {})
+                      first
+                      :failure
+                      .getMessage)))))

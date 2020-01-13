@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [run!])
   (:require [clojure.string :as str]
             [cats.core :as m]
+            [cats.data :as d]
             [cats.monad.exception :as e]
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
@@ -93,7 +94,12 @@
   [flow initial-state]
   (assert (state/state? flow) "First argument must be a flow")
   (assert (map? initial-state) "Initial state must be a map")
-  (state/run flow initial-state))
+  (let [pair (state/run flow initial-state)]
+    (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
+      (d/pair (#'cats.monad.exception/->Failure
+               (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
+              (second pair))
+      pair)))
 
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
