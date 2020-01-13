@@ -1,7 +1,6 @@
 (ns state-flow.core-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [matcher-combinators.test :refer [match?]]
-            [cats.core :as cats]
             [state-flow.test-helpers :as test-helpers]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]))
