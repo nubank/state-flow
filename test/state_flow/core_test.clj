@@ -82,7 +82,6 @@
          (second (state-flow/run flow-with-bindings {:value 2}))))))
 
 (deftest state-flow-run*
-
   (testing "flow with initializer"
     (is (match? {:value 4}
                 (second (state-flow/run* {:init (constantly {:value 0})} nested-flow)))))
@@ -107,6 +106,9 @@
                     second)))))
 
 (deftest state-flow-run!
+  (testing "default initial state is an empty map"
+    (is (= {}
+           (second (state-flow/run! (flow "just return initial state"))))))
   (testing "run! throws exception"
     (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
                           (test-helpers/run-flow bogus-flow {:value 0})))))

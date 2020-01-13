@@ -107,14 +107,16 @@
 
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
-  [flow initial-state]
-  (let [pair (run flow initial-state)]
-    (when (e/failure? (first pair))
-      (let [description (->> pair second description-stack format-description)
-            message (str "Flow " "\"" description "\"" " failed with exception")]
-        (log/info (m/extract (first pair)) message)
-        (throw (ex-info message {}))))
-    pair))
+  ([flow]
+   (run! flow {}))
+  ([flow initial-state]
+   (let [pair (run flow initial-state)]
+     (when (e/failure? (first pair))
+       (let [description (->> pair second description-stack format-description)
+             message (str "Flow " "\"" description "\"" " failed with exception")]
+         (log/info (m/extract (first pair)) message)
+         (throw (ex-info message {}))))
+     pair)))
 
 (defn run*
   "Run a flow with specified parameters
