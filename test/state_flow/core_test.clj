@@ -29,6 +29,10 @@
   (flow "empty"))
 
 (deftest run-flow
+  (testing "default initial state is an empty map"
+    (is (= {}
+           (second (state-flow/run (flow "just return initial state"))))))
+
   (testing "with single step"
     (is (= {:value 2}
            (second (state-flow/run (flow "single step" add-two) {:value 0})))))
