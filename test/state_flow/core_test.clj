@@ -131,14 +131,13 @@
 (deftest current-description
   (testing "top level flow"
     (is (re-matches #"level 1 \(line \d+\)"
-                    (first (state-flow/run (flow "level 1" (state-flow/current-description)) {})))))
+                    (first (state-flow/run (flow "level 1" (state-flow/current-description)))))))
 
   (testing "nested flows"
     (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\)"
                     (first (state-flow/run (flow "level 1"
                                              (flow "level 2"
-                                               (state-flow/current-description)))
-                             {}))))
+                                               (state-flow/current-description)))))))
 
     ;; WARNING: this (admittedly brittle) test depends on the following 4 lines
     ;; staying in sequence. They can move up or down in this file together,
@@ -147,8 +146,7 @@
           [desc] (state-flow/run (flow "level 1"
                                    (flow "level 2"
                                      (flow "level 3"
-                                       (state-flow/current-description))))
-                   {})]
+                                       (state-flow/current-description)))))]
       (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\) -> level 3 \(line \d+\)" desc))
       (testing "line numbers are correct"
         (let [[level-1-line
@@ -168,7 +166,7 @@
           level-3  (flow "level 3" (state-flow/current-description))
           level-2  (flow "level 2" level-3)
           level-1  (flow "level 1" level-2)
-          [desc _] (state-flow/run level-1 {})]
+          [desc _] (state-flow/run level-1)]
       (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\) -> level 3 \(line \d+\)"
                       desc))
       (testing "line numbers are correct, even when composed"
@@ -189,24 +187,20 @@
       (is (re-matches #"level 1 \(line \d+\)"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2")
-                                      (state-flow/current-description))
-                      {}))))
-
+                                      (state-flow/current-description))))))
       (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\)"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2"
                                         (flow "level 3")
-                                        (state-flow/current-description)))
-                      {}))))
+                                        (state-flow/current-description)))))))
       (is (re-matches #"level 1 \(line \d+\)"
              (first (state-flow/run (flow "level 1"
                                       (flow "level 2"
                                         (flow "level 3"))
-                                      (state-flow/current-description))
-                      {})))))))
+                                      (state-flow/current-description)))))))))
 
 (deftest top-level-description
-  (let [tld (fn [flow] (->> (state-flow/run flow {})
+  (let [tld (fn [flow] (->> (state-flow/run flow)
                             last
                             state-flow/top-level-description))]
     (is (= "level 1"
@@ -224,9 +218,7 @@
 (deftest illegal-flow-args
   (testing "produce friendly failure messages"
     (is (re-find #"Expected a flow.*got.*identity"
-                 (->> (state-flow/run
-                        (flow "flow" identity)
-                        {})
+                 (->> (state-flow/run (flow "flow" identity))
                       first
                       :failure
                       .getMessage)))
@@ -234,8 +226,7 @@
                  (->> (state-flow/run
                         (flow "flow"
                           [x identity]
-                          (state/gets))
-                        {})
+                          (state/gets)))
                       first
                       :failure
                       .getMessage)))))
