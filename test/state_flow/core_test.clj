@@ -219,14 +219,14 @@
 
 (deftest illegal-flow-args
   (testing "produce friendly failure messages"
-    (is (re-find #"Expected flow.*got.*identity"
+    (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run
                         (flow "flow" identity)
                         {})
                       first
                       :failure
                       .getMessage)))
-    (is (re-find #"Expected flow.*got.*identity"
+    (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run
                         (flow "flow"
                           [x identity]
