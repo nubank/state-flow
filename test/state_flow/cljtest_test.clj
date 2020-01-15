@@ -10,7 +10,7 @@
 (def get-value-state (state/gets (comp deref :value)))
 
 (deftest test-match?
-  (testing "add two to state 1, result is 3, doesn't change state"
+  (testing "doesn't change state"
     (let [[ret state] (state-flow/run (cljtest/match? "test-1" test-helpers/add-two 3) {:value 1})]
       (is (= 3 ret))
       (is (= 1 (:value state)))))
@@ -18,17 +18,23 @@
   (testing "works with non-state values"
     (let [[ret state] (state-flow/run (cljtest/match? "test-2" 3 3) {})]
       (is (= 3 ret))
-      (is (empty? (:value state)))))
+      (is (= {} state))))
 
   (testing "works with matcher combinators (embeds by default)"
-    (let [val {:value {:a 2 :b 5}}
-          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) {:a 2}) val)]
+    (let [[ret state] (state-flow/run
+                        (cljtest/match? "contains with monadic left value"
+                                        (state/gets :value)
+                                        {:a 2})
+                        {:value {:a 2 :b 5}})]
       (is (= {:a 2 :b 5} ret))
       (is (= {:a 2 :b 5} (:value state)))))
 
   (testing "works with matcher combinators equals"
-    (let [val {:value {:a 2 :b 5}}
-          [ret state] (state-flow/run (cljtest/match? "contains with monadic left value" (state/gets :value) (matchers/equals {:a 2 :b 5})) {:value {:a 2 :b 5}})]
+    (let [[ret state] (state-flow/run
+                        (cljtest/match? "contains with monadic left value"
+                                        (state/gets :value)
+                                        (matchers/equals {:a 2 :b 5}))
+                        {:value {:a 2 :b 5}})]
       (is (= {:a 2 :b 5} ret))
       (is (= {:a 2 :b 5} (:value state)))))
 
@@ -45,9 +51,9 @@
     (let [state  {:value (atom 0)}
           {:keys [flow-ret]}
           (test-helpers/run-flow
-           (flow ""
+           (flow "flow"
              (test-helpers/delayed-add-two 100)
-             (cljtest/match? "" get-value-state 2))
+             (cljtest/match? "2" get-value-state 2))
            state)]
       (is (= 2 flow-ret))))
 
@@ -55,10 +61,10 @@
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-ret flow-state]}
           (test-helpers/run-flow
-           (flow ""
+           (flow "flow"
              (test-helpers/delayed-add-two 100)
-             (cljtest/match? "" get-value-state 2 {:sleep-time   0
-                                                   :times-to-try 1}))
+             (cljtest/match? "2" get-value-state 2 {:sleep-time   0
+                                                    :times-to-try 1}))
            state)]
       (is (match? {:matcher-combinators.result/type :mismatch
                    :matcher-combinators.result/value {:expected 2 :actual 0}}
@@ -69,9 +75,9 @@
     (let [state  {:value (atom 0)}
           {:keys [report-data flow-ret flow-state]}
           (test-helpers/run-flow
-           (flow ""
+           (flow "flow"
              (test-helpers/delayed-add-two 4000)
-             (cljtest/match? "" get-value-state 2))
+             (cljtest/match? "2" get-value-state 2))
            state)]
       (is (match? {:matcher-combinators.result/type :mismatch
                    :matcher-combinators.result/value {:expected 2 :actual 0}}
@@ -132,8 +138,8 @@
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}
   [value (state/gets :value)]
-  (cljtest/match? "" value 1)
-  (cljtest/match? "" (state/gets :map) {:b 2}))
+  (cljtest/match? "1" value 1)
+  (cljtest/match? "b is 2" (state/gets :map) {:b 2}))
 
 (deftest run-a-flow
   (is (match? {:value 1
