@@ -7,37 +7,32 @@
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
 
-(defn ^:private match-expr
-  [desc value checker]
-  (let [test-name (symbol (clojure.string/replace desc " " "-"))]
-    (list `ctest/testing desc (list `is (list 'match? checker value)))))
-
-(defmacro match+meta
+(defmacro match-expr
   [desc value checker meta]
-  (with-meta (match-expr desc value checker) meta))
+  (with-meta
+    (list `ctest/testing desc (list `is (list 'match? checker value)))
+    meta))
 
 (defn match-probe
+  ([state matcher]
+   (match-probe state matcher {}))
   ([state matcher params]
    (m/fmap second
            (probe/probe state
-                       #(matcher-combinators/match? (matcher-combinators/match matcher %))
-                       params)))
-  ([state matcher]
-   (match-probe state matcher {})))
+                        #(matcher-combinators/match? (matcher-combinators/match matcher %))
+                        params))))
 
 (defmacro match?
   "Builds a clojure.test assertion using matcher combinators"
-  [desc value checker & forms]
-  (let [the-meta (meta &form)
-        params   (if (map? (first forms)) (first forms) {})]
-    `(core/flow ~desc
-       [full-desc# (core/current-description)]
-       (if (state/state? ~value)
-         (m/mlet [extracted-value# (match-probe ~value ~checker ~params)]
-           (state/wrap-fn #(do (match+meta full-desc# extracted-value# ~checker ~the-meta)
-                               extracted-value#)))
-         (state/wrap-fn #(do (match+meta full-desc# ~value ~checker ~the-meta)
-                             ~value))))))
+  [match-desc actual checker & [params]]
+  (let [form-meta (meta &form)]
+    `(core/flow ~match-desc
+       [flow-desc# (core/current-description)
+        actual#    (if (state/state? ~actual)
+                     (match-probe ~actual ~checker ~params)
+                     (state/return ~actual))]
+       (state/wrap-fn #(do (match-expr flow-desc# actual# ~checker ~form-meta)
+                           actual#)))))
 
 (defmacro defflow
   {:arglists '([name & flows]

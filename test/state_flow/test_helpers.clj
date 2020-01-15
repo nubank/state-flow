@@ -19,8 +19,12 @@
 
 
 (defmacro run-flow
-  "Same as state-flow.core/run! except does not report exceptions to *out* or test results from
-  within the flow."
+  "Wrapper for `state-flow.core/run!`, but captures clojure.test's report data
+  instead of printing it to *out*. Returns a map of:
+
+    :report-data - the data that _would_ be reported via clojure.test
+    :flow-ret    - the return value of the flow
+    :flow-state  - the end-state of the flow "
   [flow state]
   `(let [report-data# (atom nil)
          res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
