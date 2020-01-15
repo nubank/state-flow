@@ -2,70 +2,82 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/nubank/state-flow.svg)](https://clojars.org/nubank/state-flow)
 
-An integration testing framework for building and composing test flows with support for clojure.test and midje
+StateFlow is a testing framework designed to support the composition and reuse of individual test steps.
 
-StateFlow provides a compositional approach to implementing integration tests. The goal is to reduce coupling between test steps in order to support reuse and composition of flows.
+## Flows
 
-## The flow macro
+A flow is a sequence of steps to be executed with some state as a
+reference. Each step can be any of a primitive ([described below](#primitives)), a
+vector of bindings ([described below](#bindings)), or a nested flow. Flows can be
+`def`'d to vars, and nested arbitrarily deeply.
 
-Defining a flow is done with the `flow` macro, which expects a description and a variable number of steps that can be other flows, bindings or primitives.
+We define a flow with the `flow` macro:
 
-Flow macro syntax:
 ```clojure
 (flow <description> <flow/bindings/primitive>*)
 ```
 
-The flow macro defines a sequence of steps to be executed having some state as a reference.
-It can be thought about as a function mapping some state to a pair of `(fn [<state>] [<return-value>, <possibly-updated-state>])`
-
 Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
-Each step will be executed in sequence, passing the state to the next step and the result will be a pair `[<return-value>, <final-state>]`.
-The return value of running the flow is the return value of the last step that was run.
 
-If you are using the library for integration testing, the initial state is usually a representation of your service components,
-a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states without any problem.
+You can think flows and the steps within them as functions of the state, e.g.
+
+```clojure
+(fn [<state>] [<return-value>, <possibly-updated-state>])
+```
+
+Each step is executed in sequence, passing the state to the next step. The return value from running the flow is the return value of the last step that was run.
+
+If you are using StateFlow for integration testing, the initial state is usually a representation of your service components,
+a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states, e.g.
+
+```clojure
+(def a-flow (flow ...))
+
+(state-flow.core/run! flow <one-initial-state>)
+(state-flow.core/run! flow <another-initial-state>)
+```
 
 ### Primitives
 
-Primitives are the fundamental building blocks of flows and are
-enough to build any kind of flow. Each one returns a function of the
-state. These functions are wrapped in Records in order to support
-Protocols, but you can just think of them as functions.
+Primitives are the fundamental building blocks of flows. Each one is
+a function (wrapped in a Record in order to support internals, but you
+can just think of them as functions) of state.
 
 Below we list the main primitives and a model for the sort of function
-each represents. The names of the primatives are derived from
-https://wiki.haskell.org/State_Monad, which you should read if you
-want to understand how StateFlow works, but you should not need to
-read in order to use StateFlow.
+each represents. Their names are derived from [Haskell's State
+Monad](https://wiki.haskell.org/State_Monad), which you should read
+about if you want to understand StateFlow's internals, but you should
+not need in order to use StateFlow.
 
-* Returning current state
+* Return current state
 
 ```clojure
-state-flow.state/get
+(state-flow.state/get)
 ;=> (fn [s] [s s])
 ```
 
-* Returning the application of a function on the current state
+* Return the application of a function to the current state
 
 ```clojure
 (state-flow.state/gets f)
 ;=> (fn [s] [(f s) s])
 ```
 
-* Resetting a new state
+* Reset a new state
 
 ```clojure
 (state-flow.state/put new-s)
 ;=> (fn [s] [s new-s])
 ```
 
-* Updating the state by applying a function
+* Update the state by applying a function
 
 ```clojure
 (state-flow.state/modify f)
 ;=> (fn [s] [s (f s)])
 ```
-* Returning an arbitrary value
+
+* Return an arbitrary value
 
 ```clojure
 (state-flow.state/return v)
@@ -74,12 +86,12 @@ state-flow.state/get
 
 ### Bindings
 
-Bindings take advantage of the return values of flows to compose other flows and have the following syntax:
+Bindings let you take advantage of the return values of flows to compose other flows and have the following syntax:
 
 `[(<symbol> <flow/primitive>)+]`
 
 They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the flow on the right.
-It's also possible to do non-flow bindings inside the same vector using the `:let` keyword:
+It's also possible to bind directly to values (i.e. Clojure's `let`) within the same vector using the `:let` keyword:
 
 ```clojure
 [(<symbol> <flow/primitive>)
@@ -88,8 +100,16 @@ It's also possible to do non-flow bindings inside the same vector using the `:le
 
 ### Flow Example
 
-Suppose our system state is made out of a simple map with `{:value <value>}`. We can make a flow that just
+Suppose our system state is made out of a map with `{:value <value>}`. We can make a flow that just
 fetches the value bound to `:value`.
+
+```clojure
+(def get-value (flow "get-value" (state/gets :value)))
+(state-flow/run! get-value {:value 4})
+; => [4 {:value 4}]
+```
+
+Primitives have the same underlying structure as flows and can be passed directly to `run!`:
 
 ```clojure
 (def get-value (state/gets :value))
@@ -97,7 +117,7 @@ fetches the value bound to `:value`.
 ; => [4 {:value 4}]
 ```
 
-We can use `state/modify` to modify the state. Here's a flow that increments the value:
+We can use `state/modify` to modify the state. Here's a primitive that increments the value:
 
 ```clojure
 (def inc-value (state/modify #(update % :value inc)))
@@ -132,13 +152,16 @@ Or we could increment the value first and then return it doubled:
 
 ## Clojure.test Support
 
-The way we can use flows to make `clojure.test` tests is by using `match?`.
+We use the `defflow` and `match?` macros to build `clojure.test` tests
+out of flows.
+
+`defflow` defines a test (using `deftest`) that when
+run, will execute the flow with the parameters that we set.
+
 `match?` is a flow that will make a `clojure.test` assertion and the [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/) library
 for the actual checking and failure messages. `match?` asks for a string description, a value (or a flow returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
 
-The assertions should be wrapped in a `defflow`. `defflow` will define a test (using `deftest`)
-that when run, will execute the flow with the parameters that we set. Here are some very simple examples
-of tests defined using `defflow`:
+Here are some very simple examples of tests defined using `defflow`:
 
 ```clojure
 (defflow my-flow
@@ -163,12 +186,11 @@ Or with custom parameters:
 
 ## Midje Support
 
-The way to write midje tests with StateFlow is by using `verify`.
-`verify` is a function that takes three arguments: a description, a value or step and another value or midje checker
-and produces a step that when executed, verifies that the second argument matches the third argument. It replicates the functionality of a `fact` from midje.
+We use `verify` to write midje tests with StateFlow. `verify` is a function that of three arguments: a description, a value or step, and another value or midje checker. It
+produces a step that, when executed, verifies that the second argument matches the third argument. It replicates the functionality of a `fact` from midje.
 In fact, if a simple value is passed as second argument, what it does is simply call `fact` internally when the flow is executed.
 
-Verify returns a step that will make the check and return something. If the second argument is a value, it will return this argument. If the second argument is itself a step, it will return the last return value of the step that was passed. This makes it possible to use the result of verify on a later part of the flow execution if that is desired.
+`verify` returns a step that will make the check and return something. If the second argument is a value, it will return this argument. If the second argument is itself a step, it will return the last return value of the step that was passed. This makes it possible to use the result of verify on a later part of the flow execution if that is desired.
 
 Say we have a step for making a POST request that stores data in datomic (`store-data-request`),
 and we also have a step that fetches this data from db (`fetch-data`). We want to check that after we make the POST, the data is persisted:
