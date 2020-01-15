@@ -8,7 +8,7 @@ StateFlow is a testing framework designed to support the composition and reuse o
 
 A flow is a sequence of steps to be executed with some state as a
 reference. Each step can be any of a primitive (described below), a
-vector of bindings (described below), or a nested flow. Flows can be
+vector of bindings ([described below](#bindings)), or a nested flow. Flows can be
 `def`'d to vars, and nested arbitrarily deeply.
 
 We define a flow with the `flow` macro:
