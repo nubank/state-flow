@@ -106,7 +106,7 @@
        pair))))
 
 (defn- result-or-run-policy!
-  "If flow ends fails with an exception, runs the supplied error policy"
+  "If flow fails with an exception, runs the supplied error policy"
   [pair on-error]
   (cond
     (or (not (e/failure? (first pair)))
