@@ -91,26 +91,32 @@
       (m/return ret#))))
 
 (defn run
-  [flow initial-state]
-  (assert (state/state? flow) "First argument must be a flow")
-  (assert (map? initial-state) "Initial state must be a map")
-  (let [pair (state/run flow initial-state)]
-    (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
-      (d/pair (#'cats.monad.exception/->Failure
-               (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
-              (second pair))
-      pair)))
+  "Given an initial-state (default {}), runs a flow and returns a pair of
+  the result of the last step in the flow and the end state."
+  ([flow]
+   (run flow {}))
+  ([flow initial-state]
+   (assert (state/state? flow) "First argument must be a flow")
+   (assert (map? initial-state) "Initial state must be a map")
+   (let [pair (state/run flow initial-state)]
+     (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
+       (d/pair (#'cats.monad.exception/->Failure
+                (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
+               (second pair))
+       pair))))
 
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
-  [flow initial-state]
-  (let [pair (run flow initial-state)]
-    (when (e/failure? (first pair))
-      (let [description (->> pair second description-stack format-description)
-            message (str "Flow " "\"" description "\"" " failed with exception")]
-        (log/info (m/extract (first pair)) message)
-        (throw (ex-info message {}))))
-    pair))
+  ([flow]
+   (run! flow {}))
+  ([flow initial-state]
+   (let [pair (run flow initial-state)]
+     (when (e/failure? (first pair))
+       (let [description (->> pair second description-stack format-description)
+             message (str "Flow " "\"" description "\"" " failed with exception")]
+         (log/info (m/extract (first pair)) message)
+         (throw (ex-info message {}))))
+     pair)))
 
 (defn run*
   "Run a flow with specified parameters

@@ -2,6 +2,7 @@
 
 ## [DEV]
 
+- Add 1-arg arity to `state-flow.core/run` and `state-flow.core/run!` with default initial-state of `{}`
 
 ## [2.1.3]
 - Improve error when a non-flow expression is provided as a subflow
