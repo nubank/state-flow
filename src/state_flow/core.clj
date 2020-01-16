@@ -110,12 +110,18 @@
   ([flow]
    (run! flow {}))
   ([flow initial-state]
+   (run! flow initial-state identity))
+  ([flow initial-state cleanup]
    (let [pair (run flow initial-state)]
      (when (e/failure? (first pair))
        (let [description (->> pair second description-stack format-description)
-             message (str "Flow " "\"" description "\"" " failed with exception")]
+             message     (str "Flow " "\"" description "\"" " failed with exception")]
          (log/info (m/extract (first pair)) message)
-         (throw (ex-info message {}))))
+         (try
+           (cleanup (second pair))
+           (catch java.lang.Throwable t
+             (log/error t "Error when trying to cleanup after exception")))
+         (throw (ex-info message {} (m/extract (first pair))))))
      pair)))
 
 (defn run*
@@ -127,10 +133,10 @@
   `runner`, function that will receive a flow and an initial state and execute the flow"
   [{:keys [init cleanup runner]
     :or   {init    (constantly {})
-           cleanup identity
-           runner  run!}}
+           cleanup identity}}
    flow]
   (let [initial-state              (init)
+        runner                     (or runner #(run! %1 %2 cleanup))
         [_ final-state :as result] (runner flow initial-state)]
     (cleanup final-state)
     result))
