@@ -105,41 +105,49 @@
                (second pair))
        pair))))
 
+(defn- result-or-run-policy!
+  "If flow ends fails with an exception, runs the supplied error policy"
+  [pair on-error]
+  (cond
+    (or (not (e/failure? (first pair)))
+        (= :ignore on-error))
+    pair
+
+    :default
+    (let [description (->> pair second description-stack format-description)
+          message     (str "Flow " "\"" description "\"" " failed with exception")]
+      (log/info (m/extract (first pair)) message)
+      (throw (ex-info message {} (m/extract (first pair)))))))
+
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
   ([flow]
    (run! flow {}))
   ([flow initial-state]
-   (run! flow initial-state identity))
-  ([flow initial-state cleanup]
-   (let [pair (run flow initial-state)]
-     (when (e/failure? (first pair))
-       (let [description (->> pair second description-stack format-description)
-             message     (str "Flow " "\"" description "\"" " failed with exception")]
-         (log/info (m/extract (first pair)) message)
-         (try
-           (cleanup (second pair))
-           (catch java.lang.Throwable t
-             (log/error t "Error when trying to cleanup after exception")))
-         (throw (ex-info message {} (m/extract (first pair))))))
-     pair)))
+   (-> (run flow initial-state)
+       (result-or-run-policy! :log-and-throw))))
 
 (defn run*
   "Run a flow with specified parameters
 
   Receives optional parameter maps
-  `init`, a function with no arguments that returns the initial state.
+  `init`, a function with no arguments that returns the initial state
   `cleanup`, function receiving the final state to perform cleanup if necessary
-  `runner`, function that will receive a flow and an initial state and execute the flow"
-  [{:keys [init cleanup runner]
-    :or   {init    (constantly {})
-           cleanup identity}}
+  `runner`, function that will receive a flow and an initial state and execute the flow
+  `on-error`, behavior when a flow fails with an exception. Options are `:log-and-throw` and `:ignore`"
+  [{:keys [init cleanup runner on-error]
+    :or   {init     (constantly {})
+           cleanup  identity
+           runner   run
+           on-error :log-and-throw}}
    flow]
-  (let [initial-state              (init)
-        runner                     (or runner #(run! %1 %2 cleanup))
-        [_ final-state :as result] (runner flow initial-state)]
-    (cleanup final-state)
-    result))
+  (let [initial-state (init)
+        pair          (runner flow initial-state)]
+    (try
+      (cleanup (second pair))
+      (catch java.lang.Throwable t
+        (log/error t "Error when trying to cleanup after exception")))
+    (result-or-run-policy! pair on-error)))
 
 (defn as-step-fn
   "Transform a flow step into a state transition function"
