@@ -95,6 +95,13 @@
              second
              :atom
              deref))))
+  (testing "flow with cleanup and exception"
+    (let [cleanup-runs (atom 0)]
+      (try (state-flow/run* {:init    (constantly {:value 0})
+                             :cleanup (fn [& _] (swap! cleanup-runs inc))}
+             bogus-flow)
+           (catch java.lang.Throwable _))
+      (is (= 1 @cleanup-runs))))
 
   (testing "flow with custom runner"
     (is (match? {:value 4}
@@ -109,9 +116,18 @@
   (testing "default initial state is an empty map"
     (is (= {}
            (second (state-flow/run! (flow "just return initial state"))))))
+
   (testing "run! throws exception"
     (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
-                          (test-helpers/run-flow bogus-flow {:value 0})))))
+                          (test-helpers/run-flow bogus-flow {:value 0}))))
+
+  (testing "run! runs cleanup before exception"
+    (let [cleanup-runs (atom 0)]
+      (try
+        (state-flow/run! bogus-flow {:value 0}
+                         (fn [& _] (swap! cleanup-runs inc)))
+        (catch java.lang.Throwable _))
+      (is (= 1 @cleanup-runs)))))
 
 (deftest as-step-fn
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
