@@ -6,6 +6,12 @@
             [state-flow.state :as state]))
 
 (deftest state
+  (testing "primitives are constructable outside monad context"
+    (state/get)
+    (state/gets inc)
+    (state/modify inc)
+    (state/return 37)
+    (state/put {:count 0}))
   (let [increment-state (m/mlet [x (state/get)
                                  _ (state/put (inc x))]
                                 (m/return x))
