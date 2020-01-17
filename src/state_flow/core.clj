@@ -105,27 +105,29 @@
                (second pair))
        pair))))
 
-(defn- result-or-run-policy!
+(defn- log-and-throw!
+  [pair]
+  (let [description (->> pair second description-stack format-description)
+        message     (str "Flow " "\"" description "\"" " failed with exception")]
+    (log/info (m/extract (first pair)) message)
+    (throw (ex-info message {} (m/extract (first pair))))))
+
+(defn- run-policy-on-error!
   "If flow fails with an exception, runs the supplied error policy"
   [pair on-error]
-  (cond
-    (or (not (e/failure? (first pair)))
-        (= :ignore on-error))
-    pair
-
-    :default
-    (let [description (->> pair second description-stack format-description)
-          message     (str "Flow " "\"" description "\"" " failed with exception")]
-      (log/info (m/extract (first pair)) message)
-      (throw (ex-info message {} (m/extract (first pair)))))))
+  (when (e/failure? (first pair))
+    (case on-error
+      :log-and-throw (log-and-throw! pair)
+      :ignore        nil)))
 
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
   ([flow]
    (run! flow {}))
   ([flow initial-state]
-   (-> (run flow initial-state)
-       (result-or-run-policy! :log-and-throw))))
+   (let [pair (run flow initial-state)]
+     (or (run-policy-on-error! pair :log-and-throw)
+         pair))))
 
 (defn run*
   "Run a flow with specified parameters
@@ -134,7 +136,7 @@
   `init`, a function with no arguments that returns the initial state
   `cleanup`, function receiving the final state to perform cleanup if necessary
   `runner`, function that will receive a flow and an initial state and execute the flow
-  `on-error`, behavior when a flow fails with an exception. Options are `:log-and-throw` and `:ignore`"
+  `on-error`, keyword indicating behavior when a flow fails with an exception. Options are `:log-and-throw` and `:ignore`"
   [{:keys [init cleanup runner on-error]
     :or   {init     (constantly {})
            cleanup  identity
@@ -147,7 +149,8 @@
       (cleanup (second pair))
       (catch java.lang.Throwable t
         (log/error t "Error when trying to cleanup after exception")))
-    (result-or-run-policy! pair on-error)))
+    (or (run-policy-on-error! pair on-error)
+        pair)))
 
 (defn as-step-fn
   "Transform a flow step into a state transition function"
