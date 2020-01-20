@@ -7,12 +7,12 @@
 ;; -------------------------------------------
 
 ;; state-flow is implemented using a state monad. If you're already
-;; familiar with monads, great! If not, don't worrry. We'll explain
+;; familiar with monads, great! If not, don't worry. We'll explain
 ;; just enough about the state monad to understand state-flow.
 ;;
 ;; - A monad is a wrapper around a function.
-;; - A state monad is a monad whose function is a function of
-;;   some mutable state, which is managed for you by a runner.
+;; - A state monad is a monad with a function of some mutable state,
+;;   which is managed for you by a runner.
 ;;
 ;; state-flow includes a number of state monad constructors, e.g.
 
