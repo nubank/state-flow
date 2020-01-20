@@ -197,7 +197,8 @@
 (run (flow "vanilla clojure in a flow" (state/wrap-fn #(+ 1 2))) {})
 ;; => #<Pair [3 {}]>
 
-;; Here's a more practical example
+;; Here's a more practical example, in which we draw from state
+;; to provide arguments to domain functions.
 
 (defn register-user [db user]
   (swap! db update :users conj user))
@@ -205,12 +206,13 @@
 (defn fetch-users [db]
   (:users @db))
 
-(let [db (atom {:names #{}})]
-  (run
-    (flow "interact with db"
-          (state/wrap-fn #(register-user db {:name "Phillip"}))
-          (state/wrap-fn #(fetch-users db)))))
-;; => #<Pair [#{"Phillip"} {}]>
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (state/wrap-fn #(fetch-users db)))
+  {:db (atom {:users #{}})})
+;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x64e11e64]}]>
 
 ;; ---------------------------
 ;; assertions
@@ -219,42 +221,66 @@
 ;; state-flow includes a wrapper around matcher-combinators to support
 ;; making assertions
 
-(let [db (atom {:names #{}})]
-  (run
-    (flow "interact with db"
-          (state/wrap-fn #(register-user db {:name "Phillip"}))
-          [users (state/wrap-fn #(fetch-users db))]
-          (match? "user got added"
-                  users
-                  [{:name "Phillipx"}]))))
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    [users (state/wrap-fn #(fetch-users db))]
+    (match? "user got added"
+            users
+            #{{:name "Phillip"}}))
+  {:db (atom {:users #{}})})
 
 ;; could also be written as
 
-(let [db (atom {:names #{}})]
-  (run
-    (flow "interact with db"
-          (state/wrap-fn #(register-user db {:name "Phillip"}))
-          (match? "user got added"
-                  (state/wrap-fn #(fetch-users db))
-                  [{:name "Phillip"}]))))
-
-(run      (match? "" 1 2))
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (match? "user got added"
+            (state/wrap-fn #(fetch-users db))
+            #{{:name "Phillip"}}))
+  {:db (atom {:users #{}})})
 
 ;; ---------------------------
 ;; failure semantics
 ;; ---------------------------
-;; A quick example of failing in flow
 
+;; When an assertion fails, it prints the failure message to the
+;; repl, e.g.
+
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (match? "user got added"
+            (state/wrap-fn #(fetch-users db))
+            #{{:name "Philip"}})) ;; <- different spelling
+  {:db (atom {:users #{}})})
+;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x4c2a27a6]}]>
+
+;; --- printed to repl ---
+;; FAIL in () (form-init13207122878088623810.clj:256)
+;; interact with db (line 253) -> user got added
+;; expected: (match? #{{:name "Philip"}} actual__12555__auto__)
+;; actual: #{{:name (mismatch "Philip" "Phillip")}}
+;; --- /printed to repl ---
+
+;; ---------------------------
+;; exceptions
+;; ---------------------------
+
+;; When a flow throws an exception ...
+;;
 ;; `run` returns the exception as a value
-#_(run (flow ""
+(run (flow ""
        (match? "fails" 1 2)
        (state/wrap-fn #(throw (ex-info "boom!" {})))
        (match? "is never run" 3 4))
      {})
 
-
 ;; `run!` raises the exception
-#_(state-flow.core/run!
+(state-flow.core/run!
   (flow ""
        (match? "fails" 1 2)
        (state/wrap-fn #(throw (ex-info "boom!" {})))
