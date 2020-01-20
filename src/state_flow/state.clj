@@ -81,7 +81,7 @@
 (defn return
   "Returns the equivalent of (fn [state] [v, state])"
   [v]
-  (m/return v))
+  (m/return error-context v))
 
 (defn ^:deprecated swap
   "DEPRECATED: use modify"
