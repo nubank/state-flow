@@ -20,11 +20,6 @@
 (defmethod clojure.pprint/simple-dispatch cats.monad.exception.Failure [f]
   (pr f))
 
-(defn ^:private alter-meta!*
-  "like clojure.core/alter-meta! but works on objects other than ref-types"
-  [s f & args]
-  (with-meta s (apply f (meta s) args)))
-
 (defn push-meta
   "Returns a flow that will modify the state metadata.
 
@@ -33,10 +28,10 @@
   (state/modify
    (fn [s]
      (-> s
-         (alter-meta!* update :top-level-description #(or % description))
-         (alter-meta!* update :description-stack (fnil conj []) (str description
-                                                                     (when line
-                                                                       (format " (line %s)" line))))))))
+         (vary-meta update :top-level-description #(or % description))
+         (vary-meta update :description-stack (fnil conj []) (str description
+                                                                  (when line
+                                                                    (format " (line %s)" line))))))))
 
 (def pop-meta
   "Returns a flow that will modify the state metadata.
@@ -44,7 +39,7 @@
   For internal use. Subject to change."
   (state/modify
    (fn [s]
-     (alter-meta!* s update :description-stack pop))))
+     (vary-meta s update :description-stack pop))))
 
 (defn ^:private format-description
   [strs]
