@@ -26,7 +26,7 @@
                      flow  [[:block 1]]}}
 
   :profiles {:uberjar {:aot :all}
-             :dev {:source-paths ["config"]
+             :dev {:source-paths ["dev"]
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "0.3.1"]
                                   [midje "1.9.9"]
