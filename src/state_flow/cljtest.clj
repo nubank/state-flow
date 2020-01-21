@@ -41,5 +41,8 @@
   (let [[parameters & flows] (if (map? (first forms))
                                forms
                                (cons {} forms))]
-    `(ctest/deftest ~name
-       (core/run* ~parameters (core/flow ~(str name) ~@flows)))))
+    `(do
+       (def ~name
+         (core/flow ~(str name) ~@flows))
+       (ctest/deftest ~(symbol (str "run-" name))
+         (core/run* ~parameters ~name)))))

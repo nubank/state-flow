@@ -108,35 +108,42 @@
 
 (deftest test-defflow
   (testing "defines flow with default parameters"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-                {}
-                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+    (is (= '(do
+              (def my-flow (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))
+              (clojure.test/deftest
+                run-my-flow
+                (state-flow.core/run*
+                  {}
+                  my-flow)))
            flow-with-defaults)))
 
   (testing "defines flow with optional parameters"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-                {:init (constantly {:value 1})}
-                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+    (is (= '(do
+              (def my-flow (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1)))
+              (clojure.test/deftest
+                run-my-flow
+                (state-flow.core/run*
+                  {:init (constantly {:value 1})}
+                  my-flow)))
            flow-with-optional-args)))
 
   (testing "defines flow with binding and flow inside match?"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-                {:init (constantly {:map {:a 1 :b 2} :value 1})}
-                (state-flow.core/flow
-                  "my-flow"
-                  [value (state/gets :value)]
-                  (cljtest/match? value 1)
-                  (cljtest/match? (state/gets :map) {:b 2}))))
+    (is (= '(do
+              (def my-flow (state-flow.core/flow
+                    "my-flow"
+                    [value (state/gets :value)]
+                    (cljtest/match? value 1)
+                             (cljtest/match? (state/gets :map) {:b 2})))
+              (clojure.test/deftest
+                run-my-flow
+                (state-flow.core/run*
+                  {:init (constantly {:map {:a 1 :b 2} :value 1})}
+                  my-flow)))
            flow-with-binding-and-match))))
 
-(defflow my-flow {:init (constantly {:value 1
-                                     :map   {:a 1 :b 2}})}
+(defflow my-flow
+  {:init (constantly {:value 1
+                      :map   {:a 1 :b 2}})}
   [value (state/gets :value)]
   (cljtest/match? "1" value 1)
   (cljtest/match? "b is 2" (state/gets :map) {:b 2}))
@@ -144,4 +151,4 @@
 (deftest run-a-flow
   (is (match? {:value 1
                :map   {:a 1 :b 2}}
-              (second ((:test (meta #'my-flow)))))))
+              (second ((:test (meta #'run-my-flow)))))))
