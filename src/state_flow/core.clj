@@ -20,26 +20,30 @@
 (defmethod clojure.pprint/simple-dispatch cats.monad.exception.Failure [f]
   (pr f))
 
+(defn modify-meta
+  "Returns a monad that will apply vary-meta to the world.
+
+  For internal use. Subject to change."
+  [f & args]
+  (state/modify (fn [s] (apply vary-meta s f args))))
+
 (defn push-meta
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
   [description {:keys [line]}]
-  (state/modify
-   (fn [s]
-     (-> s
-         (vary-meta update :top-level-description #(or % description))
-         (vary-meta update :description-stack (fnil conj []) (str description
-                                                                  (when line
-                                                                    (format " (line %s)" line))))))))
+  (modify-meta
+   (fn [m] (-> m
+               (update :top-level-description #(or % description))
+               (update :description-stack (fnil conj []) (str description
+                                                              (when line
+                                                                (format " (line %s)" line))))))))
 
-(def pop-meta
+(defn pop-meta []
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  (state/modify
-   (fn [s]
-     (vary-meta s update :description-stack pop))))
+  (modify-meta update :description-stack pop))
 
 (defn ^:private format-description
   [strs]
@@ -82,7 +86,7 @@
     `(m/do-let
       (push-meta ~description ~flow-meta)
       [ret# (m/do-let ~@flows')]
-      pop-meta
+      (pop-meta)
       (m/return ret#))))
 
 (defn run

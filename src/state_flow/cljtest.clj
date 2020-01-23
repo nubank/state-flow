@@ -8,31 +8,42 @@
             [state-flow.state :as state]))
 
 (defmacro match-expr
-  [desc value checker meta]
+  [desc value matcher meta]
   (with-meta
-    (list `ctest/testing desc (list `is (list 'match? checker value)))
+    (list `ctest/testing desc (list `is (list 'match? matcher value)))
     meta))
 
 (defn match-probe
+  "Returns a map of :value (bound to the right value of the result of
+  probe/probe), with :match-results added to the metadata."
   ([state matcher]
    (match-probe state matcher {}))
   ([state matcher params]
-   (m/fmap second
-           (probe/probe state
-                        #(matcher-combinators/match? (matcher-combinators/match matcher %))
-                        params))))
+   (let [match-results (atom [])]
+     (m/fmap (fn [pair]
+               (with-meta {:value (second pair)}
+                 {:match-results @match-results}))
+             (probe/probe state
+                          (fn [v]
+                            (let [res (matcher-combinators/match matcher v)]
+                              (swap! match-results conj res)
+                              (matcher-combinators/match? res)))
+                          params)))))
 
 (defmacro match?
   "Builds a clojure.test assertion using matcher combinators"
-  [match-desc actual checker & [params]]
+  [match-desc actual matcher & [params]]
   (let [form-meta (meta &form)]
     `(core/flow ~match-desc
-       [flow-desc# (core/current-description)
-        actual#    (if (state/state? ~actual)
-                     (match-probe ~actual ~checker ~params)
-                     (state/return ~actual))]
-       (state/wrap-fn #(do (match-expr flow-desc# actual# ~checker ~form-meta)
-                           actual#)))))
+       [flow-desc#    (core/current-description)
+        probe-result# (if (state/state? ~actual)
+                        (match-probe ~actual ~matcher ~params)
+                        (match-probe (state/return ~actual)
+                                     ~matcher
+                                     {:sleep-time 0 :times-to-try 1}))]
+       (core/modify-meta update :match-results (fnil conj []) (:match-results (meta probe-result#)))
+       (state/wrap-fn #(do (match-expr flow-desc# (:value probe-result#) ~matcher ~form-meta)
+                           (:value probe-result#))))))
 
 (defmacro defflow
   {:arglists '([name & flows]
