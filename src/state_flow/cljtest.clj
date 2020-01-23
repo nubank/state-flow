@@ -30,22 +30,42 @@
                               (matcher-combinators/match? res)))
                           params)))))
 
+(defn expect*
+  "Internal use - do not call directly. Use expect instead."
+  [{:keys [form-meta] :as opts} expected actual & [params]]
+  (core/flow* opts
+              `(m/do-let
+                [flow-desc#    (core/current-description)
+                 probe-result# (if (state/state? ~actual)
+                                 (match-probe ~actual ~expected ~params)
+                                 (match-probe (state/return ~actual)
+                                              ~expected
+                                              {:sleep-time 0 :times-to-try 1}))]
+                (core/modify-meta update :match-results (fnil conj []) (:match-results (meta probe-result#)))
+                (state/wrap-fn #(do (match-expr flow-desc# (:value probe-result#) ~expected ~form-meta)
+                                    (:value probe-result#))))))
+
+(defmacro expect
+  "Builds a clojure.test assertion using matcher combinators.
+
+  - expected can be a matcher-combinators matcher or a literal value
+    - literals will be used to infer default matchers
+  - actual can be a state monad or a literal value"
+  [expected actual & [params]]
+  (expect* {:description "expect"
+            :caller-meta (meta &form)}
+           expected
+           actual
+           params))
+
 (defmacro match?
-  "Builds a clojure.test assertion using matcher combinators"
+  "Deprecated: Use expect instead."
   [match-desc actual matcher & [params]]
-  (let [form-meta (meta &form)]
-    (core/flow* {:description match-desc
-                 :caller-meta form-meta}
-      `(m/do-let
-        [flow-desc#    (core/current-description)
-         probe-result# (if (state/state? ~actual)
-                         (match-probe ~actual ~matcher ~params)
-                         (match-probe (state/return ~actual)
-                                      ~matcher
-                                      {:sleep-time 0 :times-to-try 1}))]
-        (core/modify-meta update :match-results (fnil conj []) (:match-results (meta probe-result#)))
-        (state/wrap-fn #(do (match-expr flow-desc# (:value probe-result#) ~matcher ~form-meta)
-                            (:value probe-result#)))))))
+  (expect* {:description match-desc
+            :caller-meta (meta &form)}
+           matcher
+           actual
+           params))
 
 (defmacro defflow
   {:arglists '([name & flows]
