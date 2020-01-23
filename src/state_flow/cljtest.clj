@@ -34,16 +34,18 @@
   "Builds a clojure.test assertion using matcher combinators"
   [match-desc actual matcher & [params]]
   (let [form-meta (meta &form)]
-    `(core/flow ~match-desc
-       [flow-desc#    (core/current-description)
-        probe-result# (if (state/state? ~actual)
-                        (match-probe ~actual ~matcher ~params)
-                        (match-probe (state/return ~actual)
-                                     ~matcher
-                                     {:sleep-time 0 :times-to-try 1}))]
-       (core/modify-meta update :match-results (fnil conj []) (:match-results (meta probe-result#)))
-       (state/wrap-fn #(do (match-expr flow-desc# (:value probe-result#) ~matcher ~form-meta)
-                           (:value probe-result#))))))
+    (core/flow* {:description match-desc
+                 :caller-meta form-meta}
+      `(m/do-let
+        [flow-desc#    (core/current-description)
+         probe-result# (if (state/state? ~actual)
+                         (match-probe ~actual ~matcher ~params)
+                         (match-probe (state/return ~actual)
+                                      ~matcher
+                                      {:sleep-time 0 :times-to-try 1}))]
+        (core/modify-meta update :match-results (fnil conj []) (:match-results (meta probe-result#)))
+        (state/wrap-fn #(do (match-expr flow-desc# (:value probe-result#) ~matcher ~form-meta)
+                            (:value probe-result#)))))))
 
 (defmacro defflow
   {:arglists '([name & flows]

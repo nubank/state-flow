@@ -75,19 +75,24 @@
   [s]
   (-> s meta :top-level-description))
 
-(defmacro flow
-  "Defines a flow"
-  {:style/indent :defn}
-  [description & flows]
+(defn flow* [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
-     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
-  (let [flow-meta (meta &form)
+    (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
+  (let [flow-meta caller-meta
         flows'    (or flows `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description ~flow-meta)
       [ret# (m/do-let ~@flows')]
       (pop-meta)
       (m/return ret#))))
+
+(defmacro flow
+  "Defines a flow"
+  {:style/indent :defn}
+  [description & flows]
+  (apply flow* {:description description
+                :caller-meta (meta &form)}
+         flows))
 
 (defn run
   "Given an initial-state (default {}), runs a flow and returns a pair of

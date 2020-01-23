@@ -2,7 +2,7 @@
   (:require [clojure.test :as t :refer [deftest testing is]]
             [matcher-combinators.test :refer [match?]]
             [matcher-combinators.matchers :as matchers]
-            [state-flow.test-helpers :as test-helpers]
+            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.cljtest :as cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]))
@@ -70,12 +70,14 @@
 
   (testing "failure case"
     (testing "with probe result that never changes"
-      (let [{:keys [flow-ret flow-state report-data]}
-            (test-helpers/run-flow (cljtest/match? "contains with monadic left value"
-                                                   (state/gets :value)
-                                                   (matchers/equals {:n 1})
-                                                   {:times-to-try 2})
-                                   {:value {:n 2}})]
+      (let [three-lines-before-call-to-match (this-line-number)
+            {:keys [flow-ret flow-state report-data]}
+            (test-helpers/run-flow
+             (cljtest/match? "contains with monadic left value"
+                             (state/gets :value)
+                             (matchers/equals {:n 1})
+                             {:times-to-try 2})
+             {:value {:n 2}})]
         (testing "returns actual"
           (is (= {:n 2} flow-ret)))
         (testing "provides match-results on meta"
@@ -87,6 +89,8 @@
                          :matcher-combinators.result/weight 1}]]
                       (-> flow-state meta :match-results))))
         (testing "reports match-results to clojure.test"
+          (testing "including the line number where match? was called"
+            (= (+ three-lines-before-call-to-match 3) (:line report-data)))
           (is (match? {:matcher-combinators.result/type  :mismatch
                        :matcher-combinators.result/value {:n {:expected 1 :actual 2}}}
                       (-> report-data :actual :match-result))))))
