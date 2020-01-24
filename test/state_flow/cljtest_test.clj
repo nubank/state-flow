@@ -9,7 +9,7 @@
 
 (def get-value-state (state/gets (comp deref :value)))
 
-(deftest test-match?
+(deftest test-expect
   (testing "passing cases"
     (testing "with literals for expected and actual"
       (let [[ret state] (state-flow/run (cljtest/expect 3 3) {:initial :state})]
@@ -54,7 +54,7 @@
              (flow "flow"
                (test-helpers/delayed-add-two 100)
                (cljtest/expect 2 get-value-state {:times-to-try 2
-                                                      :sleep-time 75}))
+                                                  :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 2 flow-ret)))
@@ -87,7 +87,7 @@
                          :matcher-combinators.result/weight 1}]]
                       (-> flow-state meta :match-results))))
         (testing "reports match-results to clojure.test"
-          (testing "including the line number where match? was called"
+          (testing "including the line number where expect was called"
             (= (+ three-lines-before-call-to-match 3) (:line report-data)))
           (is (match? {:matcher-combinators.result/type  :mismatch
                        :matcher-combinators.result/value {:n {:expected 1 :actual 2}}}
@@ -99,7 +99,7 @@
              (flow "flow"
                (test-helpers/delayed-add-two 200)
                (cljtest/expect 2 get-value-state {:times-to-try 2
-                                                      :sleep-time 75}))
+                                                  :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 0 flow-ret)))
