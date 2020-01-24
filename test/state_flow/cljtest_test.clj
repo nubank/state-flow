@@ -12,7 +12,7 @@
 (deftest test-match?
   (testing "passing cases"
     (testing "with literals for expected and actual"
-      (let [[ret state] (state-flow/run (cljtest/match? "DESC" 3 3) {:initial :state})]
+      (let [[ret state] (state-flow/run (cljtest/expect 3 3) {:initial :state})]
         (testing "returns actual (literal)"
           (is (= 3 ret)))
         (testing "doesn't change state"
@@ -24,7 +24,7 @@
                       (-> state meta :match-results))))))
 
     (testing "with state monad for actual"
-      (let [[ret state] (state-flow/run (cljtest/match? "DESC" test-helpers/add-two 3) {:value 1})]
+      (let [[ret state] (state-flow/run (cljtest/expect 3 test-helpers/add-two) {:value 1})]
         (testing "returns actual (derived from state)"
           (is (= 3 ret)))
         (testing "doesn't change state"
@@ -36,9 +36,8 @@
                       (-> state meta :match-results))))))
 
     (testing "with explicit matcher for expected"
-      (let [[ret state] (state-flow/run (cljtest/match? "DESC"
-                                                        test-helpers/add-two
-                                                        (matchers/equals 3)) {:value 1})]
+      (let [[ret state] (state-flow/run (cljtest/expect (matchers/equals 3)
+                                                        test-helpers/add-two) {:value 1})]
         (testing "returns actual (derived from state)"
           (is (= 3 ret)))
         (testing "doesn't change state"
@@ -54,7 +53,7 @@
             (test-helpers/run-flow
              (flow "flow"
                (test-helpers/delayed-add-two 100)
-               (cljtest/match? "2" get-value-state 2 {:times-to-try 2
+               (cljtest/expect 2 get-value-state {:times-to-try 2
                                                       :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
@@ -73,9 +72,8 @@
       (let [three-lines-before-call-to-match (this-line-number)
             {:keys [flow-ret flow-state report-data]}
             (test-helpers/run-flow
-             (cljtest/match? "contains with monadic left value"
+             (cljtest/expect (matchers/equals {:n 1})
                              (state/gets :value)
-                             (matchers/equals {:n 1})
                              {:times-to-try 2})
              {:value {:n 2}})]
         (testing "returns actual"
@@ -100,7 +98,7 @@
             (test-helpers/run-flow
              (flow "flow"
                (test-helpers/delayed-add-two 200)
-               (cljtest/match? "2" get-value-state 2 {:times-to-try 2
+               (cljtest/expect 2 get-value-state {:times-to-try 2
                                                       :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
@@ -122,15 +120,15 @@
 ;; in the deftest below causes test failures. I think it has to do with calling macroexpand
 ;; within a macro body.
 (def flow-with-defaults
-  (macroexpand-1 '(defflow my-flow (cljtest/match? "equals" 1 1))))
+  (macroexpand-1 '(defflow my-flow (cljtest/expect 1 1))))
 (def flow-with-optional-args
-  (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/match? "equals" 1 1))))
+  (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1})} (cljtest/expect 1 1))))
 (def flow-with-binding-and-match
   (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
                                                        :map {:a 1 :b 2}})}
                     [value (state/gets :value)]
-                    (cljtest/match? "" value 1)
-                    (cljtest/match? "" (state/gets :map) {:b 2}))))
+                    (cljtest/expect 1 value)
+                    (cljtest/expect {:b 2} (state/gets :map)))))
 
 (deftest test-defflow
   (testing "defines flow with default parameters"
@@ -138,7 +136,7 @@
               my-flow
               (state-flow.core/run*
                 {}
-                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+                (state-flow.core/flow "my-flow" (cljtest/expect 1 1))))
            flow-with-defaults)))
 
   (testing "defines flow with optional parameters"
@@ -146,7 +144,7 @@
               my-flow
               (state-flow.core/run*
                 {:init (constantly {:value 1})}
-                (state-flow.core/flow "my-flow" (cljtest/match? "equals" 1 1))))
+                (state-flow.core/flow "my-flow" (cljtest/expect 1 1))))
            flow-with-optional-args)))
 
   (testing "defines flow with binding and flow inside match?"
@@ -157,15 +155,15 @@
                 (state-flow.core/flow
                   "my-flow"
                   [value (state/gets :value)]
-                  (cljtest/match? "" value 1)
-                  (cljtest/match? "" (state/gets :map) {:b 2}))))
+                  (cljtest/expect 1 value)
+                  (cljtest/expect {:b 2} (state/gets :map)))))
            flow-with-binding-and-match))))
 
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}
   [value (state/gets :value)]
-  (cljtest/match? "1" value 1)
-  (cljtest/match? "b is 2" (state/gets :map) {:b 2}))
+  (cljtest/expect 1 value)
+  (cljtest/expect {:b 2} (state/gets :map)))
 
 (deftest run-a-flow
   (is (match? {:value 1

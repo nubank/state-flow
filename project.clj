@@ -29,7 +29,8 @@
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "0.3.1"]
                                   [midje "1.9.9"]
-                                  [org.clojure/java.classpath "0.3.0"]]}}
+                                  [org.clojure/java.classpath "0.3.0"]
+                                  [rewrite-clj "0.6.1"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
