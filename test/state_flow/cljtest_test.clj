@@ -129,8 +129,8 @@
   (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
                                                        :map {:a 1 :b 2}})}
                     [value (state/gets :value)]
-                    (cljtest/match? value 1)
-                    (cljtest/match? (state/gets :map) {:b 2}))))
+                    (cljtest/match? "" value 1)
+                    (cljtest/match? "" (state/gets :map) {:b 2}))))
 
 (deftest test-defflow
   (testing "defines flow with default parameters"
@@ -157,8 +157,8 @@
                 (state-flow.core/flow
                   "my-flow"
                   [value (state/gets :value)]
-                  (cljtest/match? value 1)
-                  (cljtest/match? (state/gets :map) {:b 2}))))
+                  (cljtest/match? "" value 1)
+                  (cljtest/match? "" (state/gets :map) {:b 2}))))
            flow-with-binding-and-match))))
 
 (defflow my-flow {:init (constantly {:value 1
