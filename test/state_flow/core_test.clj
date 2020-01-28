@@ -107,7 +107,7 @@
 
   (testing "flow with cleanup and exception, but ignoring it instead"
     (let [result (state-flow/run* {:init     (constantly {:value 0})
-                                   :on-error :ignore}
+                                   :on-error state-flow/ignore-error}
                    bogus-flow)]
       (is (e/exception? (first result)))
       (is (match? {:value 2} (second result)))))
