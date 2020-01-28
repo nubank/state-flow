@@ -95,6 +95,16 @@
                  (d/pair (my-fn) s))
                error-context))
 
+(defn bind
+  "Equivalent to `(flow \"\" [a mv] (return (f a)))`"
+  [mv f]
+  (m/bind mv f))
+
+(defn fmap
+  "Equivalent to `(flow \"\" [a mv] (f a))`"
+  [f mv]
+  (m/fmap f mv))
+
 (def state? state/state?)
 (def run state/run)
 (def eval state/eval)
