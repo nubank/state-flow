@@ -16,14 +16,25 @@
         (testing "returns actual (literal)"
           (is (= 3 ret)))
         (testing "doesn't change state"
-          (is (= {:initial :state} state)))))
+          (is (= {:initial :state} state)))
+        (testing "provides match-results on meta"
+          (is (match? [[{:matcher-combinators.result/type   :match
+                         :matcher-combinators.result/value  3
+                         :matcher-combinators.result/weight 0}]]
+                      (-> state meta :match-results))))))
 
     (testing "with state monad for actual"
       (let [[ret state] (state-flow/run (cljtest/match? "DESC" test-helpers/add-two 3) {:value 1})]
         (testing "returns actual (derived from state)"
           (is (= 3 ret)))
         (testing "doesn't change state"
-          (is (= {:value 1} state)))))
+          (is (= {:value 1} state)))
+        (testing "provides match-results on meta"
+          (is (match? [[{:matcher-combinators.result/type   :match
+                         :matcher-combinators.result/value  3
+                         :matcher-combinators.result/weight 0}]]
+                      (-> state meta :match-results))))))
+
 
     (testing "with explicit matcher for expected"
       (let [[ret state] (state-flow/run (cljtest/match? "DESC"
@@ -32,7 +43,12 @@
         (testing "returns actual (derived from state)"
           (is (= 3 ret)))
         (testing "doesn't change state"
-          (is (= {:value 1} state)))))
+          (is (= {:value 1} state)))
+        (testing "provides match-results on meta"
+          (is (match? [[{:matcher-combinators.result/type   :match
+                         :matcher-combinators.result/value  3
+                         :matcher-combinators.result/weight 0}]]
+                      (-> state meta :match-results))))))
 
     (testing "forcing probe to try more than once"
       (let [{:keys [flow-ret flow-state]}
@@ -43,7 +59,15 @@
                                                       :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
-          (is (= 2 flow-ret))))))
+          (is (= 2 flow-ret)))
+        (testing "match-results include mismatch then match"
+          (is (match? [[{:matcher-combinators.result/type :mismatch
+                         :matcher-combinators.result/value {:expected 2 :actual 0}
+                         :matcher-combinators.result/weight 1}
+                        {:matcher-combinators.result/type :match
+                         :matcher-combinators.result/value 2
+                         :matcher-combinators.result/weight 0}]]
+                      (-> flow-state meta :match-results)))))))
 
   (testing "failure case"
     (testing "with probe result that never changes"
@@ -57,6 +81,14 @@
              {:value {:n 2}})]
         (testing "returns actual"
           (is (= {:n 2} flow-ret)))
+        (testing "provides match-results on meta"
+          (is (match? [[{:matcher-combinators.result/type   :mismatch
+                         :matcher-combinators.result/value  {:n {:expected 1 :actual 2}}
+                         :matcher-combinators.result/weight 1}
+                        {:matcher-combinators.result/type   :mismatch
+                         :matcher-combinators.result/value  {:n {:expected 1 :actual 2}}
+                         :matcher-combinators.result/weight 1}]]
+                      (-> flow-state meta :match-results))))
         (testing "reports match-results to clojure.test"
           (testing "including the line number where match? was called"
             (= (+ three-lines-before-call-to-match 3) (:line report-data)))
@@ -74,6 +106,14 @@
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 0 flow-ret)))
+        (testing "match-results include mismatch then match"
+          (is (match? [[{:matcher-combinators.result/type :mismatch
+                         :matcher-combinators.result/value {:expected 2 :actual 0}
+                         :matcher-combinators.result/weight 1}
+                        {:matcher-combinators.result/type :mismatch
+                         :matcher-combinators.result/value {:expected 2 :actual 0}
+                         :matcher-combinators.result/weight 1}]]
+                      (-> flow-state meta :match-results))))
         (testing "reports match-results to clojure.test"
           (is (match? {:matcher-combinators.result/type  :mismatch
                        :matcher-combinators.result/value {:expected 2 :actual 0}}

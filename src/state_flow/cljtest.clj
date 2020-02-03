@@ -8,14 +8,20 @@
             [state-flow.state :as state]))
 
 (defn match-probe
-  "Returns the right value returned by probe/probe."
+  "Returns a map of :value (bound to the right value of the result of
+  probe/probe) and :match-results."
   ([state matcher]
    (match-probe state matcher {}))
   ([state matcher params]
-   (m/fmap second
-           (probe/probe state
-                        #(matcher-combinators/match? (matcher-combinators/match matcher %))
-                        params))))
+   (let [match-results (atom [])]
+     (m/fmap (fn [[_ r]] {:value r
+                          :match-results @match-results})
+             (probe/probe state
+                          (fn [v]
+                            (let [res (matcher-combinators/match matcher v)]
+                              (swap! match-results conj res)
+                              (matcher-combinators/match? res)))
+                          params)))))
 
 (defmacro match?
   "Builds a clojure.test assertion using matcher-combinators.
@@ -30,12 +36,17 @@
    {:description match-desc
     :caller-meta (meta &form)}
    `(m/do-let
-     [flow-desc# (core/current-description)
-      actual#    (if (state/state? ~actual)
-                   (match-probe ~actual ~expected ~params)
-                   (state/return ~actual))]
-     (state/wrap-fn #(t/testing flow-desc# (t/is (~'match? ~expected actual#))))
-     (state/return actual#))))
+     [flow-desc#    (core/current-description)
+      probe-result# (if (state/state? ~actual)
+                      (match-probe ~actual ~expected ~params)
+                      (match-probe (state/return ~actual)
+                                   ~expected
+                                   {:sleep-time 0 :times-to-try 1}))
+      :let [value#         (:value probe-result#)
+            match-results# (:match-results probe-result#)]]
+     (state/wrap-fn #(t/testing flow-desc# (t/is (~'match? ~expected value#))))
+     (core/modify-meta update :match-results (fnil conj []) match-results#)
+     (state/return value#))))
 
 (defmacro defflow
   {:arglists '([name & flows]
