@@ -87,9 +87,10 @@
     (str "`" short-expr "`")))
 
 (defn annote-with-line-meta [flows]
-  (let [subflow-lines (map (fn [f] `(push-meta ~(abbr-sexpr f)
-                                               ~(meta f)))
-                           flows)]
+  (when-let [subflow-lines (->> flows
+                                (map (fn [f] `(push-meta ~(abbr-sexpr f)
+                                                         ~(meta f))))
+                                seq)]
     (interleave subflow-lines
                 flows
                 (repeat `pop-meta))))
