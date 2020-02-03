@@ -71,14 +71,38 @@
   [s]
   (-> s meta :top-level-description))
 
+(def ^:private abbr-size 15)
+(defn ellipsify [expr-str]
+  (let [short-expr (subs expr-str 0 (- abbr-size 3))]
+    (case (first expr-str)
+      \( (str short-expr "...)")
+      \[ (str short-expr "...]")
+      (str short-expr "..."))))
+
+(defn abbr-sexpr [expr]
+  (let [expr-str   (str expr)
+        short-expr (if (< abbr-size (count expr-str))
+                     (ellipsify expr-str)
+                     expr-str)]
+    (str "`" short-expr "`")))
+
+(defn annote-with-line-meta [flows]
+  (let [subflow-lines (map (fn [f] `(push-meta ~(abbr-sexpr f)
+                                               ~(meta f)))
+                           flows)]
+    (interleave subflow-lines
+                flows
+                (repeat `pop-meta))))
+
 (defmacro flow
   "Defines a flow"
   {:style/indent :defn}
   [description & flows]
   (when-not (string-expr? description)
      (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
-  (let [flow-meta (meta &form)
-        flows'    (or flows `[(m/return nil)])]
+  (let [flow-meta     (meta &form)
+        flows'        (or (annote-with-line-meta flows)
+                          `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description ~flow-meta)
       [ret# (m/do-let ~@flows')]
