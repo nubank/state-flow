@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.6]
+
+- Include line information when reporting flows that raise exceptions
+
 ## [2.1.5]
 
 - Make `state-flow.state/return` constructable/def'able outside monadic context.
