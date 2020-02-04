@@ -60,13 +60,16 @@
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
+(defn ^:private state->current-description [s]
+  (-> (description-stack s)
+      format-description))
+
 (defn current-description
   "Returns a flow that returns the description as of the point of execution.
 
   For internal use. Subject to change."
   []
-  (m/mlet [desc-list (state/gets description-stack)]
-          (m/return (format-description desc-list))))
+  (state/gets state->current-description))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
@@ -115,7 +118,7 @@
   "Error handler that logs the error and throws an exception to notify the flow
   has failed."
   [pair]
-  (let [description (state/eval (current-description) (second pair))
+  (let [description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
     (log/info (m/extract (first pair)) message)
     (throw (ex-info message {} (m/extract (first pair))))))
