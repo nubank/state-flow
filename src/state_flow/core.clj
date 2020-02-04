@@ -90,10 +90,13 @@
                      expr-str)]
     (str "`" short-expr "`")))
 
+(defn push-abbr-meta [flow]
+  `(push-meta ~(abbr-sexpr flow)
+              ~(meta flow)))
+
 (defn annote-with-line-meta [flows]
   (when-let [subflow-lines (->> flows
-                                (map (fn [f] `(push-meta ~(abbr-sexpr f)
-                                                         ~(meta f))))
+                                (map push-abbr-meta)
                                 seq)]
     (interleave subflow-lines
                 flows
@@ -103,11 +106,15 @@
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (let [flow-meta caller-meta
-        flows'    (or (annote-with-line-meta flows)
-                      `[(m/return nil)])]
+        but-last-flows (butlast flows)
+        last-flow      (or (last flows)
+                           `(m/return nil))]
     `(m/do-let
       (push-meta ~description ~flow-meta)
-      [ret# (m/do-let ~@flows')]
+      ~@but-last-flows
+      ~(push-abbr-meta last-flow)
+      [ret# ~last-flow]
+      (pop-meta)
       (pop-meta)
       (m/return ret#))))
 
