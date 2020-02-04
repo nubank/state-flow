@@ -154,10 +154,9 @@
         pair          (runner flow initial-state)]
     (try
       (cleanup (second pair))
-      (catch java.lang.Throwable t
-        (log/error t "Error when trying to cleanup after exception")))
-    (or (run-policy-on-error! pair on-error)
-        pair)))
+      pair
+      (finally
+        (run-policy-on-error! pair on-error)))))
 
 (defn as-step-fn
   "Transform a flow step into a state transition function"
