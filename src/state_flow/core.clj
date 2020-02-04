@@ -22,31 +22,30 @@
 (defmethod pp/simple-dispatch cats.monad.exception.Failure [f]
   (pr f))
 
-(defn ^:private alter-meta!*
-  "like clojure.core/alter-meta! but works on objects other than ref-types"
-  [s f & args]
-  (with-meta s (apply f (meta s) args)))
+(defn modify-meta
+  "Returns a monad that will apply vary-meta to the world.
+
+  For internal use. Subject to change."
+  [f & args]
+  (state/modify (fn [s] (apply vary-meta s f args))))
 
 (defn push-meta
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
   [description {:keys [line]}]
-  (state/modify
-   (fn [s]
-     (-> s
-         (alter-meta!* update :top-level-description #(or % description))
-         (alter-meta!* update :description-stack (fnil conj []) (str description
-                                                                     (when line
-                                                                       (format " (line %s)" line))))))))
+  (modify-meta
+   (fn [m] (-> m
+               (update :top-level-description #(or % description))
+               (update :description-stack (fnil conj []) (str description
+                                                              (when line
+                                                                (format " (line %s)" line))))))))
 
-(def pop-meta
+(defn pop-meta []
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  (state/modify
-   (fn [s]
-     (alter-meta!* s update :description-stack pop))))
+  (modify-meta update :description-stack pop))
 
 (defn ^:private format-description
   [strs]
@@ -78,19 +77,24 @@
   [s]
   (-> s meta :top-level-description))
 
-(defmacro flow
-  "Defines a flow"
-  {:style/indent :defn}
-  [description & flows]
+(defn flow* [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
-     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
-  (let [flow-meta (meta &form)
+    (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
+  (let [flow-meta caller-meta
         flows'    (or flows `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description ~flow-meta)
       [ret# (m/do-let ~@flows')]
-      pop-meta
+      (pop-meta)
       (m/return ret#))))
+
+(defmacro flow
+  "Defines a flow"
+  {:style/indent :defn}
+  [description & flows]
+  (apply flow* {:description description
+                :caller-meta (meta &form)}
+         flows))
 
 (defn run
   "Given an initial-state (default {}), runs a flow and returns a pair of
