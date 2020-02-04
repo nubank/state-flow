@@ -57,4 +57,3 @@
                    :or   {sleep-time   default-sleep-time
                           times-to-try default-times-to-try}}]
    (m/fmap (comp probe-return last) (probe* flow check-fn {:sleep-time sleep-time :times-to-try times-to-try}))))
-
