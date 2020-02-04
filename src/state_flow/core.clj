@@ -100,7 +100,7 @@
                                 seq)]
     (interleave subflow-lines
                 flows
-                (repeat `pop-meta))))
+                (repeat `(pop-meta)))))
 
 (defn flow* [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
@@ -111,7 +111,7 @@
                            `(m/return nil))]
     `(m/do-let
       (push-meta ~description ~flow-meta)
-      ~@but-last-flows
+      ~@(annote-with-line-meta but-last-flows)
       ~(push-abbr-meta last-flow)
       [ret# ~last-flow]
       (pop-meta)
