@@ -52,7 +52,7 @@
 (defn probe
   "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
   ([state check-fn]
-   (probe state check-fn {:sleep-time default-sleep-time :times-to-try default-times-to-try}))
+   (probe state check-fn {}))
   ([flow check-fn {:keys [sleep-time times-to-try]
                    :or   {sleep-time   default-sleep-time
                           times-to-try default-times-to-try}}]
