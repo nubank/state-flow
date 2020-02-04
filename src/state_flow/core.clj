@@ -115,7 +115,7 @@
   "Error handler that logs the error and throws an exception to notify the flow
   has failed."
   [pair]
-  (let [description (->> pair second description-stack format-description)
+  (let [description (state/eval (current-description) (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
     (log/info (m/extract (first pair)) message)
     (throw (ex-info message {} (m/extract (first pair))))))
