@@ -39,7 +39,7 @@
 (defn ^:private probe*
   "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
   ([flow check-fn]
-   (probe* flow check-fn {:sleep-time default-sleep-time :times-to-try default-times-to-try}))
+   (probe* flow check-fn {}))
   ([flow check-fn {:keys [sleep-time times-to-try]
                    :or   {sleep-time   default-sleep-time
                           times-to-try default-times-to-try}}]
