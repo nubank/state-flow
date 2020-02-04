@@ -5,7 +5,9 @@
             [cats.data :as d]
             [cats.monad.exception :as e]
             [state-flow.state :as state]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.pprint :as pp])
+  (:import java.lang.Throwable))
 
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
@@ -17,7 +19,7 @@
 ;;   neither is preferred
 ;;
 ;; This prevents that from happening:
-(defmethod clojure.pprint/simple-dispatch cats.monad.exception.Failure [f]
+(defmethod pp/simple-dispatch cats.monad.exception.Failure [f]
   (pr f))
 
 (defn ^:private alter-meta!*
@@ -116,7 +118,8 @@
 
 (defn ignore-error
   "No-op error handler that simply ignores the error."
-  [pair])
+  [pair]
+  pair)
 
 (defn- run-policy-on-error!
   "If flow fails with an exception, runs the supplied error policy"
