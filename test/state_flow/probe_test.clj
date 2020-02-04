@@ -2,7 +2,8 @@
   (:require [clojure.test :as t :refer [deftest testing is]]
             [state-flow.core :as state-flow]
             [state-flow.probe :as probe]
-            [state-flow.test-helpers :as test-helpers]))
+            [state-flow.test-helpers :as test-helpers]
+            [state-flow.state :as state]))
 
 (deftest test-probe
   (let [[flow-return flow-state] (state-flow/run (probe/probe test-helpers/add-two #(= % 3)) {:value 1})]
