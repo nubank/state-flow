@@ -1,7 +1,7 @@
 (ns state-flow.core-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [matcher-combinators.test :refer [match?]]
-            [state-flow.test-helpers :as test-helpers]
+            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
             [cats.monad.exception :as e]))
@@ -134,10 +134,6 @@
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
 
-(defmacro line-number-of-call-site []
-  (let [m (meta &form)]
-    `(:line ~m)))
-
 (defn consecutive?
   "Returns true iff ns (minimum of 2) all increase by 1"
   [& ns]
@@ -161,7 +157,7 @@
     ;; WARNING: this (admittedly brittle) test depends on the following 4 lines
     ;; staying in sequence. They can move up or down in this file together,
     ;; but re-order them at your own peril.
-    (let [line-number-before-flow-invocation (line-number-of-call-site)
+    (let [line-number-before-flow-invocation (this-line-number)
           [desc] (state-flow/run (flow "level 1"
                                    (flow "level 2"
                                      (flow "level 3"
@@ -181,7 +177,7 @@
                             level-3-line))))))
 
   (testing "composition"
-    (let [line-number-before-flow-invocation (line-number-of-call-site)
+    (let [line-number-before-flow-invocation (this-line-number)
           level-3  (flow "level 3" (state-flow/current-description))
           level-2  (flow "level 2" level-3)
           level-1  (flow "level 1" level-2)

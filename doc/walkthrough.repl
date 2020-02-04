@@ -1,0 +1,288 @@
+(require '[state-flow.core :refer [flow run]]
+         '[state-flow.state :as state]
+         '[state-flow.cljtest :refer [match?]])
+
+;; -------------------------------------------
+;; introduction the state monad and primitives
+;; -------------------------------------------
+
+;; state-flow is implemented using a state monad. If you're already
+;; familiar with monads, great! If not, don't worry. We'll explain
+;; just enough about the state monad to understand state-flow.
+;;
+;; - A monad is a wrapper around a function.
+;; - A state monad is a monad with a function of some mutable state,
+;;   which is managed for you by a runner.
+;;
+;; state-flow includes a number of state monad constructors, e.g.
+
+(state/get)
+;; => #cats.monad.state.State{:mfn #object[...],
+;;                            :state-context #<State-E>}
+;;
+;; - :mfn is the wrapped function
+;; - :state-context is a reference to mutable state, which will be
+;;   managed by state-flow.
+;;
+;; The :mfn of a state monad is a function of state, which returns
+;; a Pair of [result-of-invocation, state-after-invocation]
+;;
+;; The result-of-invocation of the :mfn of the `(state/get)` monad is
+;; the value of the state, and, since this fn doesn't modify state, the
+;; state-after-invocation is the same.
+
+((:mfn (state/get))
+ {:count 0})
+;; #<Pair [{:count 0} {:count 0}]>
+;;
+;; state-flow provides a `run` function that handles the unwrapping
+;; and manages state for you:
+
+(run (state/get) {:count 0})
+;; => #<Pair [{:count 0} {:count 0}]>
+;;
+;; The `run` function takes a state monad and an (optional) initial
+;; state, and returns the Pair returned by invoking the :mfn with
+;; the state.
+;;
+;; We refer to `(state/get)` and some other monad constructors as
+;; primitives.  Here's another primitive, which returns a specified
+;; value without modifying the internal state:
+
+(run (state/return {:count 37}) {:count 0})
+;; => #<Pair [{:count 37} {:count 0}]>
+
+;; And we can also return the application of a function to state
+;; without modifying the state:
+
+(run (state/gets (fn [s] (update s :count inc))) {:count 0})
+;; => #<Pair [{:count 1} {:count 0}]>
+
+;; This next one does the reverse of `state/gets`: it returns the
+;; unmodified state and applies a function to the state
+
+(run (state/modify (fn [s] (update s :count inc))) {:count 0})
+;; => #<Pair [{:count 0} {:count 1}]>
+;;
+;; Or we can replace the internal state entirely, returning the previous state:
+
+(run (state/put {:name "Jacob"}) {:count 0})
+;; => #<Pair [{:count 0} {:name "Jacob"}]>
+
+;; -------------------------------------------
+;; flows
+;; -------------------------------------------
+;;
+;; We use flows to string together several monads in a single
+;; monad:
+
+(flow "counter"
+      (state/modify (fn [s] (update s :count inc)))
+      (state/modify (fn [s] (update s :count inc)))
+      (state/modify (fn [s] (update s :count inc))))
+;; => #cats.monad.state.State{:mfn #object[...],
+;;                            :state-context #<State-E>}
+;;
+;; And, then we can hand that directly to the run function:
+
+(run (flow "counter"
+           (state/modify (fn [s] (update s :count inc)))
+           (state/modify (fn [s] (update s :count inc)))
+           (state/modify (fn [s] (update s :count inc))))
+  {:count 0})
+;; => #<Pair [{:count 2} {:count 3}]>
+;;
+;; `run` returns a Pair of [return state], just as in previous examples.
+;; The return of a flow is the return of the last step. Within the flow,
+;; each step is run in sequence, passing the initial state to the first
+;; step, then the resulting state (the 2nd value in the returned Pair)
+;; to the next, and so on, e.g.
+;;
+
+;; (run (flow "counter"
+;;            (state/modify (fn [s] (update s :count inc)))
+;;            ^^ fn is invoked with {:count 0}, produces #<Pair [{:count 0} {:count 1}]>
+;;            (state/modify (fn [s] (update s :count inc)))  ;; => #<Pair [{:count 1} {:count 2}]>
+;;            ^^ fn is invoked with {:count 1}, produces #<Pair [{:count 1} {:count 2}]>
+;;            (state/modify (fn [s] (update s :count inc)))) ;; => #<Pair [{:count 2} {:count 3}]>
+;;            ^^ fn is invoked with {:count 2}, produces #<Pair [{:count 2} {:count 3}]>
+;;   {:count 0})
+;; => #<Pair [{:count 2} {:count 3}]>
+;;    ^^ the value produced by the last invocation within the flow
+
+;;
+;; The return from running a flow is no different than the return from
+;; running a primitive: a Pair of [result state], where result is the
+;; result of applying the last monad function in the flow to the state
+;; _after_ having applied the previous functions (hence the input)
+;;
+;; -------------------------------------------
+;; programming model
+;; -------------------------------------------
+;;
+;; Since monads are values, we can use all the familiar tools of Clojure
+;; to define and compose them.
+
+(def inc-count (state/modify (fn [s] (update s :count inc))))
+
+(def inc-twice
+  (flow "increment twice"
+        inc-count
+        inc-count))
+
+(run inc-twice {:count 0})
+;; => #<Pair [{:count 1} {:count 2}]>
+;;
+;; And we can nest flows arbitrarily deeply!
+
+(run
+  (flow "inc (parent)"
+        inc-count
+        (flow "inc twice (child)"
+              inc-twice
+              (flow "inc 2 more times (grandchild)"
+                    inc-twice))
+        (state/gets (fn [s] (update s :count * 3))))
+  {:count 0})
+;; => #<Pair [{:count 15} {:count 5}]>
+
+;; -----------------------------
+;; bindings
+;; -----------------------------
+;;
+;; bindings let you bind the returns of monads to symbols,
+;; which are then in scope for the remainder of the flow
+
+(run
+  (flow "binding example"
+        [count-before (state/gets :count)] ;; <- binds 0 to `count-before`
+        inc-count
+        [count-after (state/gets :count)]  ;; <- binds 1 to `count-after`
+        (state/return {:before count-before
+                       :after count-after}))
+  {:count 0})
+;; => #<Pair [{:before 0, :after 1} {:count 1}]>
+
+;; These look a lot like `let` bindings, but the symbol on the left
+;; will be bound to the return of the monad on the right. You can also
+;; bind _values_ using the `:let` keyword:
+
+(run
+  (flow "binding example"
+        [:let [start 37]]
+        (state/modify (fn [s] (update s :count + start)))
+        (state/gets :count))
+  {:count 0})
+;; => #<Pair [37 {:count 37}]>
+
+;; And those values can come from evaluating regular Clojure expressions:
+
+(run
+  (flow "binding example"
+        [:let [start (+ 30 7)]]
+        (state/modify (fn [s] (update s :count + start)))
+        (state/gets :count))
+  {:count 0})
+;; => #<Pair [37 {:count 37}]>
+
+;; -----------------------------
+;; beyond primitives
+;; -----------------------------
+;;
+;; So far we've only dealt with functions that interact directly with
+;; state. In practice, we want to execute functions that are specific
+;; to our domain, that don't interact directly with the flow state
+;; To run a normal clojure expression in a flow, you need to wrap it.
+
+(run (flow "vanilla clojure in a flow" (state/wrap-fn #(+ 1 2))) {})
+;; => #<Pair [3 {}]>
+
+;; Here's a more practical example, in which we draw from state
+;; to provide arguments to domain functions.
+
+(defn register-user [db user]
+  (swap! db update :users conj user))
+
+(defn fetch-users [db]
+  (:users @db))
+
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (state/wrap-fn #(fetch-users db)))
+  {:db (atom {:users #{}})})
+;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x64e11e64]}]>
+
+;; ---------------------------
+;; assertions
+;; ---------------------------
+
+;; state-flow includes a wrapper around matcher-combinators to support
+;; making assertions
+
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    [users (state/wrap-fn #(fetch-users db))]
+    (match? "user got added"
+            users
+            #{{:name "Phillip"}}))
+  {:db (atom {:users #{}})})
+
+;; could also be written as
+
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (match? "user got added"
+            (state/wrap-fn #(fetch-users db))
+            #{{:name "Phillip"}}))
+  {:db (atom {:users #{}})})
+
+;; ---------------------------
+;; failure semantics
+;; ---------------------------
+
+;; When an assertion fails, it prints the failure message to the
+;; repl, e.g.
+
+(run
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (match? "user got added"
+            (state/wrap-fn #(fetch-users db))
+            #{{:name "Philip"}})) ;; <- different spelling
+  {:db (atom {:users #{}})})
+;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x4c2a27a6]}]>
+
+;; --- printed to repl ---
+;; FAIL in () (form-init13207122878088623810.clj:256)
+;; interact with db (line 253) -> user got added
+;; expected: (match? #{{:name "Philip"}} actual__12555__auto__)
+;; actual: #{{:name (mismatch "Philip" "Phillip")}}
+;; --- /printed to repl ---
+
+;; ---------------------------
+;; exceptions
+;; ---------------------------
+
+;; When a flow throws an exception ...
+;;
+;; `run` returns the exception as a value
+(run (flow ""
+       (match? "fails" 1 2)
+       (state/wrap-fn #(throw (ex-info "boom!" {})))
+       (match? "is never run" 3 4))
+     {})
+
+;; `run!` raises the exception
+(state-flow.core/run!
+  (flow ""
+       (match? "fails" 1 2)
+       (state/wrap-fn #(throw (ex-info "boom!" {})))
+       (match? "is never run" 3 4))
+     {})

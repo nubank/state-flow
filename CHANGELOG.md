@@ -1,6 +1,8 @@
 # Changelog
 
-## [DEV]
+## [2.1.5]
+
+- Make `state-flow.state/return` constructable/def'able outside monadic context.
 
 ## [2.1.4]
 

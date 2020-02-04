@@ -2,6 +2,12 @@
   (:require [state-flow.core]
             [state-flow.state :as state]))
 
+(defmacro this-line-number
+  "Returns the line number of the call site."
+  []
+  (let [m (meta &form)]
+    `(:line ~m)))
+
 (def get-value (comp deref :value))
 (def get-value-state (state/gets get-value))
 
