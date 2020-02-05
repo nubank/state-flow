@@ -1,5 +1,5 @@
 (ns state-flow.state
-  (:refer-clojure :exclude [eval get])
+  (:refer-clojure :exclude [eval get -> ->>])
   (:require [cats.context :as ctx :refer [*context*]]
             [cats.core :as m]
             [cats.data :as d]
@@ -59,27 +59,27 @@
 (util/make-printable (type error-context))
 
 (defn get
-  "Returns the equivalent of (fn [state] [state, state])"
+  "Evaluates the equivalent of (fn [state] [state, state])"
   []
   (state/get error-context))
 
 (defn gets
+  "Evaluates to the equivalent of (fn [state] [state, (f state)])"
   [f]
-  "Returns the equivalent of (fn [state] [state, (f state)])"
   (state/gets f))
 
 (defn put
-  "Returns the equivalent of (fn [state] [state, new-state])"
+  "Evaluates to the equivalent of (fn [state] [state, new-state])"
   [new-state]
   (state/put new-state error-context))
 
 (defn modify
-  "Returns the equivalent of (fn [state] [state, (swap! state f)])"
+  "Evaluates to the equivalent of (fn [state] [state, (swap! state f)])"
   [f]
   (state/swap f error-context))
 
 (defn return
-  "Returns the equivalent of (fn [state] [v, state])"
+  "Evaluates to the equivalent of (fn [state] [v, state])"
   [v]
   (m/return error-context v))
 
@@ -95,13 +95,18 @@
                  (d/pair (my-fn) s))
                error-context))
 
-(defn bind
-  "Equivalent to `(flow \"\" [a mv] (return (f a)))`"
-  [mv f]
-  (m/bind mv f))
+(defmacro ->
+  "Analog to Clojure's `->`, but operating on expressions that result in a state instance."
+  [mv & exprs]
+  `(m/->= ~mv ~@exprs))
+
+(defmacro ->>
+  "Analog to Clojure's `->>`, but operating on expressions that result in a state instance."
+  [mv & exprs]
+  `(m/->>= ~mv ~@exprs))
 
 (defn fmap
-  "Equivalent to `(flow \"\" [a mv] (f a))`"
+  "Evaluates to the equivalent of (mlet [a mv] (state/return (f a)))"
   [f mv]
   (m/fmap f mv))
 
