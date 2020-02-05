@@ -11,7 +11,8 @@
 (declare error-context)
 
 (def error-context
-  "Same as state monad context, but short circuits if error happens, place error in return value"
+  "Same as state monad context, but short circuits if error happens, place error
+  in return value"
   (reify
     p/Context
 
@@ -96,17 +97,43 @@
                error-context))
 
 (defmacro ->
-  "Analog to Clojure's `->`, but operating on expressions that result in a state instance."
+  "Analog to Clojure's `->`, but operating on expressions that result in a state
+  instance. An example:
+
+  Usage:
+
+  ```clojure
+  (defn inc [x] (state/return (inc x)))
+
+  (state/-> (state/return 1)
+            inc)
+  ```"
   [mv & exprs]
   `(m/->= ~mv ~@exprs))
 
 (defmacro ->>
-  "Analog to Clojure's `->>`, but operating on expressions that result in a state instance."
+  "Analog to Clojure's `->>`, but operating on expressions that result in a state
+  instance.
+
+  Usage:
+
+  ```clojure
+  (defn map2 [f vs] (state/return (map f vs)))
+
+  (state/->> (state/return [1 2 3])
+             (map2 inc))
+  ```"
   [mv & exprs]
   `(m/->>= ~mv ~@exprs))
 
 (defn fmap
-  "Evaluates to the equivalent of (mlet [a mv] (state/return (f a)))"
+  "Evaluates to the equivalent of (mlet [a mv] (state/return (f a))).
+
+  Usage:
+
+  ```clojure
+  (state/fmap inc (state/return 1))
+  ```"
   [f mv]
   (m/fmap f mv))
 
