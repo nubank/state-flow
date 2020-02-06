@@ -60,27 +60,27 @@
 (util/make-printable (type error-context))
 
 (defn get
-  "Evaluates the equivalent of (fn [state] [state, state])"
+  "Returns the equivalent of (fn [state] [state, state])"
   []
   (state/get error-context))
 
 (defn gets
-  "Evaluates to the equivalent of (fn [state] [state, (f state)])"
+  "Returns the equivalent of (fn [state] [state, (f state)])"
   [f]
   (state/gets f))
 
 (defn put
-  "Evaluates to the equivalent of (fn [state] [state, new-state])"
+  "Returns the equivalent of (fn [state] [state, new-state])"
   [new-state]
   (state/put new-state error-context))
 
 (defn modify
-  "Evaluates to the equivalent of (fn [state] [state, (swap! state f)])"
+  "Returns the equivalent of (fn [state] [state, (swap! state f)])"
   [f]
   (state/swap f error-context))
 
 (defn return
-  "Evaluates to the equivalent of (fn [state] [v, state])"
+  "Returns the equivalent of (fn [state] [v, state])"
   [v]
   (m/return error-context v))
 
@@ -103,10 +103,10 @@
   Usage:
 
   ```clojure
-  (defn inc [x] (state/return (inc x)))
+  (defn m-inc [x] (state/return (inc x)))
 
   (state/-> (state/return 1)
-            inc)
+            m-inc)
   ```"
   [mv & exprs]
   `(m/->= ~mv ~@exprs))
@@ -118,10 +118,10 @@
   Usage:
 
   ```clojure
-  (defn map2 [f vs] (state/return (map f vs)))
+  (defn m-map [f vs] (state/return (map f vs)))
 
   (state/->> (state/return [1 2 3])
-             (map2 inc))
+             (m-map inc))
   ```"
   [mv & exprs]
   `(m/->>= ~mv ~@exprs))
