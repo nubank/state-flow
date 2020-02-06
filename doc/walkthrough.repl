@@ -84,8 +84,7 @@
 ;; flows
 ;; -------------------------------------------
 ;;
-;; We use flows to string together several steps (monads) in a single
-;; step (monad):
+;; We use flows to string together several steps in a single step:
 
 (flow "counter"
       (state/modify (fn [s] (update s :count inc)))
