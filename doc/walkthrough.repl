@@ -5,59 +5,70 @@
 ;; -------------------------------------------
 ;; introduction the state monad and primitives
 ;; -------------------------------------------
-
+;;
 ;; state-flow is implemented using a state monad. If you're already
 ;; familiar with monads, great! If not, don't worry. We'll explain
 ;; just enough about the state monad to understand state-flow.
 ;;
 ;; - A monad is a wrapper around a function.
+;; - The wrapped function will be invoked by a runner later.
 ;; - A state monad is a monad with a function of some mutable state,
-;;   which is managed for you by a runner.
+;;   which is managed for you by the runner.
 ;;
-;; state-flow includes a number of state monad constructors, e.g.
+;; The state monad is the underlying structure for any primitive
+;; step or flow (collection of steps) in state-flow.
+;;
+;; state-flow includes a number of constructors for primitive steps
+;; (state monads) e.g.
 
-(state/get)
-;; => #cats.monad.state.State{:mfn #object[...],
+(state/return {:count 37})
+;; => #cats.monad.state.State{:mfn #function[...],
 ;;                            :state-context #<State-E>}
 ;;
-;; - :mfn is the wrapped function
+;; - cats.monad.state.State is the class of the underlying object
+;; - :mfn is the wrapped (monadic) function
 ;; - :state-context is a reference to mutable state, which will be
-;;   managed by state-flow.
+;;   managed by state-flow
 ;;
-;; The :mfn of a state monad is a function of state, which returns
-;; a Pair of [result-of-invocation, state-after-invocation]
-;;
-;; The result-of-invocation of the :mfn of the `(state/get)` monad is
-;; the value of the state, and, since this fn doesn't modify state, the
-;; state-after-invocation is the same.
+;; The :mfn of any state monad is a function of state, which returns
+;; a Pair of [return-value, state-after-invocation]. Since this is
+;; just a Clojure function, you can extract it from the monad and
+;; invoke it directly:
 
-((:mfn (state/get))
- {:count 0})
-;; #<Pair [{:count 0} {:count 0}]>
+(let [mfn (:mfn (state/return {:count 37}))]
+  (mfn {:count 0}))
+;; #<Pair [{:count 37} {:count 0}]>
+;;
+;; The return value of the :mfn of `(state/return <value>)` is whatever argument
+;; you provide. Also, as you can see in the output above, this function doesn't
+;; change the state.
 ;;
 ;; state-flow provides a `run` function that handles the unwrapping
 ;; and manages state for you:
 
-(run (state/get) {:count 0})
+(run (state/return {:count 37})
+     {:count 0})
+;; #<Pair [{:count 37} {:count 0}]>
+
+
 ;; => #<Pair [{:count 0} {:count 0}]>
 ;;
-;; The `run` function takes a state monad and an (optional) initial
-;; state, and returns the Pair returned by invoking the :mfn with
-;; the state.
+;; The `run` function takes a state monad and an (optional - defaults
+;; to an empty {}) initial state, and returns the Pair returned by
+;; invoking the :mfn with the state.
 ;;
-;; We refer to `(state/get)` and some other monad constructors as
-;; primitives.  Here's another primitive, which returns a specified
-;; value without modifying the internal state:
-
-(run (state/return {:count 37}) {:count 0})
-;; => #<Pair [{:count 37} {:count 0}]>
-
-;; And we can also return the application of a function to state
-;; without modifying the state:
+;; Here's a primitive step that returns the application of a function
+;; to the state, without actually changing the state:
 
 (run (state/gets (fn [s] (update s :count inc))) {:count 0})
 ;; => #<Pair [{:count 1} {:count 0}]>
-
+;;
+;; In case is is not clear, the left entry in the Pair is the
+;; return value, the result of applying the anonymous function
+;; passed to `state/gets` to the state, `{:count 0}`. The result
+;; is that the value of `:count` is incremented, in the return-value,
+;; but the state, the right entry of the Pair, is unchanged.
+;;
 ;; This next one does the reverse of `state/gets`: it returns the
 ;; unmodified state and applies a function to the state
 
@@ -73,8 +84,7 @@
 ;; flows
 ;; -------------------------------------------
 ;;
-;; We use flows to string together several monads in a single
-;; monad:
+;; We use flows to string together several steps in a single step:
 
 (flow "counter"
       (state/modify (fn [s] (update s :count inc)))
@@ -120,8 +130,8 @@
 ;; programming model
 ;; -------------------------------------------
 ;;
-;; Since monads are values, we can use all the familiar tools of Clojure
-;; to define and compose them.
+;; Since steps and flows are state monads, which are values, we can use all
+;; the familiar tools of Clojure to define and compose them.
 
 (def inc-count (state/modify (fn [s] (update s :count inc))))
 
@@ -150,7 +160,7 @@
 ;; bindings
 ;; -----------------------------
 ;;
-;; bindings let you bind the returns of monads to symbols,
+;; bindings let you bind the returns of steps to symbols,
 ;; which are then in scope for the remainder of the flow
 
 (run
