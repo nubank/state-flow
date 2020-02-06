@@ -131,7 +131,7 @@
 ;; programming model
 ;; -------------------------------------------
 ;;
-;; Since steps and flows are monads, which are values, we can use all
+;; Since steps and flows are state monads, which are values, we can use all
 ;; the familiar tools of Clojure to define and compose them.
 
 (def inc-count (state/modify (fn [s] (update s :count inc))))
