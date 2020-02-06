@@ -4,14 +4,16 @@
 
 StateFlow is a testing framework designed to support the composition and reuse of individual test steps.
 
+## Definitions
+
+* A [*flow*](#flows) is a sequence of steps or bindings.
+* A [*step*](#primitive-steps) is a primitive step or flow.
+* A [*binding*](#bindings) is a vector of pairs of symbols and steps (or a :let with a vector of regular let-bindings)
+
 ## Flows
 
-A flow is a sequence of steps to be executed with some state as a
-reference. Each step can be a primitive step ([described below](#primitive-steps)), a
-vector of bindings ([described below](#bindings)), or even a nested flow. Flows can be
-`def`'d to vars, and nested arbitrarily deeply.
-
-We define a flow with the `flow` macro:
+A flow is a sequence of steps or bindings to be executed with some state as a
+reference. Use the `flow` macro to define a flow:
 
 ```clojure
 (flow <description> <primitive-step/bindings/flow>*)
