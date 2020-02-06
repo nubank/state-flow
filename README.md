@@ -16,7 +16,7 @@ A flow is a sequence of steps or bindings to be executed with some state as a
 reference. Use the `flow` macro to define a flow:
 
 ```clojure
-(flow <description> <primitive-step/bindings/flow>*)
+(flow <description> <step/bindings>*)
 ```
 
 Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
