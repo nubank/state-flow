@@ -164,7 +164,7 @@ uses the
 library for the actual check and failure messages. `match?` asks for:
 
 * a string description
-* the actual value, or a step (or flow) which will produce it
+* the actual value, or a step which will produce it
   * if you supply a value, `match?` will wrap it in `(state/return <value>)`
 * the expected value, or a matcher-combinators matcher
   * if you supply a value, matcher-combintators will apply its defaults
