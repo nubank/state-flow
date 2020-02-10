@@ -12,7 +12,7 @@
   ([state matcher]
    (match-probe state matcher {}))
   ([state matcher params]
-   (m/fmap second
+   (m/fmap (comp :value last)
            (probe/probe state
                         #(matcher-combinators/match? (matcher-combinators/match matcher %))
                         params))))

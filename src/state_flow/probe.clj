@@ -9,23 +9,40 @@
 (def default-sleep-time 200)
 (def default-times-to-try 5)
 
-(defn ^:private retry
-  "Tries at most n times, returns a vector with true and first element that succeeded
-  or false and result of the first try"
-  [times-to-try check-fn tries]
-  (let [remaining (drop-while (complement check-fn) (take times-to-try tries))]
-    (if (empty? remaining)
-      [false (first tries)]
-      [true  (first remaining)])))
+(defn ^:private check
+  "Applies check-fn to the return value of a step, returns the check result and the original value in a map"
+  [step check-fn]
+  (m/mlet [value step]
+    (state/return {:check-result (check-fn value)
+                   :value        value})))
+
+(defn ^:private with-delay
+  "Adds a delay before the step is run"
+  [step delay]
+  (m/>> (state/wrap-fn #(Thread/sleep delay)) step))
+
+(defn ^:private sequence-while*
+  "Like cats.core/sequence but with short circuiting when pred is satisfied by the return value of a step"
+  [pred acc steps]
+  (if (empty? steps)
+    acc
+    (m/mlet [result (first steps)
+             results acc]
+      (if (pred result)
+        (state/return (conj results result))
+        (sequence-while* pred (state/return (conj results result)) (rest steps))))))
+
+(defn ^:private sequence-while
+  [pred steps]
+  (sequence-while* pred (state/return []) steps))
 
 (defn probe
-  "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
-  ([state check-fn]
-   (probe state check-fn {}))
-  ([state check-fn {:keys [sleep-time times-to-try]
-                    :or   {sleep-time   default-sleep-time
-                           times-to-try default-times-to-try}}]
-   (m/mlet [world (state/get)
-            :let [tries  (repeatedly #(do (Thread/sleep sleep-time) (state/eval state world)))
-                  result (retry times-to-try check-fn tries)]]
-     (state/return result))))
+  "Internal use only. Evaluates step repeatedly with check-fn until check-fn succeeds or we try too many times"
+  ([step check-fn]
+   (probe step check-fn {}))
+  ([step check-fn {:keys [sleep-time times-to-try]
+                   :or   {sleep-time   default-sleep-time
+                          times-to-try default-times-to-try}}]
+   (sequence-while :check-result
+                   (cons (check step check-fn)
+                         (repeat (dec times-to-try) (with-delay (check step check-fn) sleep-time))))))
