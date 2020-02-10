@@ -16,9 +16,9 @@
   returns a State that runs left up to times-to-retry times every sleep-time ms until left-value equals right value."
   [desc state right-value metadata]
   `(ctx/with-context (ctx/infer ~state)
-     (m/mlet [[_# result#] (probe/probe ~state #(extended-= % ~right-value))]
-       (do (add-desc-and-meta (fact result# => ~right-value) ~desc ~metadata)
-           (m/return result#)))))
+     (m/mlet [result# (probe/probe ~state #(extended-= % ~right-value))]
+       (do (add-desc-and-meta (fact (:value (last result#)) => ~right-value) ~desc ~metadata)
+           (m/return (:value (last result#)))))))
 
 (defmacro verify
   "If left-value is a state, do fact probing. Otherwise, regular fact checking.

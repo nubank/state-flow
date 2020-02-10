@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.0]
+
+- Remove delay from the first try of `probe`
+- Refactor probe and change return value to include the probed value and check result of each try
+
 ## [2.1.5]
 
 - Make `state-flow.state/return` constructable/def'able outside monadic context.

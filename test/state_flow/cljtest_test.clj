@@ -40,7 +40,7 @@
              (flow "flow"
                (test-helpers/delayed-add-two 100)
                (cljtest/match? "2" get-value-state 2 {:times-to-try 2
-                                                      :sleep-time 75}))
+                                                      :sleep-time 110}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 2 flow-ret))))))
