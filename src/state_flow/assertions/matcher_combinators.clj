@@ -19,7 +19,7 @@
 
   Returns the right value returned by probe/probe."
   [state matcher params]
-  (m/fmap second
+  (m/fmap (comp :value last)
           (probe/probe state
                        #(matcher-combinators/match? (matcher-combinators/match matcher %))
                        params)))
@@ -42,16 +42,23 @@
   ([expected actual {:keys [times-to-try]
                      :or {times-to-try 1}
                      :as params}]
-   (core/flow*
-    {:description "match?"
-     :caller-meta (meta &form)}
-    ;; Nesting m/do-let inside a call the function core/flow* is
-    ;; a bit ugly, but it supports getting the correct line number
-    ;; information from core/current-description.
-    `(m/do-let
-      [flow-desc# (core/current-description)
-       actual#    (if (> (:times-to-try ~params) 1)
-                    (#'match-probe (#'ensure-wrapped ~actual) ~expected ~params)
-                    (#'ensure-wrapped ~actual))]
-      (state/wrap-fn #(t/testing flow-desc# (t/is (~'match? ~expected actual#))))
-      (state/return actual#)))))
+   ;; description is here to support the
+   ;; deprecated cljtest/match? fn.  Undecided
+   ;; whether we want to make it part of the API.
+   ;; caller-meta is definitely not part of the API.
+   (let [params* (merge {:description "match?"
+                         :caller-meta (meta &form)}
+                       params)]
+     (core/flow*
+      {:description (:description params*)
+       :caller-meta (:caller-meta params*)}
+      ;; Nesting m/do-let inside a call the function core/flow* is
+      ;; a bit ugly, but it supports getting the correct line number
+      ;; information from core/current-description.
+      `(m/do-let
+        [flow-desc# (core/current-description)
+         actual#    (if (> (:times-to-try ~params*) 1)
+                      (#'match-probe (#'ensure-wrapped ~actual) ~expected ~params*)
+                      (#'ensure-wrapped ~actual))]
+        (state/wrap-fn #(t/testing flow-desc# (t/is (~'match? ~expected actual#))))
+        (state/return actual#))))))
