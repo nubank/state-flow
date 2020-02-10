@@ -10,14 +10,14 @@
 (def default-times-to-try 5)
 
 (defn ^:private check
-  "Applies check-fn to return value of a flow, returns the check result and the original value in a map"
+  "Applies check-fn to the return value of a step, returns the check result and the original value in a map"
   [flow check-fn]
   (m/mlet [value flow]
     (state/return {:check-result (check-fn value)
                    :value        value})))
 
 (defn ^:private with-delay
-  "Adds a delay when the flow is run"
+  "Adds a delay before the step is run"
   [flow delay]
   (m/>> (state/wrap-fn #(Thread/sleep delay)) flow))
 
@@ -36,24 +36,13 @@
   [pred flows]
   (sequence-while* pred (state/return []) flows))
 
-(defn ^:private probe*
-  "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
-  ([flow check-fn]
-   (probe* flow check-fn {}))
-  ([flow check-fn {:keys [sleep-time times-to-try]
-                   :or   {sleep-time   default-sleep-time
-                          times-to-try default-times-to-try}}]
-   (sequence-while :check-result (repeat times-to-try (with-delay (check flow check-fn) sleep-time)))))
-
-(defn ^:private probe-return
-  [{:keys [check-result value]}]
-  [(boolean check-result) value])
-
 (defn probe
-  "evaluates state repeatedly with check-fn until check-fn succeeds or we try too many times"
-  ([state check-fn]
-   (probe state check-fn {}))
+  "Internal use only. Evaluates step repeatedly with check-fn until check-fn succeeds or we try too many times"
+  ([flow check-fn]
+   (probe flow check-fn {}))
   ([flow check-fn {:keys [sleep-time times-to-try]
                    :or   {sleep-time   default-sleep-time
                           times-to-try default-times-to-try}}]
-   (m/fmap (comp probe-return last) (probe* flow check-fn {:sleep-time sleep-time :times-to-try times-to-try}))))
+   (sequence-while :check-result
+                   (cons (check flow check-fn)
+                         (repeat (dec times-to-try) (with-delay (check flow check-fn) sleep-time))))))
