@@ -28,7 +28,7 @@
   "Builds a state-flow assertion using matcher-combinators.
 
   - expected can be a literal value or a matcher-combinators matcher
-  - actual can be a literal value, a primitive, or a flow
+  - actual can be a literal value, a primitive step, or a flow
   - params is an optional map supporting:
     - :times-to-try optional, default 1
     - :sleep-time   optional, default 200
