@@ -37,17 +37,16 @@
   retry :times-to-try times with :sleep-time
 
   See `state-flow.probe/probe` for more info"
-  ([expected actual]
-   `(match? ~expected ~actual {:times-to-try 1}))
-  ([expected actual {:keys [times-to-try]
-                     :or {times-to-try 1}
-                     :as params}]
+  [expected actual & [{:keys [times-to-try]
+                       :or {times-to-try 1}
+                       :as params}]]
    ;; description is here to support the
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
    (let [params* (merge {:description "match?"
-                         :caller-meta (meta &form)}
+                         :caller-meta (meta &form)
+                         :times-to-try 1}
                        params)]
      (core/flow*
       {:description (:description params*)
@@ -60,5 +59,15 @@
          actual#    (if (> (:times-to-try ~params*) 1)
                       (#'match-probe (#'ensure-wrapped ~actual) ~expected ~params*)
                       (#'ensure-wrapped ~actual))]
-        (state/wrap-fn #(t/testing flow-desc# (t/is (~'match? ~expected actual#))))
-        (state/return actual#))))))
+        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
+        ;; assertions from reporting in a future release. Remove this
+        ;; next line when that happens.
+        ;; NOTE: the match? symbol on this next line is used to
+        ;; dispatch clojure.test's assert-expr multimethod to an
+        ;; implementation in matcher-combinators, and there is no way
+        ;; to qualify it with a namespace. This means that if you're
+        ;; exploring this macro in _this_ namespace, and try to invoke
+        ;; it, you'll get a stack overflow because the compiler
+        ;; interprets match? as this macro.
+        (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+        (state/return actual#)))))
