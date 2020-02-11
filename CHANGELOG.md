@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.2.1]
+- Use vectors in internal state data structure instead of cats pairs
+
 ## [2.2.0]
 
 - Remove delay from the first try of `probe`

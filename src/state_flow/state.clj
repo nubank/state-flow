@@ -22,35 +22,35 @@
     (-fmap [_ f fv]
       (state/state (fn [s]
                      (let [[v ns]  ((p/-extract fv) s)]
-                       (d/pair (f v) ns)))
+                       [(f v) ns]))
                    error-context))
 
     p/Monad
     (-mreturn [_ v]
-      (state/state (partial d/pair v) error-context))
+      (state/state (partial vector v) error-context))
 
     (-mbind [_ self f]
       (state/state (fn [s]
                      (let [mp ((e/wrap (p/-extract self)) s)]
                        (if (e/failure? mp)
-                         (d/pair mp s)
-                         (if (e/failure? (.-fst @mp))
+                         [mp s]
+                         (if (e/failure? (first @mp))
                            @mp
-                           (let [new-pair ((e/wrap (p/-extract (f (.-fst @mp)))) (.-snd @mp))]
+                           (let [new-pair ((e/wrap (p/-extract (f (first @mp)))) (second @mp))]
                              (if (e/success? new-pair)
                                @new-pair
-                               (d/pair new-pair (.-snd @mp))))))))
+                               [new-pair (second @mp)]))))))
                    error-context))
 
     state/MonadState
     (-get-state [_]
-      (state/state #(d/pair %1 %1) error-context))
+      (state/state #(vector %1 %1) error-context))
 
     (-put-state [_ newstate]
-      (state/state #(d/pair % newstate) error-context))
+      (state/state #(vector % newstate) error-context))
 
     (-swap-state [_ f]
-      (state/state #(d/pair %1 (f %1)) error-context))
+      (state/state #(vector %1 (f %1)) error-context))
 
     p/Printable
     (-repr [_]
@@ -66,7 +66,7 @@
 (defn gets
   [f]
   "Returns the equivalent of (fn [state] [state, (f state)])"
-  (state/gets f))
+  (state/gets f error-context))
 
 (defn put
   "Returns the equivalent of (fn [state] [state, new-state])"
@@ -92,7 +92,7 @@
   "Wraps a (possibly side-effecting) function to a state monad"
   [my-fn]
   (state/state (fn [s]
-                 (d/pair (my-fn) s))
+                 [(my-fn) s])
                error-context))
 
 (def state? state/state?)
