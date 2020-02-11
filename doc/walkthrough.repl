@@ -31,13 +31,13 @@
 ;;   managed by state-flow
 ;;
 ;; The :mfn of any state monad is a function of state, which returns
-;; a Pair of [return-value, state-after-invocation]. Since this is
+;; a vector of [return-value, state-after-invocation]. Since this is
 ;; just a Clojure function, you can extract it from the monad and
 ;; invoke it directly:
 
 (let [mfn (:mfn (state/return {:count 37}))]
   (mfn {:count 0}))
-;; #<Pair [{:count 37} {:count 0}]>
+;; => [{:count 37} {:count 0}]
 ;;
 ;; The return value of the :mfn of `(state/return <value>)` is whatever argument
 ;; you provide. Also, as you can see in the output above, this function doesn't
@@ -47,38 +47,35 @@
 ;; and manages state for you:
 
 (run (state/return {:count 37})
-     {:count 0})
-;; #<Pair [{:count 37} {:count 0}]>
-
-
-;; => #<Pair [{:count 0} {:count 0}]>
+  {:count 0})
+;; => [{:count 37} {:count 0}]
 ;;
 ;; The `run` function takes a state monad and an (optional - defaults
-;; to an empty {}) initial state, and returns the Pair returned by
+;; to an empty {}) initial state, and returns the return value from
 ;; invoking the :mfn with the state.
 ;;
 ;; Here's a primitive step that returns the application of a function
 ;; to the state, without actually changing the state:
 
 (run (state/gets (fn [s] (update s :count inc))) {:count 0})
-;; => #<Pair [{:count 1} {:count 0}]>
+;; => [{:count 1} {:count 0}]
 ;;
-;; In case is is not clear, the left entry in the Pair is the
+;; In case is is not clear, the first element in the vector is the
 ;; return value, the result of applying the anonymous function
 ;; passed to `state/gets` to the state, `{:count 0}`. The result
 ;; is that the value of `:count` is incremented, in the return-value,
-;; but the state, the right entry of the Pair, is unchanged.
+;; but the state, the second element of the vector, is unchanged.
 ;;
 ;; This next one does the reverse of `state/gets`: it returns the
 ;; unmodified state and applies a function to the state
 
 (run (state/modify (fn [s] (update s :count inc))) {:count 0})
-;; => #<Pair [{:count 0} {:count 1}]>
+;; => [{:count 0} {:count 1}]
 ;;
 ;; Or we can replace the internal state entirely, returning the previous state:
 
 (run (state/put {:name "Jacob"}) {:count 0})
-;; => #<Pair [{:count 0} {:name "Jacob"}]>
+;; => [{:count 0} {:name "Jacob"}]
 
 ;; -------------------------------------------
 ;; flows
@@ -100,29 +97,28 @@
            (state/modify (fn [s] (update s :count inc)))
            (state/modify (fn [s] (update s :count inc))))
   {:count 0})
-;; => #<Pair [{:count 2} {:count 3}]>
+;; => [{:count 2} {:count 3}]
 ;;
-;; `run` returns a Pair of [return state], just as in previous examples.
+;; `run` returns a vector of [return state], just as in previous examples.
 ;; The return of a flow is the return of the last step. Within the flow,
 ;; each step is run in sequence, passing the initial state to the first
-;; step, then the resulting state (the 2nd value in the returned Pair)
+;; step, then the resulting state (the 2nd element of the returned vector)
 ;; to the next, and so on, e.g.
 ;;
 
 ;; (run (flow "counter"
 ;;            (state/modify (fn [s] (update s :count inc)))
-;;            ^^ fn is invoked with {:count 0}, produces #<Pair [{:count 0} {:count 1}]>
-;;            (state/modify (fn [s] (update s :count inc)))  ;; => #<Pair [{:count 1} {:count 2}]>
-;;            ^^ fn is invoked with {:count 1}, produces #<Pair [{:count 1} {:count 2}]>
-;;            (state/modify (fn [s] (update s :count inc)))) ;; => #<Pair [{:count 2} {:count 3}]>
-;;            ^^ fn is invoked with {:count 2}, produces #<Pair [{:count 2} {:count 3}]>
+;;            ^^ fn is invoked with {:count 0}, produces [{:count 0} {:count 1}]
+;;            (state/modify (fn [s] (update s :count inc)))  ;; => [{:count 1} {:count 2}]
+;;            ^^ fn is invoked with {:count 1}, produces [{:count 1} {:count 2}]
+;;            (state/modify (fn [s] (update s :count inc)))) ;; => [{:count 2} {:count 3}]
+;;            ^^ fn is invoked with {:count 2}, produces [{:count 2} {:count 3}]
 ;;   {:count 0})
-;; => #<Pair [{:count 2} {:count 3}]>
+;; => [{:count 2} {:count 3}]
 ;;    ^^ the value produced by the last invocation within the flow
-
 ;;
 ;; The return from running a flow is no different than the return from
-;; running a primitive: a Pair of [result state], where result is the
+;; running a primitive: a vector of [result state], where result is the
 ;; result of applying the last monad function in the flow to the state
 ;; _after_ having applied the previous functions (hence the input)
 ;;
@@ -141,7 +137,7 @@
         inc-count))
 
 (run inc-twice {:count 0})
-;; => #<Pair [{:count 1} {:count 2}]>
+;; => [{:count 1} {:count 2}]
 ;;
 ;; And we can nest flows arbitrarily deeply!
 
@@ -154,7 +150,7 @@
                     inc-twice))
         (state/gets (fn [s] (update s :count * 3))))
   {:count 0})
-;; => #<Pair [{:count 15} {:count 5}]>
+;; => [{:count 15} {:count 5}]
 
 ;; -----------------------------
 ;; bindings
@@ -171,7 +167,7 @@
         (state/return {:before count-before
                        :after count-after}))
   {:count 0})
-;; => #<Pair [{:before 0, :after 1} {:count 1}]>
+;; => [{:before 0, :after 1} {:count 1}]
 
 ;; These look a lot like `let` bindings, but the symbol on the left
 ;; will be bound to the return of the monad on the right. You can also
@@ -183,7 +179,7 @@
         (state/modify (fn [s] (update s :count + start)))
         (state/gets :count))
   {:count 0})
-;; => #<Pair [37 {:count 37}]>
+;; => [37 {:count 37}]
 
 ;; And those values can come from evaluating regular Clojure expressions:
 
@@ -193,7 +189,7 @@
         (state/modify (fn [s] (update s :count + start)))
         (state/gets :count))
   {:count 0})
-;; => #<Pair [37 {:count 37}]>
+;; => [37 {:count 37}]
 
 ;; -----------------------------
 ;; beyond primitives
@@ -205,7 +201,7 @@
 ;; To run a normal clojure expression in a flow, you need to wrap it.
 
 (run (flow "vanilla clojure in a flow" (state/wrap-fn #(+ 1 2))) {})
-;; => #<Pair [3 {}]>
+;; => [3 {}]
 
 ;; Here's a more practical example, in which we draw from state
 ;; to provide arguments to domain functions.
@@ -222,12 +218,12 @@
     (state/wrap-fn #(register-user db {:name "Phillip"}))
     (state/wrap-fn #(fetch-users db)))
   {:db (atom {:users #{}})})
-;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x64e11e64]}]>
-
+;; => [#{{:name "Phillip"}} {:db #<Atom@4d7999d2: {:users #{{:name "Phillip"}}}>}]
+;;
 ;; ---------------------------
 ;; assertions
 ;; ---------------------------
-
+;;
 ;; state-flow includes a wrapper around matcher-combinators to support
 ;; making assertions
 
@@ -267,7 +263,7 @@
             (state/wrap-fn #(fetch-users db))
             #{{:name "Philip"}})) ;; <- different spelling
   {:db (atom {:users #{}})})
-;; => #<Pair [#{{:name "Phillip"}} {:db #atom[{:users #{{:name "Phillip"}}} 0x4c2a27a6]}]>
+;; => [#{{:name "Phillip"}} {:db #<Atom@4a65a50f: {:users #{{:name "Phillip"}}}>}]
 
 ;; --- printed to repl ---
 ;; FAIL in () (form-init13207122878088623810.clj:256)
