@@ -14,7 +14,7 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.taoensso/timbre "4.10.0"]
-                 [funcool/cats "2.3.3"]
+                 [funcool/cats "2.3.4"]
                  [nubank/matcher-combinators "1.2.7"]]
 
   :exclusions   [log4j]

@@ -17,10 +17,10 @@
                                 (m/return x))
         double-state    (state/modify #(* 2 %))]
     (testing "modify state with get and put"
-      (is (= (d/pair 2 3)
+      (is (= [2 3]
              (state/run increment-state 2))))
     (testing "modify state with modify"
-      (is (= (d/pair 2 4)
+      (is (= [2 4]
              (state/run double-state 2))))
     (testing "state with an exception"
       (let [[res state] (state/run (m/>> double-state
