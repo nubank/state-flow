@@ -6,6 +6,6 @@
 (defmacro testing [desc & body]
   "state-flow's equivalent to clojure test's `testing`"
   `(core/flow ~desc
-              [full-desc# (core/current-description)]
-              (state/wrap-fn #(do ~(with-meta `(ctest/testing ~desc ~@body)
-                                     (meta &form))))))
+     [full-desc# (core/current-description)]
+     (state/wrap-fn #(do ~(with-meta `(ctest/testing ~desc ~@body)
+                            (meta &form))))))

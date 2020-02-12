@@ -28,7 +28,7 @@
 
     (testing "with explicit matcher for expected"
       (let [[ret state] (state-flow/run (assertions.matcher-combinators/match? (matchers/equals 3)
-                                                    test-helpers/add-two) {:value 1})]
+                                                                               test-helpers/add-two) {:value 1})]
         (testing "returns actual (derived from state)"
           (is (= 3 ret)))
         (testing "doesn't change state"
@@ -40,7 +40,7 @@
              (flow "flow"
                (test-helpers/delayed-add-two 100)
                (assertions.matcher-combinators/match? 2 get-value-state {:times-to-try 2
-                                              :sleep-time 110}))
+                                                                         :sleep-time 110}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 2 flow-ret))))))
@@ -51,8 +51,8 @@
             {:keys [flow-ret flow-state report-data]}
             (test-helpers/run-flow
              (assertions.matcher-combinators/match? (matchers/equals {:n 1})
-                         (state/gets :value)
-                         {:times-to-try 2})
+                                                    (state/gets :value)
+                                                    {:times-to-try 2})
              {:value {:n 2}})]
         (testing "returns actual"
           (is (= {:n 2} flow-ret)))
@@ -69,7 +69,7 @@
              (flow "flow"
                (test-helpers/delayed-add-two 200)
                (assertions.matcher-combinators/match? 2 get-value-state {:times-to-try 2
-                                              :sleep-time 75}))
+                                                                         :sleep-time 75}))
              {:value (atom 0)})]
         (testing "returns actual (derived from state)"
           (is (= 0 flow-ret)))
@@ -97,30 +97,29 @@
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-                {}
-                (state-flow.core/flow "my-flow" (assertions.matcher-combinators/match? 1 1))))
+               {}
+               (state-flow.core/flow "my-flow" (assertions.matcher-combinators/match? 1 1))))
            flow-with-defaults)))
 
   (testing "defines flow with optional parameters"
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-                {:init (constantly {:value 1})}
-                (state-flow.core/flow "my-flow" (assertions.matcher-combinators/match? 1 1))))
+               {:init (constantly {:value 1})}
+               (state-flow.core/flow "my-flow" (assertions.matcher-combinators/match? 1 1))))
            flow-with-optional-args)))
 
   (testing "defines flow with binding and flow inside match?"
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-                {:init (constantly {:map {:a 1 :b 2} :value 1})}
-                (state-flow.core/flow
-                  "my-flow"
-                  [value (state/gets :value)]
-                  (assertions.matcher-combinators/match? value 1)
-                  (assertions.matcher-combinators/match? (state/gets :map) {:b 2}))))
+               {:init (constantly {:map {:a 1 :b 2} :value 1})}
+               (state-flow.core/flow
+                "my-flow"
+                 [value (state/gets :value)]
+                 (assertions.matcher-combinators/match? value 1)
+                 (assertions.matcher-combinators/match? (state/gets :map) {:b 2}))))
            flow-with-binding-and-match))))
-
 
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}

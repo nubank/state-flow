@@ -27,4 +27,4 @@
              (first (state-flow/run (probe/probe test-helpers/get-value-state #(= 2 %)
                                                  {:sleep-time   250
                                                   :times-to-try 5})
-                      state)))))))
+                                    state)))))))
