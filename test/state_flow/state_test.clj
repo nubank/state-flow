@@ -14,7 +14,7 @@
     (state/put {:count 0}))
   (let [increment-state (m/mlet [x (state/get)
                                  _ (state/put (inc x))]
-                                (m/return x))
+                          (m/return x))
         double-state    (state/modify #(* 2 %))]
     (testing "modify state with get and put"
       (is (= [2 3]
