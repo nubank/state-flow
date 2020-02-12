@@ -5,15 +5,6 @@
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
 
-(defn ^:private ensure-wrapped
-  "Internal use only.
-
-  Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
-  [value]
-  (if (state/state? value)
-    value
-    (state/return value)))
-
 (defn ^:private match-probe
   "Internal use only.
 
@@ -57,8 +48,8 @@
       `(m/do-let
         [flow-desc# (core/current-description)
          actual#    (if (> (:times-to-try ~params*) 1)
-                      (#'match-probe (#'ensure-wrapped ~actual) ~expected ~params*)
-                      (#'ensure-wrapped ~actual))]
+                      (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
+                      (state/ensure-step ~actual))]
         ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
         ;; assertions from reporting in a future release. Remove this
         ;; next line when that happens.
