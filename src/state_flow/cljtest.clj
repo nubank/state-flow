@@ -2,7 +2,7 @@
   (:require [clojure.test :as t]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
-            [state-flow.assertions.matcher-combinators :as amc]))
+            [state-flow.assertions.matcher-combinators]))
 
 (defmacro match?
   "DEPRECATED. Use state-flow.assertions.matcher-combinators/match? instead. "
@@ -12,7 +12,7 @@
                         :caller-meta  (meta &form)
                         :description  match-desc}
                        params)]
-    `(amc/match? ~expected ~actual ~params*)))
+    `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
 (defmacro defflow
   {:arglists '([name & flows]
