@@ -4,7 +4,7 @@
             [state-flow.probe :as probe]
             [state-flow.assertions.matcher-combinators]))
 
-(defmacro match?
+(defmacro ^:deprecated match?
   "DEPRECATED. Use state-flow.assertions.matcher-combinators/match? instead. "
   [match-desc actual expected & [params]]
   (let [params* (merge {:times-to-try probe/default-times-to-try
