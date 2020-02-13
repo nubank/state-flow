@@ -1,6 +1,7 @@
 (ns state-flow.assertions.matcher-combinators
   (:require [cats.core :as m]
             [matcher-combinators.core :as matcher-combinators]
+            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.core :as core]
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
