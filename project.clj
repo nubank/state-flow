@@ -1,4 +1,4 @@
-(defproject nubank/state-flow "2.2.2"
+(defproject nubank/state-flow "2.2.1"
   :description "Postman-like integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -29,8 +29,7 @@
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "0.3.1"]
                                   [midje "1.9.9"]
-                                  [org.clojure/java.classpath "0.3.0"]
-                                  [rewrite-clj "0.6.1"]]}}
+                                  [org.clojure/java.classpath "0.3.0"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]

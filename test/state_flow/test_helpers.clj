@@ -18,9 +18,11 @@
   [delay-ms]
   "Changes state in the future"
   (state/modify (fn [state]
-                  (future (do (Thread/sleep delay-ms)
-                              (swap! (:value state) + 2)))
-                  state)))
+                      (future (do (Thread/sleep delay-ms)
+                                  (swap! (:value state) + 2)))
+                      state)))
+
+
 
 (defmacro run-flow
   "Wrapper for `state-flow.core/run!`, but captures clojure.test's report data
