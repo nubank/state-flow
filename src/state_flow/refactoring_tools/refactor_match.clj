@@ -2,12 +2,22 @@
   "This ns contains tools to refactor from match? in the cljtest
   ns to the new version in the assertions.matcher-combinators ns."
   (:require [clojure.java.io :as io]
-            [rewrite-clj.zip :as z]))
+            [rewrite-clj.zip :as z]
+            [rewrite-clj.node :as n]
+            [state-flow.probe :as probe]))
+
+(defn probe-params [orig]
+  (let [orig (and orig (z/sexpr orig))]
+    (n/coerce
+     (merge {:times-to-try probe/default-times-to-try
+             :sleep-time   probe/default-sleep-time}
+            orig))))
 
 (defn refactor-match-expr
   "If there is an exception, printlns the expression so you can
   find and handle it manually."
   [{:keys [wrap-in-flow
+           force-probe-params
            sym-after]}
    zloc]
   (try
@@ -15,15 +25,22 @@
           desc       (-> match-sym z/right)
           actual     (-> desc z/right)
           expected   (-> actual z/right)
-          refactored (z/edit-> zloc
-                               z/down
-                               (z/replace sym-after)
-                               z/right
-                               z/remove
-                               z/right
-                               (z/replace (z/node expected))
-                               z/right
-                               (z/replace (z/node actual)))]
+          params     (-> expected z/right)
+          refactored (cond-> (z/edit-> zloc
+                                       z/down
+                                       (z/replace sym-after)
+                                       z/right
+                                       z/remove
+                                       z/right
+                                       (z/replace (z/node expected))
+                                       z/right
+                                       (z/replace (z/node actual)))
+                       (and force-probe-params params)
+                       (z/edit-> z/down
+                                 z/rightmost
+                                 (z/replace (probe-params params)))
+                       (and force-probe-params (not params))
+                       (z/edit-> (z/append-child (probe-params params))))]
       (if wrap-in-flow
         (z/edit-> zloc
                   (z/replace
@@ -75,14 +92,15 @@
     (flow <description> (match? <expected> <actual> <params>))
 
   Supported keys:
-  - :str             this or path are required   - string source for the refactoring
-  - :path            this or str are required    - path to source for refactoring
-  - :rewrite         optional (default false)    - rewrites refactored code to the same path
-  - :sym-before      optional (default `match?`) - symbol to look for for match? expressions
-                       - use this key if you've got a qualified symbol
-  - :sym-after       optional (default `match?`) - symbol to replace :sym-before
-  - :wrap-in-flow    optional (default false)    - set to true to wrap in a flow with the description
-                                                   from the source match? expression
+  - :str                 this or path are required   - string source for the refactoring
+  - :path                this or str are required    - path to source for refactoring
+  - :rewrite             optional (default false)    - rewrites refactored code to the same path
+  - :sym-before          optional (default `match?`) - symbol to look for for match? expressions
+                           - use this key if you've got a qualified symbol
+  - :sym-after           optional (default `match?`) - symbol to replace :sym-before
+  - :wrap-in-flow        optional (default false)    - set to true to wrap in a flow with the description
+                                                       from the source match? expression
+  - :force-probe-params  optional (default false)    - makes probe params explicit (strongly recommended)
 
   This is intended to help you in refactoring to the new match? function, however
   there are some things you'll need to do on your own:
@@ -95,12 +113,17 @@
   - before or after
     - update the ns declaration to include state-flow.assertions.matcher-combinators
       - if :sym-after is simple i.e. just `match?`, then `:refer [match?]`
-      - if :sym-after is qualified, then use `:as <alias>`"
+      - if :sym-after is qualified, then use `:as <alias>`
+
+  WARNING: the old version of match? probes implicitly when `actual` is a step. The new
+  version requires an explicit `{:times-to-try <value gt 1>}` to trigger polling, so
+  leaving out :force-probe-params may result in tests failing because they need probe."
   [{:keys [path str
+           sym-before
+           sym-after
            rewrite
            wrap-in-flow
-           sym-before
-           sym-after]
+           force-probe-params]
     :as opts}]
   (let [z-before (or (and path (z/of-file path))
                      (and str (z/of-string str)))
