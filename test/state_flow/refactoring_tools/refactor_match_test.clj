@@ -17,11 +17,11 @@
            {:sym-after 'after/match?}
            (zip '(after/match? "description" actual expected))))))
 
-  (testing "with wrap-in-testing option"
-    (is (= '(testing "description" (after/match? expected actual))
+  (testing "with wrap-in-flow option"
+    (is (= '(flow "description" (after/match? expected actual))
            (unzip
             (refactor-match/refactor-match-expr
-             {:wrap-in-testing true
+             {:wrap-in-flow true
               :sym-after 'after/match?}
              (zip '(before/match? "description" actual expected))))))))
 
@@ -47,10 +47,10 @@
              :sym-before 'before/match?
              :sym-after 'after/match?}))))
 
-  (testing "wrapped in testing"
-    (is (= "(deftest thing (testing \"description\" (after/match? expected actual)))"
+  (testing "with wrap-in-flow option"
+    (is (= "(deftest thing (flow \"description\" (after/match? expected actual)))"
            (refactor-match/refactor-all
             {:str "(deftest thing (before/match? \"description\" actual expected))"
              :sym-before 'before/match?
              :sym-after 'after/match?
-             :wrap-in-testing true})))))
+             :wrap-in-flow true})))))
