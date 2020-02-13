@@ -54,12 +54,5 @@
         ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
         ;; assertions from reporting in a future release. Remove this
         ;; next line when that happens.
-        ;; NOTE: the match? symbol on this next line is used to
-        ;; dispatch clojure.test's assert-expr multimethod to an
-        ;; implementation in matcher-combinators, and there is no way
-        ;; to qualify it with a namespace. This means that if you're
-        ;; exploring this macro in _this_ namespace, and try to invoke
-        ;; it, you'll get a stack overflow because the compiler
-        ;; interprets match? as this macro.
        (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
        (state/return actual#)))))
