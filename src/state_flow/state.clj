@@ -99,3 +99,12 @@
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
+
+(defn ensure-step
+  "Internal use only.
+
+  Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
+  [value]
+  (if (state? value)
+    value
+    (return value)))
