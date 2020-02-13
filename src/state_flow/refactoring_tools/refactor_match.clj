@@ -5,10 +5,9 @@
             [rewrite-clj.zip :as z]))
 
 (defn refactor-match-expr
-  "
-  If there is an exception, printlns the expression so you can
+  "If there is an exception, printlns the expression so you can
   find and handle it manually."
-  [{:keys [wrap-in-testing
+  [{:keys [wrap-in-flow
            sym-after]}
    zloc]
   (try
@@ -25,10 +24,10 @@
                                (z/replace (z/node expected))
                                z/right
                                (z/replace (z/node actual)))]
-      (if wrap-in-testing
+      (if wrap-in-flow
         (z/edit-> zloc
                   (z/replace
-                   (-> (z/of-string "(testing)")
+                   (-> (z/of-string "(flow)")
                        (z/append-child (z/node desc))
                        (z/append-child (z/node refactored))
                        (z/node))))
@@ -69,11 +68,11 @@
     ;; or
     (match? <expected> <actual> <params>)
 
-  With :wrap-in-testing set to true, returns e.g.
+  With :wrap-in-flow set to true, returns e.g.
 
-    (testing <description> (match? <expected> <actual>))
+    (flow <description> (match? <expected> <actual>))
     ;; or
-    (testing <description> (match? <expected> <actual> <params>))
+    (flow <description> (match? <expected> <actual> <params>))
 
   Supported keys:
   - :str             this or path are required   - string source for the refactoring
@@ -82,7 +81,8 @@
   - :sym-before      optional (default `match?`) - symbol to look for for match? expressions
                        - use this key if you've got a qualified symbol
   - :sym-after       optional (default `match?`) - symbol to replace :sym-before
-  - :wrap-in-testing optional (default false)    - set to true to wrap in testing
+  - :wrap-in-flow    optional (default false)    - set to true to wrap in a flow with the description
+                                                   from the source match? expression
 
   This is intended to help you in refactoring to the new match? function, however
   there are some things you'll need to do on your own:
@@ -98,7 +98,7 @@
       - if :sym-after is qualified, then use `:as <alias>`"
   [{:keys [path str
            rewrite
-           wrap-in-testing
+           wrap-in-flow
            sym-before
            sym-after]
     :as opts}]
@@ -113,5 +113,5 @@
   (refactor-all {:path "test/state_flow/cljtest_test.clj"
                  :sym-before 'cljtest/match?
                  :sym-after 'assertions.matcher-combinators/match?
-                 :wrap-in-testing true
+                 :wrap-in-flow true
                  :rewrite true}))
