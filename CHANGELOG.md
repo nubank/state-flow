@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.2.3]
+ - Revert changes in `2.2.2` until a few issues are resolved
+
 ## [2.2.2]
 
 - Introduce `state-flow.assertions.matcher-combinators/match?`
