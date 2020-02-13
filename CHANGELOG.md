@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.2.3]
+ - Revert changes in `2.2.2` until a few issues are resolved
+
+## [2.2.2]
+
+- Introduce `state-flow.assertions.matcher-combinators/match?`
+  - deprecate `state-flow.cljtest/match?`
+  - add `state-flow.refactoring-tools.refactor-match/refactor-all` to help with
+    refactoring to the new version
+
 ## [2.2.1]
 - Use vectors in internal state data structure instead of cats pairs
 
