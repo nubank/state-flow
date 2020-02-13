@@ -155,73 +155,42 @@ Or we could increment the value first and then return it doubled:
 We use the `defflow` and `match?` macros to build `clojure.test` tests
 out of flows.
 
-`state-flow.cljtest.defflow` defines a test (using `deftest`) that when
+`defflow` defines a test (using `deftest`) that when
 run, will execute the flow with the parameters that we set.
 
-`state-flow.assertions.match?` produces a flow that will make an assertion, which
-will be reported via clojure.test when used within a `defflow`. It
+`match?` produces a flow that will make a `clojure.test` assertion. It
 uses the
 [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/)
 library for the actual check and failure messages. `match?` asks for:
 
-* the expected value, or a matcher-combinators matcher
-  * if you supply a value, matcher-combintators will apply its defaults
+* a string description
 * the actual value, or a step which will produce it
   * if you supply a value, `match?` will wrap it in `(state/return <value>)`
+* the expected value, or a matcher-combinators matcher
+  * if you supply a value, matcher-combintators will apply its defaults
 
 Here are some very simple examples of tests defined using `defflow`:
 
 ```clojure
 (defflow my-flow
-  (match? 1 1)
-  (match? {:a 1 :b 2} {:a 1}))
+  (match? "simple test" 1 1)
+  (match? "embeds" {:a 1 :b 2} {:a 1}))
 ```
-
-Wrap them in `flow`s to get descriptions when the expected and actual
-values need some explanation:
-
-```clojure
-(deftest fruits-and-veggies
-  (flow "surprise! Tomatoes are fruits!"
-    (match? #{:tomato} (fruits #{:tomato :potato}))))
-```
-
 Or with custom parameters:
 
 ```clojure
 (defflow my-flow {:init aux.init! :runner (comp run! s/with-fn-validation)}
-  (match? 1 1)
-  (match? 2 2))
+  (match? "simple test" 1 1)
+  (match? "simple test 2" 2 2))
 ```
 
 ```clojure
 (defflow my-flow {:init (constantly {:value 1
                                      :map {:a 1 :b 2}})}
   [value (state/gets :value)]
-  (match? 1 value)
-  (flow "uses matcher-combinator embeds"
-    (match? {:b 2} (state/gets :map)))
+  (match? "value is correct" value 1)
+  (match? "embeds" (state/gets :map) {:b 2}))
 ```
-
-### NOTE: about upgrading to state-flow-2.2.2
-
-We introduced `state-flow.assertions.match?` in state-flow-2.2.2, and
-deprecated `state-flow.cljtest.match?` in that release. The signature
-for the old version was `(match? <description> <actual> <expected>)`.
-We removed the description because it was quite common for the description
-to add no context that wasn't already made clear by the expected and
-actual values.
-
-We also reversed the order of expected and actual in order to align
-with the `match?` function in the matcher-combinators library and with
-clojure.test's `(is (= expected actual))`.
-
-In order to ease refactoring, we also added a `refactor-match`
-function, which takes a path to a file and some configuration options
-about what you want the refactoring to do.
-
-See the `state-flow.refactoring-tools.refactor-match` ns for
-details.
 
 ## Midje Support
 
