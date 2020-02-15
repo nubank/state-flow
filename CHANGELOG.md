@@ -1,7 +1,12 @@
 # Changelog
 
+## [DEV]
+
+- state-flow.state/modify and state-flow.state/gets pass additional args to f
+
 ## [2.2.3]
- - Revert changes in `2.2.2` until a few issues are resolved
+
+- Revert changes in `2.2.2` until a few issues are resolved
 
 ## [2.2.2]
 
