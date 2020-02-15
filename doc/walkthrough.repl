@@ -72,7 +72,18 @@
 (run (state/modify (fn [s] (update s :count inc))) {:count 0})
 ;; => [{:count 0} {:count 1}]
 ;;
-;; Or we can replace the internal state entirely, returning the previous state:
+;; `modify` and `gets` each pass additional args to the function,
+;; so this `modify` could look like this, instead:
+
+(run (state/modify update :count inc) {:count 0})
+;; => [{:count 0} {:count 1}]
+
+;; ... and the `gets`, above, could look like this:
+
+(run (state/gets update :count inc) {:count 0})
+;; => [{:count 1} {:count 0}]
+
+;; We can also replace the internal state entirely, returning the previous state:
 
 (run (state/put {:name "Jacob"}) {:count 0})
 ;; => [{:count 0} {:name "Jacob"}]
@@ -84,18 +95,18 @@
 ;; We use flows to string together several steps in a single step:
 
 (flow "counter"
-      (state/modify (fn [s] (update s :count inc)))
-      (state/modify (fn [s] (update s :count inc)))
-      (state/modify (fn [s] (update s :count inc))))
+  (state/modify update :count inc)
+  (state/modify update :count inc)
+  (state/modify update :count inc))
 ;; => #cats.monad.state.State{:mfn #object[...],
 ;;                            :state-context #<State-E>}
 ;;
 ;; And, then we can hand that directly to the run function:
 
 (run (flow "counter"
-           (state/modify (fn [s] (update s :count inc)))
-           (state/modify (fn [s] (update s :count inc)))
-           (state/modify (fn [s] (update s :count inc))))
+       (state/modify update :count inc)
+       (state/modify update :count inc)
+       (state/modify update :count inc))
   {:count 0})
 ;; => [{:count 2} {:count 3}]
 ;;
@@ -107,12 +118,12 @@
 ;;
 
 ;; (run (flow "counter"
-;;            (state/modify (fn [s] (update s :count inc)))
-;;            ^^ fn is invoked with {:count 0}, produces [{:count 0} {:count 1}]
-;;            (state/modify (fn [s] (update s :count inc)))  ;; => [{:count 1} {:count 2}]
-;;            ^^ fn is invoked with {:count 1}, produces [{:count 1} {:count 2}]
-;;            (state/modify (fn [s] (update s :count inc)))) ;; => [{:count 2} {:count 3}]
-;;            ^^ fn is invoked with {:count 2}, produces [{:count 2} {:count 3}]
+;;        (state/modify update :count inc)
+;;        ^^ fn is invoked with {:count 0}, produces [{:count 0} {:count 1}]
+;;        (state/modify update :count inc)
+;;        ^^ fn is invoked with {:count 1}, produces [{:count 1} {:count 2}]
+;;        (state/modify update :count inc)
+;;        ^^ fn is invoked with {:count 2}, produces [{:count 2} {:count 3}]
 ;;   {:count 0})
 ;; => [{:count 2} {:count 3}]
 ;;    ^^ the value produced by the last invocation within the flow
@@ -129,7 +140,7 @@
 ;; Since steps and flows are state monads, which are values, we can use all
 ;; the familiar tools of Clojure to define and compose them.
 
-(def inc-count (state/modify (fn [s] (update s :count inc))))
+(def inc-count (state/modify update :count inc))
 
 (def inc-twice
   (flow "increment twice"
@@ -148,7 +159,7 @@
               inc-twice
               (flow "inc 2 more times (grandchild)"
                     inc-twice))
-        (state/gets (fn [s] (update s :count * 3))))
+    (state/gets update :count * 3))
   {:count 0})
 ;; => [{:count 15} {:count 5}]
 
@@ -176,7 +187,7 @@
 (run
   (flow "binding example"
         [:let [start 37]]
-        (state/modify (fn [s] (update s :count + start)))
+        (state/modify update :count + start)
         (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
@@ -186,7 +197,7 @@
 (run
   (flow "binding example"
         [:let [start (+ 30 7)]]
-        (state/modify (fn [s] (update s :count + start)))
+        (state/modify update :count + start)
         (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
