@@ -64,9 +64,9 @@
   (state/get error-context))
 
 (defn gets
-  [f]
-  "Returns the equivalent of (fn [state] [state, (f state)])"
-  (state/gets f error-context))
+  [f & args]
+  "Returns the equivalent of (fn [state] [state, (apply f state args)])"
+  (state/gets #(apply f % args) error-context))
 
 (defn put
   "Returns the equivalent of (fn [state] [state, new-state])"
@@ -74,9 +74,9 @@
   (state/put new-state error-context))
 
 (defn modify
-  "Returns the equivalent of (fn [state] [state, (swap! state f)])"
-  [f]
-  (state/swap f error-context))
+  "Returns the equivalent of (fn [state] [state, (apply swap! state f args)])"
+  [f & args]
+  (state/swap #(apply f % args) error-context))
 
 (defn return
   "Returns the equivalent of (fn [state] [v, state])"
