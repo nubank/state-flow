@@ -64,7 +64,7 @@
   For internal use. Subject to change."
   []
   (m/mlet [desc-list (state/gets description-stack)]
-          (m/return (format-description desc-list))))
+    (m/return (format-description desc-list))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
