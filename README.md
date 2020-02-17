@@ -150,13 +150,13 @@ Or we could increment the value first and then return it doubled:
 ; => [10 {:value 5}]
 ```
 
-## Clojure.test Support
+## clojure.test and matcher-combinators
 
 We use the `defflow` and `match?` macros to build `clojure.test` tests
 out of flows.
 
-`state-flow.cljtest.defflow` defines a test (using `deftest`) that when
-run, will execute the flow with the parameters that we set.
+`state-flow.cljtest.defflow` defines a test (using `deftest`) that
+will execute the flow with the parameters that we set.
 
 `state-flow.assertions.match?` produces a flow that will make an assertion, which
 will be reported via clojure.test when used within a `defflow`. It
@@ -174,7 +174,7 @@ Here are some very simple examples of tests defined using `defflow`:
 ```clojure
 (defflow my-flow
   (match? 1 1)
-  (match? {:a 1 :b 2} {:a 1}))
+  (match? {:a 1} {:a 1 :b 2}))
 ```
 
 Wrap them in `flow`s to get descriptions when the expected and actual
@@ -190,8 +190,8 @@ Or with custom parameters:
 
 ```clojure
 (defflow my-flow {:init aux.init! :runner (comp run! s/with-fn-validation)}
-  (match? 1 1)
-  (match? 2 2))
+  (match? 1 1))
+
 ```
 
 ```clojure
@@ -203,9 +203,9 @@ Or with custom parameters:
     (match? {:b 2} (state/gets :map)))
 ```
 
-### NOTE: about upgrading to state-flow-2.2.2
+### NOTE: about upgrading to state-flow-2.2.4
 
-We introduced `state-flow.assertions.match?` in state-flow-2.2.2, and
+We introduced `state-flow.assertions.match?` in state-flow-2.2.4, and
 deprecated `state-flow.cljtest.match?` in that release. The signature
 for the old version was `(match? <description> <actual> <expected>)`.
 We removed the description because it was quite common for the description
