@@ -46,6 +46,7 @@
                   (z/replace
                    (-> (z/of-string "(flow)")
                        (z/append-child (z/node desc))
+                       (z/append-child (n/newlines 1))
                        (z/append-child (z/node refactored))
                        (z/node))))
         refactored))
