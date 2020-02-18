@@ -216,12 +216,23 @@ We also reversed the order of expected and actual in order to align
 with the `match?` function in the matcher-combinators library and with
 clojure.test's `(is (= expected actual))`.
 
-In order to ease refactoring, we also added a `refactor-match`
-function, which takes a path to a file and some configuration options
-about what you want the refactoring to do.
+We also added a script to help refactor this for you. Here's how
+you use it:
 
-See the `state-flow.refactoring-tools.refactor-match` ns for
-details.
+``` shell
+# if you don't already have this repo cloned
+git clone https://github.com/nubank/state-flow.git
+cd state-flow
+
+# if you already have this repo cloned
+cd state-flow
+git co master
+git pull
+
+# the rest is the same either way
+bin/refactor-match --help
+;; now follow the instructions
+```
 
 ## Midje Support
 
