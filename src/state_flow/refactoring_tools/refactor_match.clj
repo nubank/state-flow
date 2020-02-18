@@ -119,16 +119,20 @@
   WARNING: the old version of match? probes implicitly when `actual` is a step. The new
   version requires an explicit `{:times-to-try <value gt 1>}` to trigger polling, so
   leaving out :force-probe-params may result in tests failing because they need probe."
-  [{:keys [path str
+  [{:keys [path
+           str
            sym-before
            sym-after
            rewrite
            wrap-in-flow
            force-probe-params]
-    :as opts}]
-  (let [z-before (or (and path (z/of-file path))
+    :as   opts}]
+  (let [opts*    (merge {:sym-before 'match?
+                         :sym-after  'match?}
+                        opts)
+        z-before (or (and path (z/of-file path))
                      (and str (z/of-string str)))
-        z-after  (z/root-string (refactor-all* opts z-before))]
+        z-after  (z/root-string (refactor-all* opts* z-before))]
     (if (and path rewrite)
       (spit (io/file path) z-after)
       z-after)))
