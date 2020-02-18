@@ -52,25 +52,26 @@
         refactored))
     (catch Exception e
       (println "Error processing " (z/string zloc))
+      (println e)
       zloc)))
 
 (defn match-expr? [match-sym node]
   (when (= :list (z/tag node))
     (when-let [op (z/down node)]
-      (= match-sym (z/value op)))))
+      (= match-sym (z/sexpr op)))))
 
-(defn ^:private refactor-all* [{:keys [sym-before] :as opts} data]
-  (loop [data data]
+(defn ^:private refactor-match-exprs* [{:keys [sym-before] :as opts} zloc]
+  (loop [zloc zloc]
     (let [updated (try
-                    (z/prewalk data
+                    (z/postwalk zloc
                                (partial match-expr? sym-before)
                                (partial refactor-match-expr opts))
-                    (catch Exception _ data))]
+                    (catch Exception _ zloc))]
       (if (z/rightmost? updated)
         updated
         (recur (z/right updated))))))
 
-(defn refactor-all
+(defn refactor-match-exprs
   "Given a map with :path to a file or a string :str, returns
   a string with all of the match? expressions refactored as follows:
 
@@ -132,14 +133,54 @@
                         opts)
         z-before (or (and path (z/of-file path))
                      (and str (z/of-string str)))
-        z-after  (z/root-string (refactor-all* opts* z-before))]
+        z-after  (z/root-string (refactor-match-exprs* opts* z-before))]
+    (if (and path rewrite)
+      (spit (io/file path) z-after)
+      z-after)))
+
+(defn old-require? [zloc]
+  (and (= :require (-> zloc z/leftmost z/sexpr))
+       (= :vector (-> zloc z/tag))
+       (= 'state-flow.cljtest (-> zloc z/down z/sexpr))))
+
+(defn refactor-require** [zloc]
+  (z/edit-> zloc
+            z/down
+            (z/replace (z/node (z/of-string "state-flow.assertions.matcher-combinators")))))
+
+(defn refactor-require* [zloc]
+  (loop [zloc zloc]
+    (let [updated (try
+                    (z/postwalk zloc old-require? refactor-require**)
+                    (catch Exception _ zloc))]
+      (if (z/rightmost? updated)
+        updated
+        (recur (z/right updated))))))
+
+(defn refactor-require
+  "Given a map with :path to a file or a string :str, returns
+  a string with all of the match? expressions refactored as follows:
+
+  Given an ns declaration with this in require:
+
+    [state-flow.cljtest :refer [match?]]
+
+  Refactor it to
+
+    [state-flow.assertions.matcher-combinators :refer [match?]]"
+  [{:keys [path
+           str
+           rewrite]}]
+  (let [z-before (or (and path (z/of-file path))
+                     (and str (z/of-string str)))
+        z-after  (z/root-string (refactor-require* z-before))]
     (if (and path rewrite)
       (spit (io/file path) z-after)
       z-after)))
 
 (comment
-  (refactor-all {:path "test/state_flow/cljtest_test.clj"
-                 :sym-before 'cljtest/match?
-                 :sym-after 'assertions.matcher-combinators/match?
-                 :wrap-in-flow true
-                 :rewrite true}))
+  (refactor-match-exprs {:path "test/state_flow/cljtest_test.clj"
+                         :sym-before 'cljtest/match?
+                         :sym-after 'assertions.matcher-combinators/match?
+                         :wrap-in-flow true
+                         :rewrite true}))
