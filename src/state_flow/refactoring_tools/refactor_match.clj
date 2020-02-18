@@ -138,15 +138,40 @@
       (spit (io/file path) z-after)
       z-after)))
 
-(defn old-require? [zloc]
+(defn refer? [sym zloc]
+  (boolean
+   (-> zloc
+       z/down
+       (z/find-value z/right :refer)
+       z/right
+       z/down
+       (z/find-value z/right sym))))
+
+(defn old-require?
+  "Returns true if zloc represents a require vector with
+    - state-flow.cljtest
+    - :refer [match?] (not necessarily only match)"
+  [zloc]
   (and (= :require (-> zloc z/leftmost z/sexpr))
        (= :vector (-> zloc z/tag))
-       (= 'state-flow.cljtest (-> zloc z/down z/sexpr))))
+       (= 'state-flow.cljtest (-> zloc z/down z/sexpr))
+       (refer? 'match? zloc)))
 
 (defn refactor-require** [zloc]
-  (z/edit-> zloc
-            z/down
-            (z/replace (z/node (z/of-string "state-flow.assertions.matcher-combinators")))))
+  (cond-> zloc
+    (not (refer? 'defflow zloc))
+    (z/edit-> z/down
+              (z/replace
+               (z/node
+                (z/of-string "state-flow.assertions.matcher-combinators"))))
+    (refer? 'defflow zloc)
+    (z/edit-> (z/insert-left
+               (z/node
+                (z/of-string "[state-flow.assertions.matcher-combinators :refer [match?]]")))
+              (z/insert-left (n/newlines 1))
+              z/down
+              (z/find-value z/next 'match?)
+              z/remove)))
 
 (defn refactor-require* [zloc]
   (loop [zloc zloc]

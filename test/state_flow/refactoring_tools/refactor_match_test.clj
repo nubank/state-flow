@@ -85,9 +85,9 @@
              :wrap-in-flow true})))))
 
 (deftest refactor-require
-  (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators]))"
-         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest]))"})))
-  (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators]))"
+  (is (= "(ns x\n (:require [state-flow.cljtest]))"
          (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest]))"})))
   (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
-         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [match?]]))"}))))
+         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [match?]]))"})))
+  (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]] \n [state-flow.cljtest :refer [defflow]]))"
+         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [defflow match?]]))"}))))
