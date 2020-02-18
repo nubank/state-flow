@@ -2,7 +2,7 @@
 #_(
    DEPS='
    {:deps {rewrite-clj {:mvn/version "0.6.1"}
-           nubank/state-flow {:mvn/version "2.2.4"}}}
+           nubank/state-flow {:mvn/version "2.2.5"}}}
    '
    exec clojure -Sdeps "$DEPS" "$0" "$@"
 )
