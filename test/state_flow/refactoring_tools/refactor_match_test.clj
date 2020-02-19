@@ -85,9 +85,19 @@
              :wrap-in-flow true})))))
 
 (deftest refactor-require
-  (is (= "(ns x\n (:require [state-flow.cljtest]))"
-         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest]))"})))
-  (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
-         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [match?]]))"})))
-  (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]] \n [state-flow.cljtest :refer [defflow]]))"
-         (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [defflow match?]]))"}))))
+  (testing "ns declarations that get refactored"
+    (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [match?]]))"})))
+    (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]] \n [state-flow.cljtest :refer [defflow]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [defflow match?]]))"})))
+    (is (= "(ns x\n (some-expression)\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (some-expression)\n (:require [state-flow.cljtest :refer [match?]]))"})))
+    (is (= "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [state-flow.cljtest :refer [match?]]))"}))))
+  (testing "ns declarations that don't change"
+    (doseq [exp ["(ns x\n (:require [state-flow.cljtest]))"
+                 "(ns x\n (:require [state-flow.cljtest :refer [defflow]]))"
+                 "(ns x\n (:require [another-library :refer [match?]]))"
+                 "(ns x\n (some-expression)\n (:require [another.lib :refer [match?]]))"
+                 "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [another.lib :refer [match?]]))"]]
+      (is (= exp (refactor-match/refactor-require {:str exp}))))))
