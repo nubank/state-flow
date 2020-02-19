@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.2.5]
+
+- add shell script to refactor match? expressions and `:require [state-flow.cljtest} ...`
+
 ## [2.2.4]
 
 - state-flow.state/modify and state-flow.state/gets pass additional args to f

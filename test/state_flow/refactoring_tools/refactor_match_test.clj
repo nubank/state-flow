@@ -54,32 +54,50 @@
               :sym-after          'after/match?}
              (zip '(before/match? "description" actual expected {:sleep-time 250}))))))))
 
-(deftest refactor-all
+(deftest refactor-match-exprs
   (testing "at root"
     (is (= "(after/match? expected actual)"
-           (refactor-match/refactor-all
+           (refactor-match/refactor-match-exprs
             {:str "(before/match? \"description\" actual expected)"
              :sym-before 'before/match?
              :sym-after 'after/match?}))))
 
   (testing "in deftest"
     (is (= "(deftest thing (after/match? expected actual))"
-           (refactor-match/refactor-all
+           (refactor-match/refactor-match-exprs
             {:str "(deftest thing (before/match? \"description\" actual expected))"
              :sym-before 'before/match?
              :sym-after 'after/match?}))))
 
   (testing "multiple matches"
     (is (= "(deftest thing (after/match? expected actual)\n  (after/match? expected2 actual2))"
-           (refactor-match/refactor-all
+           (refactor-match/refactor-match-exprs
             {:str "(deftest thing (before/match? \"description\" actual expected)\n  (before/match? \"description\" actual2 expected2))"
              :sym-before 'before/match?
              :sym-after 'after/match?}))))
 
   (testing "with wrap-in-flow option"
-    (is (= "(deftest thing (flow \"description\" (after/match? expected actual)))"
-           (refactor-match/refactor-all
+    (is (= "(deftest thing (flow \"description\" \n(after/match? expected actual)))"
+           (refactor-match/refactor-match-exprs
             {:str "(deftest thing (before/match? \"description\" actual expected))"
              :sym-before 'before/match?
              :sym-after 'after/match?
              :wrap-in-flow true})))))
+
+(deftest refactor-require
+  (testing "ns declarations that get refactored"
+    (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [match?]]))"})))
+    (is (= "(ns x\n (:require [state-flow.assertions.matcher-combinators :refer [match?]] \n [state-flow.cljtest :refer [defflow]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (:require [state-flow.cljtest :refer [defflow match?]]))"})))
+    (is (= "(ns x\n (some-expression)\n (:require [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (some-expression)\n (:require [state-flow.cljtest :refer [match?]]))"})))
+    (is (= "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [state-flow.assertions.matcher-combinators :refer [match?]]))"
+           (refactor-match/refactor-require {:str "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [state-flow.cljtest :refer [match?]]))"}))))
+  (testing "ns declarations that don't change"
+    (doseq [exp ["(ns x\n (:require [state-flow.cljtest]))"
+                 "(ns x\n (:require [state-flow.cljtest :refer [defflow]]))"
+                 "(ns x\n (:require [another-library :refer [match?]]))"
+                 "(ns x\n (some-expression)\n (:require [another.lib :refer [match?]]))"
+                 "(ns x\n (some-expression)\n (:require [clojure.string :as str]\n [another.lib :refer [match?]]))"]]
+      (is (= exp (refactor-match/refactor-require {:str exp}))))))
