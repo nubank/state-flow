@@ -21,7 +21,7 @@
                                          (state/modify (fn [s] (throw (Exception. "My exception"))))
                                          double-state) 2)]
         (is (e/failure? res))
-        (is (= 8 state)))))
+        (is (= 8 state))))))
 
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
