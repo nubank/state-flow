@@ -3,7 +3,13 @@
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
 
-  :plugins [[lein-midje "3.2.1"]
+  :repositories [["publish" {:url "https://clojars.org/repo"
+                             :username :env/clojars_username
+                             :password :env/clojars_passwd
+                             :sign-releases false}]]
+
+  :plugins [[lein-project-version "0.1.0"]
+            [lein-midje "3.2.1"]
             [lein-cloverage "1.0.10"]
             [lein-vanity "0.2.0"]
             [s3-wagon-private "1.3.1"]
