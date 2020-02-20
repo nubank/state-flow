@@ -21,7 +21,16 @@
                                          (state/modify (fn [s] (throw (Exception. "My exception"))))
                                          double-state) 2)]
         (is (e/failure? res))
-        (is (= 8 state))))))
+        (is (= 8 state))))
+
+    (testing "also handles exceptions with fmap"
+      (let [[res state] (state/run
+                          (m/fmap inc (m/>> double-state
+                                            double-state
+                                            (state/modify (fn [s] (throw (Exception. "My exception"))))
+                                            double-state)) 2)]
+           (is (e/failure? res))
+           (is (= 8 state))))))
 
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
