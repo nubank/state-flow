@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [eval get])
   (:require [cats.context :as ctx :refer [*context*]]
             [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
@@ -24,7 +23,7 @@
                      (let [mp ((e/wrap (p/-extract fv)) s)]
                        (cond
                          (e/failure? mp)
-                         (d/pair mp s)
+                         [mp s]
 
                          (e/failure? (first @mp))
                          @mp
