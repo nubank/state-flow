@@ -21,8 +21,17 @@
     p/Functor
     (-fmap [_ f fv]
       (state/state (fn [s]
-                     (let [[v ns]  ((p/-extract fv) s)]
-                       [(f v) ns]))
+                     (let [mp ((e/wrap (p/-extract fv)) s)]
+                       (cond
+                         (e/failure? mp)
+                         (d/pair mp s)
+
+                         (e/failure? (first @mp))
+                         @mp
+
+                         :default
+                         (let [[v ns] @mp]
+                           [(f v) ns]))))
                    error-context))
 
     p/Monad
