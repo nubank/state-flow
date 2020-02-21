@@ -112,7 +112,8 @@
                  [(my-fn) s])
                error-context))
 
-(def state? state/state?)
+(defn state? [v]
+  (instance? ErrorState v))
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
