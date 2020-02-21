@@ -9,7 +9,7 @@
 
 (declare error-context)
 
-(defn- result-or-err [f args]
+(defn- result-or-err [f & args]
   (let [result ((e/wrap (partial apply f)) args)]
     (if (e/failure? result)
       result
@@ -49,7 +49,7 @@
 
     p/Monad
     (-mreturn [_ v]
-      (error-state (partial vector v)))
+      (error-state #(vector v %)))
 
     (-mbind [_ self f]
       (error-state

@@ -10,7 +10,14 @@
     (is (state/gets inc))
     (is (state/modify inc))
     (is (state/return 37))
-    (is (state/put {:count 0}))))
+    (is (state/put {:count 0})))
+
+  (testing "primitives returns correct values"
+    (is (= [2 2] (state/run (state/get) 2)))
+    (is (= [3 2] (state/run (state/gets inc) 2)))
+    (is (= [2 3] (state/run (state/modify inc) 2)))
+    (is (= [37 2] (state/run (state/return 37) 2)))
+    (is (= [2 3] (state/run (state/put 3) 2)))))
 
 (deftest exception-handling
   (let [double-state (state/modify * 2)]
