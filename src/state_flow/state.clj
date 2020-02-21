@@ -9,56 +9,65 @@
 
 (declare error-context)
 
+(defn- result-or-err [f args]
+  (let [result ((e/wrap (partial apply f)) args)]
+    (if (e/failure? result)
+      result
+      @result)))
+
+(defn- result-or-err-pair [f s]
+  (let [new-pair ((e/wrap f) s)]
+    (if (e/failure? new-pair)
+      [new-pair s]
+      @new-pair)))
+
+(defrecord ErrorState [mfn]
+  p/Contextual
+  (-get-context [_] error-context)
+
+  p/Extract
+  (-extract [_] (partial result-or-err-pair mfn)))
+
+(alter-meta! #'->ErrorState assoc :private true)
+(alter-meta! #'map->ErrorState assoc :private true)
+
+(defn error-state [f] (ErrorState. f))
+
 (def error-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
     p/Context
 
-    p/Extract
-    (-extract [mv] (p/-extract mv))
-
     p/Functor
-    (-fmap [_ f fv]
-      (state/state (fn [s]
-                     (let [mp ((e/wrap (p/-extract fv)) s)]
-                       (cond
-                         (e/failure? mp)
-                         [mp s]
-
-                         (e/failure? (first @mp))
-                         @mp
-
-                         :default
-                         (let [[v ns] @mp]
-                           [(f v) ns]))))
-                   error-context))
+    (-fmap [self f fv]
+      (error-state
+       (fn [s]
+         (let [[v s'] ((p/-extract fv) s)]
+           (if (e/failure? v)
+             [v s']
+             [(result-or-err f v) s'])))))
 
     p/Monad
     (-mreturn [_ v]
-      (state/state (partial vector v) error-context))
+      (error-state (partial vector v)))
 
     (-mbind [_ self f]
-      (state/state (fn [s]
-                     (let [mp ((e/wrap (p/-extract self)) s)]
-                       (if (e/failure? mp)
-                         [mp s]
-                         (if (e/failure? (first @mp))
-                           @mp
-                           (let [new-pair ((e/wrap (p/-extract (f (first @mp)))) (second @mp))]
-                             (if (e/success? new-pair)
-                               @new-pair
-                               [new-pair (second @mp)]))))))
-                   error-context))
+      (error-state
+       (fn [s]
+         (let [[v s'] ((p/-extract self) s)]
+           (if (e/failure? v)
+             [v s']
+             ((p/-extract (f v)) s'))))))
 
     state/MonadState
     (-get-state [_]
-      (state/state #(vector %1 %1) error-context))
+      (error-state #(vector %1 %1)))
 
     (-put-state [_ newstate]
-      (state/state #(vector % newstate) error-context))
+      (error-state #(vector % newstate)))
 
     (-swap-state [_ f]
-      (state/state #(vector %1 (f %1)) error-context))
+      (error-state #(vector %1 (f %1))))
 
     p/Printable
     (-repr [_]
