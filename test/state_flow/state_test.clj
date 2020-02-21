@@ -5,14 +5,6 @@
             [state-flow.state :as state]))
 
 (deftest primitives
-  (testing "primitives are constructable outside monad context"
-    (is (state/get))
-    (is (state/gets inc))
-    (is (state/modify inc))
-    (is (state/return 37))
-    (is (state/put {:count 0}))
-    (is (state/wrap-fn inc)))
-
   (testing "primitives returns correct values"
     (is (= [2 2] (state/run (state/get) 2)))
     (is (= [3 2] (state/run (state/gets inc) 2)))
