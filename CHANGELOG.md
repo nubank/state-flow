@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.2.6]
+
+- Fix issues with exceptions being thrown and not returned as the left value of
+  the error-state monad
+
 ## [2.2.5]
 
 - add shell script to refactor match? expressions and `:require [state-flow.cljtest} ...`
