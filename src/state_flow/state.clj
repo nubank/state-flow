@@ -108,12 +108,9 @@
 (defn wrap-fn
   "Wraps a (possibly side-effecting) function to a state monad"
   [my-fn]
-  (state/state (fn [s]
-                 [(my-fn) s])
-               error-context))
+  (error-state (fn [s] [(my-fn) s])))
 
-(defn state? [v]
-  (instance? ErrorState v))
+(defn state? [v] (instance? ErrorState v))
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
