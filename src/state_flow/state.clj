@@ -15,18 +15,17 @@
       result
       @result)))
 
-(defn- result-or-err-pair [f s]
-  (let [new-pair ((e/wrap f) s)]
-    (if (e/failure? new-pair)
-      [new-pair s]
-      @new-pair)))
-
 (defrecord ErrorState [mfn]
   p/Contextual
   (-get-context [_] error-context)
 
   p/Extract
-  (-extract [_] (partial result-or-err-pair mfn)))
+  (-extract [_]
+    (fn [s]
+      (let [new-pair ((e/wrap mfn) s)]
+        (if (e/failure? new-pair)
+          [new-pair s]
+          @new-pair)))))
 
 (alter-meta! #'->ErrorState assoc :private true)
 (alter-meta! #'map->ErrorState assoc :private true)
