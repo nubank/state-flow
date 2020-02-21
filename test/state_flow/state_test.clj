@@ -1,8 +1,7 @@
 (ns state-flow.state-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
-            [cats.core :as m]
-            [cats.data :as d]
+  (:require [cats.core :as m]
             [cats.monad.exception :as e]
+            [clojure.test :as t :refer [deftest is testing]]
             [state-flow.state :as state]))
 
 (deftest primitives
@@ -30,7 +29,27 @@
                                             (state/modify (fn [s] (throw (Exception. "My exception"))))
                                             double-state)) 2)]
            (is (e/failure? res))
-           (is (= 8 state))))))
+           (is (= 8 state)))
+
+      (let [[res state] (state/run
+                          (m/>> double-state
+                                double-state
+                                (state/modify (fn [s] (throw (Exception. "My exception"))))
+                                double-state) 2)]
+        (is (e/failure? res))
+        (is (= 8 state)))
+
+      (let [[res state] (state/run
+                          (m/>> (m/fmap (fn [s] (throw (Exception. "My exception")))
+                                        (m/>> double-state
+                                              double-state))
+                                double-state) 2)]
+           (is (e/failure? res))
+           (is (= 8 state)))))
+
+  (testing "exceptions in primitives are returned as the result"
+    (is (e/failure? (first (state/run (state/gets #(/ 2 %)) 0))))
+    (is (e/failure? (first (state/run (state/modify #(/ 2 %)) 0))))))
 
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
