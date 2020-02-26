@@ -37,8 +37,8 @@
                                             double-state
                                             (state/modify (fn [s] (throw (Exception. "My exception"))))
                                             double-state)) 2)]
-           (is (e/failure? res))
-           (is (= 8 state)))
+        (is (e/failure? res))
+        (is (= 8 state)))
 
       (let [[res state] (state/run
                           (m/>> double-state
@@ -53,8 +53,8 @@
                                         (m/>> double-state
                                               double-state))
                                 double-state) 2)]
-           (is (e/failure? res))
-           (is (= 8 state)))))
+        (is (e/failure? res))
+        (is (= 8 state)))))
 
   (testing "exceptions in primitives are returned as the result"
     (is (e/failure? (first (state/run (state/gets #(/ 2 %)) 0))))
