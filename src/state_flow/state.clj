@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [eval get])
   (:require [cats.context :as ctx :refer [*context*]]
             [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
@@ -10,47 +9,56 @@
 
 (declare error-context)
 
+(defn- result-or-err [f & args]
+  (let [result ((e/wrap (partial apply f)) args)]
+    (if (e/failure? result)
+      result
+      @result)))
+
+(defn error-state [mfn]
+  (state/state
+   (fn [s]
+     (let [new-pair ((e/wrap mfn) s)]
+       (if (e/failure? new-pair)
+         [new-pair s]
+         @new-pair)))
+   error-context))
+
 (def error-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
     p/Context
 
-    p/Extract
-    (-extract [mv] (p/-extract mv))
-
     p/Functor
-    (-fmap [_ f fv]
-      (state/state (fn [s]
-                     (let [[v ns]  ((p/-extract fv) s)]
-                       [(f v) ns]))
-                   error-context))
+    (-fmap [self f fv]
+      (error-state
+       (fn [s]
+         (let [[v s'] ((p/-extract fv) s)]
+           (if (e/failure? v)
+             [v s']
+             [(result-or-err f v) s'])))))
 
     p/Monad
     (-mreturn [_ v]
-      (state/state (partial vector v) error-context))
+      (error-state #(vector v %)))
 
     (-mbind [_ self f]
-      (state/state (fn [s]
-                     (let [mp ((e/wrap (p/-extract self)) s)]
-                       (if (e/failure? mp)
-                         [mp s]
-                         (if (e/failure? (first @mp))
-                           @mp
-                           (let [new-pair ((e/wrap (p/-extract (f (first @mp)))) (second @mp))]
-                             (if (e/success? new-pair)
-                               @new-pair
-                               [new-pair (second @mp)]))))))
-                   error-context))
+      (error-state
+       (fn [s]
+         (let [[v s'] ((p/-extract self) s)]
+           (if (e/failure? v)
+             [v s']
+             ((p/-extract (f v)) s'))))))
 
     state/MonadState
     (-get-state [_]
-      (state/state #(vector %1 %1) error-context))
+      (error-state #(vector %1 %1)))
 
     (-put-state [_ newstate]
-      (state/state #(vector % newstate) error-context))
+      (error-state #(vector % newstate)))
 
     (-swap-state [_ f]
-      (state/state #(vector %1 (f %1)) error-context))
+      (error-state #(vector %1 (f %1))))
 
     p/Printable
     (-repr [_]
@@ -91,9 +99,7 @@
 (defn wrap-fn
   "Wraps a (possibly side-effecting) function to a state monad"
   [my-fn]
-  (state/state (fn [s]
-                 [(my-fn) s])
-               error-context))
+  (error-state (fn [s] [(my-fn) s])))
 
 (def state? state/state?)
 (def run state/run)
