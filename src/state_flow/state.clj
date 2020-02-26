@@ -15,22 +15,14 @@
       result
       @result)))
 
-(defrecord ErrorState [mfn]
-  p/Contextual
-  (-get-context [_] error-context)
-
-  p/Extract
-  (-extract [_]
-    (fn [s]
-      (let [new-pair ((e/wrap mfn) s)]
-        (if (e/failure? new-pair)
-          [new-pair s]
-          @new-pair)))))
-
-(alter-meta! #'->ErrorState assoc :private true)
-(alter-meta! #'map->ErrorState assoc :private true)
-
-(defn error-state [f] (ErrorState. f))
+(defn error-state [mfn]
+  (state/state
+   (fn [s]
+     (let [new-pair ((e/wrap mfn) s)]
+       (if (e/failure? new-pair)
+         [new-pair s]
+         @new-pair)))
+   error-context))
 
 (def error-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
@@ -109,7 +101,7 @@
   [my-fn]
   (error-state (fn [s] [(my-fn) s])))
 
-(defn state? [v] (instance? ErrorState v))
+(def state? state/state?)
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
