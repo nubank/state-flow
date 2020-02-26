@@ -13,6 +13,11 @@
              :sleep-time   probe/default-sleep-time}
             orig))))
 
+(defn replace-value [zloc]
+  (if (= :fn (z/tag zloc))
+    (z/sexpr zloc)
+    (z/node zloc)))
+
 (defn refactor-match-expr
   "If there is an exception, printlns the expression so you can
   find and handle it manually."
@@ -32,9 +37,9 @@
                                        z/right
                                        z/remove
                                        z/right
-                                       (z/replace (z/node expected))
+                                       (z/replace (replace-value expected))
                                        z/right
-                                       (z/replace (z/node actual)))
+                                       (z/replace (replace-value actual)))
                        (and force-probe-params params)
                        (z/edit-> z/down
                                  z/rightmost
