@@ -52,7 +52,20 @@
              {:wrap-in-flow       true
               :force-probe-params true
               :sym-after          'after/match?}
-             (zip '(before/match? "description" actual expected {:sleep-time 250}))))))))
+             (zip '(before/match? "description" actual expected {:sleep-time 250})))))))
+  (testing "edge cases"
+    (testing "#(anon-fn) becomes (fn* [] (anon-fn))"
+      (is (= "(after/match? (fn* [] (anon-fn)) actual)"
+             (z/root-string
+              (refactor-match/refactor-match-expr
+               {:sym-after    'after/match?}
+               (z/of-string "(before/match? \"description\" actual #(anon-fn))"))))))
+    (testing "map should not end up w/ commas or reorder map content"
+      (is (= "(after/match? {:c :d :a :b} {:a :b :c :d})"
+             (z/root-string
+              (refactor-match/refactor-match-expr
+               {:sym-after    'after/match?}
+               (z/of-string "(before/match? \"description\" {:a :b :c :d} {:c :d :a :b})"))))))))
 
 (deftest refactor-match-exprs
   (testing "at root"
