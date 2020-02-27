@@ -23,10 +23,13 @@
   - actual can be a literal value, a primitive step, or a flow
   - params is an optional map supporting:
     - :times-to-try optional, default 1
-    - :sleep-time   optional, default 200
+    - :sleep-time   optional, millis to wait between tries, default 200
+
+  Given (= :times-to-try 1), match? will evaluate `actual` just once.
 
   Given (> :times-to-try 1), match? will use `state-flow-probe/probe` to
-  retry :times-to-try times with :sleep-time
+  retry up to :times-to-try times, waiting :sleep-time between each try,
+  and stopping when `actual` produces a value that matches `expected`.
 
   See `state-flow.probe/probe` for more info"
   [expected actual & [{:keys [times-to-try]
