@@ -211,11 +211,11 @@ Or with custom parameters:
 By default, `match?` will evaluate `actual` only once. For tests with
 asynchrony/concurrency concerns, you can direct `match?` to try up to
 `:times-to-try` times, waiting `:sleep-time` between each try. It will
-keep trying until it evaluates to a value that passes the `expected`
+keep trying until it produces a value that matches the `expected`
 expression, up to `:times-to-try`.
 
 ``` clojure
-(defflow
+(defflow add-data
   (flow "try up to 5 times with 250 ms between each try (total 1000ms)"
     (produce-message-that-causes-database-update)
     (match? expected-data-in-database
