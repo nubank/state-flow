@@ -168,6 +168,9 @@ library for the actual check and failure messages. `match?` asks for:
   * if you supply a value, matcher-combintators will apply its defaults
 * the actual value, or a step which will produce it
   * if you supply a value, `match?` will wrap it in `(state/return <value>)`
+* optional map of options with:
+  * `:times-to-try` (default 1)
+  * `:sleep-time`   (default 200)
 
 Here are some very simple examples of tests defined using `defflow`:
 
@@ -201,6 +204,24 @@ Or with custom parameters:
   (match? 1 value)
   (flow "uses matcher-combinator embeds"
     (match? {:b 2} (state/gets :map)))
+```
+
+### `:times-to-try` and `:sleep-time`
+
+By default, `match?` will evaluate `actual` only once. For tests with
+asynchrony/concurrency concerns, you can direct `match?` to try up to
+`:times-to-try` times, waiting `:sleep-time` between each try. It will
+keep trying until it evaluates to a value that passes the `expected`
+expression, up to `:times-to-try`.
+
+``` clojure
+(defflow
+  (flow "try up to 5 times with 250 ms between each try (total 1000ms)"
+    (produce-message-that-causes-database-update)
+    (match? expected-data-in-database
+            (fetch-data)
+            {:times-to-try 5
+             :sleep-time 250})))
 ```
 
 ### NOTE: about upgrading to state-flow-2.2.4
