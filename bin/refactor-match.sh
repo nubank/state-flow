@@ -1,9 +1,10 @@
 #!/bin/sh
 #_(
-   DEPS='
-   {:deps {rewrite-clj {:mvn/version "0.6.1"}
-           nubank/state-flow {:mvn/version "2.2.5"}}}
-   '
+   PROJECT_ROOT=$(dirname $(dirname $(realpath $0)))
+   DEPS="
+   {:deps {rewrite-clj {:mvn/version \"0.6.1\"}
+           nubank/state-flow {:local/root \"$PROJECT_ROOT\"}}}
+   "
    exec clojure -Sdeps "$DEPS" "$0" "$@"
 )
 
