@@ -241,16 +241,20 @@ We also added a script to help refactor this for you. Here's how
 you use it:
 
 ``` shell
-# if you don't already have this repo cloned
+# if you don't already have the state-flow repo cloned
 git clone https://github.com/nubank/state-flow.git
+;; or
+git clone git@github.com:nubank/state-flow.git
+;; then
 cd state-flow
 
-# if you already have this repo cloned
+# if you already have the state-flow repo cloned
 cd state-flow
 git co master
 git pull
 
 # the rest is the same either way
+lein pom # needed for tools.deps to recognize this repo as a `:local/root` dependency
 bin/refactor-match --help
 ;; now follow the instructions
 ```
