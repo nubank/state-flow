@@ -87,6 +87,15 @@
     (is (match? {:value 4}
                 (second (state-flow/run* {:init (constantly {:value 0})} nested-flow)))))
 
+  (testing "flow with custom runner"
+    (let [{:keys [l r]} (state-flow/run* {:init   (constantly {:count 0})
+                                          :runner (fn [flow state]
+                                                    (let [[l r] (state-flow/run flow state)]
+                                                      {:l l :r r}))}
+                          (state/modify update :count inc))]
+      (is (= {:count 0} l))
+      (is (= {:count 1} r))))
+
   (testing "flow with cleanup"
     (is (zero?
          (-> (state-flow/run* {:init    (constantly {:value 0
@@ -107,21 +116,26 @@
       (is (= "My exception" (-> @on-error-input first .failure .getMessage)))
       (is (= 1 @cleanup-runs))))
 
-  (testing "flow with cleanup and exception, but ignoring it instead"
+  (testing "flow with exception in which cleanup ignores error"
     (let [result (state-flow/run* {:init     (constantly {:value 0})
                                    :on-error state-flow/ignore-error}
                    bogus-flow)]
       (is (e/exception? (first result)))
       (is (match? {:value 2} (second result)))))
 
-  (testing "flow with custom runner"
-    (is (match? {:value 4}
-                (-> (state-flow/run* {:init   (constantly {:value 0})
-                                      :runner (fn [flow state]
-                                                [nil (state-flow/run flow state)])}
-                                     nested-flow)
-                    second
-                    second)))))
+  (testing "flow with exception in cleanup throws exception"
+    ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
+    ;; instead of letting it bubble out.
+    (is (thrown-with-msg? Exception #"Oops"
+                          (state-flow/run* {:cleanup (fn [_] (throw (ex-info "Oops" {})))}
+                            (state/get)))))
+
+  (testing "flow with exception in runner throws exception"
+    ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
+    ;; instead of letting it bubble out.
+    (is (thrown-with-msg? Exception #"Oops"
+                          (state-flow/run* {:runner (constantly (throw (ex-info "Oops" {})))}
+                            (state/get))))))
 
 (deftest state-flow-run!
   (testing "default initial state is an empty map"
