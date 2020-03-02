@@ -134,15 +134,6 @@
   (when (e/failure? (first pair))
     (on-error pair)))
 
-(defn run!
-  "Like run, but prints a log and throws an error when the flow fails with an exception"
-  ([flow]
-   (run! flow {}))
-  ([flow initial-state]
-   (let [pair (run flow initial-state)]
-     (or (run-policy-on-error! pair log-and-throw-error!)
-         pair))))
-
 (defn run*
   "Run a flow with specified parameters
 
@@ -164,6 +155,13 @@
       pair
       (finally
         (run-policy-on-error! pair on-error)))))
+
+(defn ^:deprecated run!
+  "DEPRECATED. Use `run*`"
+  ([flow]
+   (run! flow {}))
+  ([flow initial-state]
+   (run* {:init (constantly initial-state)} flow)))
 
 (defn as-step-fn
   "Transform a flow step into a state transition function"
