@@ -317,7 +317,7 @@ the `http-helpers/request` helper could be implemented something like this:
 (defn request [req]
   (flow "make request"
     [http (state/gets :http-component)]
-    (state/return (http/request req)))
+    (state/return (http/request http req)))
 ```
 
 This produces a step that can be used in a flow, as above.
