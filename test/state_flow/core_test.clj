@@ -97,12 +97,14 @@
              :atom
              deref))))
 
-  (testing "flow with cleanup and exception"
-    (let [cleanup-runs (atom 0)]
-      (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
-                            (state-flow/run* {:init    (constantly {:value 0})
-                                              :cleanup (fn [& _] (swap! cleanup-runs inc))}
-                              bogus-flow)))
+  (testing "flow with exception and cleanup"
+    (let [cleanup-runs   (atom 0)
+          on-error-input (atom nil)]
+      (is (state-flow/run* {:init     (constantly {:value 0})
+                            :cleanup  (fn [& _] (swap! cleanup-runs inc))
+                            :on-error (partial reset! on-error-input)}
+            bogus-flow))
+      (is (= "My exception" (-> @on-error-input first .failure .getMessage)))
       (is (= 1 @cleanup-runs))))
 
   (testing "flow with cleanup and exception, but ignoring it instead"
