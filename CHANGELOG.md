@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.3.0]
+
+- Add `on-error` option to `run*`
+- `cleanup` is now called when runner throws an exception
+
 ## [2.2.6]
 
 - Fix issues with exceptions being thrown and not returned as the left value of
