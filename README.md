@@ -4,17 +4,19 @@
 
 StateFlow is a testing framework designed to support the composition and reuse of individual test steps.
 
+## Definitions
+
+* A [*flow*](#flows) is a sequence of steps or bindings.
+* A [*step*](#primitive-steps) is a primitive step or flow.
+* A [*binding*](#bindings) is a vector of pairs of symbols and steps (or a :let with a vector of regular let-bindings)
+
 ## Flows
 
-A flow is a sequence of steps to be executed with some state as a
-reference. Each step can be any of a primitive ([described below](#primitives)), a
-vector of bindings ([described below](#bindings)), or a nested flow. Flows can be
-`def`'d to vars, and nested arbitrarily deeply.
-
-We define a flow with the `flow` macro:
+A flow is a sequence of steps or bindings to be executed with some state as a
+reference. Use the `flow` macro to define a flow:
 
 ```clojure
-(flow <description> <flow/bindings/primitive>*)
+(flow <description> <step/bindings>*)
 ```
 
 Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
@@ -37,11 +39,9 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 (state-flow.core/run! flow <another-initial-state>)
 ```
 
-### Primitives
+### Primitive steps
 
-Primitives are the fundamental building blocks of flows. Each one is
-a function (wrapped in a Record in order to support internals, but you
-can just think of them as functions) of state.
+Primitive steps are the fundamental building blocks of flows.
 
 Below we list the main primitives and a model for the sort of function
 each represents. Their names are derived from [Haskell's State
@@ -86,16 +86,16 @@ not need in order to use StateFlow.
 
 ### Bindings
 
-Bindings let you take advantage of the return values of flows to compose other flows and have the following syntax:
+Bindings bind return values of steps to symbols you can use in other steps, and have the following syntax:
 
-`[(<symbol> <flow/primitive>)+]`
+`[(<symbol> <step>)+]`
 
-They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the flow on the right.
+They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the step on the right.
 It's also possible to bind directly to values (i.e. Clojure's `let`) within the same vector using the `:let` keyword:
 
 ```clojure
-[(<symbol> <flow/primitive>)
- :let [<symbol> <non-flow expression>]]
+[(<symbol> <step>)
+ :let [<symbol> <non-step expression>]]
  ```
 
 ### Flow Example
@@ -109,7 +109,7 @@ fetches the value bound to `:value`.
 ; => [4 {:value 4}]
 ```
 
-Primitives have the same underlying structure as flows and can be passed directly to `run!`:
+Primitive steps have the same underlying structure as flows and can be passed directly to `run!`:
 
 ```clojure
 (def get-value (state/gets :value))
@@ -150,38 +150,113 @@ Or we could increment the value first and then return it doubled:
 ; => [10 {:value 5}]
 ```
 
-## Clojure.test Support
+## clojure.test and matcher-combinators
 
 We use the `defflow` and `match?` macros to build `clojure.test` tests
 out of flows.
 
-`defflow` defines a test (using `deftest`) that when
-run, will execute the flow with the parameters that we set.
+`state-flow.cljtest.defflow` defines a test (using `deftest`) that
+will execute the flow with the parameters that we set.
 
-`match?` is a flow that will make a `clojure.test` assertion and the [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/) library
-for the actual checking and failure messages. `match?` asks for a string description, a value (or a flow returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
+`state-flow.assertions.match?` produces a flow that will make an assertion, which
+will be reported via clojure.test when used within a `defflow`. It
+uses the
+[`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/)
+library for the actual check and failure messages. `match?` asks for:
+
+* the expected value, or a matcher-combinators matcher
+  * if you supply a value, matcher-combintators will apply its defaults
+* the actual value, or a step which will produce it
+  * if you supply a value, `match?` will wrap it in `(state/return <value>)`
+* optional map of options with:
+  * `:times-to-try` (default 1)
+  * `:sleep-time`   (default 200)
 
 Here are some very simple examples of tests defined using `defflow`:
 
 ```clojure
 (defflow my-flow
-  (match? "simple test" 1 1)
-  (match? "embeds" {:a 1 :b 2} {:a 1}))
+  (match? 1 1)
+  (match? {:a 1} {:a 1 :b 2}))
 ```
+
+Wrap them in `flow`s to get descriptions when the expected and actual
+values need some explanation:
+
+```clojure
+(deftest fruits-and-veggies
+  (flow "surprise! Tomatoes are fruits!"
+    (match? #{:tomato} (fruits #{:tomato :potato}))))
+```
+
 Or with custom parameters:
 
 ```clojure
 (defflow my-flow {:init aux.init! :runner (comp run! s/with-fn-validation)}
-  (match? "simple test" 1 1)
-  (match? "simple test 2" 2 2))
+  (match? 1 1))
+
 ```
 
 ```clojure
 (defflow my-flow {:init (constantly {:value 1
                                      :map {:a 1 :b 2}})}
   [value (state/gets :value)]
-  (match? "value is correct" value 1)
-  (match? "embeds" (state/gets :map) {:b 2}))
+  (match? 1 value)
+  (flow "uses matcher-combinator embeds"
+    (match? {:b 2} (state/gets :map)))
+```
+
+### `:times-to-try` and `:sleep-time`
+
+By default, `match?` will evaluate `actual` only once. For tests with
+asynchrony/concurrency concerns, you can direct `match?` to try up to
+`:times-to-try` times, waiting `:sleep-time` between each try. It will
+keep trying until it produces a value that matches the `expected`
+expression, up to `:times-to-try`.
+
+``` clojure
+(defflow add-data
+  (flow "try up to 5 times with 250 ms between each try (total 1000ms)"
+    (produce-message-that-causes-database-update)
+    (match? expected-data-in-database
+            (fetch-data)
+            {:times-to-try 5
+             :sleep-time 250})))
+```
+
+### NOTE: about upgrading to state-flow-2.2.4
+
+We introduced `state-flow.assertions.match?` in state-flow-2.2.4, and
+deprecated `state-flow.cljtest.match?` in that release. The signature
+for the old version was `(match? <description> <actual> <expected>)`.
+We removed the description because it was quite common for the description
+to add no context that wasn't already made clear by the expected and
+actual values.
+
+We also reversed the order of expected and actual in order to align
+with the `match?` function in the matcher-combinators library and with
+clojure.test's `(is (= expected actual))`.
+
+We also added a script to help refactor this for you. Here's how
+you use it:
+
+``` shell
+# if you don't already have the state-flow repo cloned
+git clone https://github.com/nubank/state-flow.git
+;; or
+git clone git@github.com:nubank/state-flow.git
+;; then
+cd state-flow
+
+# if you already have the state-flow repo cloned
+cd state-flow
+git co master
+git pull
+
+# the rest is the same either way
+lein pom # needed for tools.deps to recognize this repo as a `:local/root` dependency
+bin/refactor-match --help
+;; now follow the instructions
 ```
 
 ## Midje Support

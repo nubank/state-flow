@@ -42,7 +42,7 @@
     (let [[l r] (state-flow/run (flow "flow"
                                   (flow "step 1" add-two)
                                   (flow "step 2" add-two))
-                  {:value 0})]
+                                {:value 0})]
       (is (= {:value 4} r))
       (is (= "flow" (state-flow/top-level-description r)))))
 
@@ -58,8 +58,8 @@
 
   (testing "flow with a `(str ..)` expr for the description is fine"
     (is (macroexpand `(flow (str "foo") [original (state/gets :value)
-                                                    :let [doubled (* 2 original)]]
-                        (state/modify #(assoc % :value doubled))))))
+                                         :let [doubled (* 2 original)]]
+                            (state/modify #(assoc % :value doubled))))))
 
   (testing "but flows with an expression that resolves to a string also aren't valid,
             due to resolution limitations at macro-expansion time"
@@ -67,8 +67,8 @@
                  (let [my-desc "trolololo"]
                    (try
                      (macroexpand `(flow ~'my-desc [original (state/gets :value)
-                                                               :let [doubled (* 2 original)]]
-                                     (state/modify #(assoc % :value doubled))))
+                                                    :let [doubled (* 2 original)]]
+                                         (state/modify #(assoc % :value doubled))))
                      (catch clojure.lang.Compiler$CompilerException e
                        (.. e getCause getMessage)))))))
 
@@ -92,7 +92,7 @@
          (-> (state-flow/run* {:init    (constantly {:value 0
                                                      :atom  (atom 1)})
                                :cleanup #(reset! (:atom %) 0)}
-               nested-flow)
+                              nested-flow)
              second
              :atom
              deref))))
@@ -117,7 +117,7 @@
                 (-> (state-flow/run* {:init   (constantly {:value 0})
                                       :runner (fn [flow state]
                                                 [nil (state-flow/run flow state)])}
-                      nested-flow)
+                                     nested-flow)
                     second
                     second)))))
 
@@ -200,19 +200,19 @@
   (testing "after nested flows complete"
     (testing "within nested flows "
       (is (re-matches #"level 1 \(line \d+\)"
-             (first (state-flow/run (flow "level 1"
-                                      (flow "level 2")
-                                      (state-flow/current-description))))))
+                      (first (state-flow/run (flow "level 1"
+                                               (flow "level 2")
+                                               (state-flow/current-description))))))
       (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\)"
-             (first (state-flow/run (flow "level 1"
-                                      (flow "level 2"
-                                        (flow "level 3")
-                                        (state-flow/current-description)))))))
+                      (first (state-flow/run (flow "level 1"
+                                               (flow "level 2"
+                                                 (flow "level 3")
+                                                 (state-flow/current-description)))))))
       (is (re-matches #"level 1 \(line \d+\)"
-             (first (state-flow/run (flow "level 1"
-                                      (flow "level 2"
-                                        (flow "level 3"))
-                                      (state-flow/current-description)))))))))
+                      (first (state-flow/run (flow "level 1"
+                                               (flow "level 2"
+                                                 (flow "level 3"))
+                                               (state-flow/current-description)))))))))
 
 (deftest top-level-description
   (let [tld (fn [flow] (->> (state-flow/run flow)
@@ -239,9 +239,9 @@
                       .getMessage)))
     (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run
-                        (flow "flow"
-                          [x identity]
-                          (state/gets)))
+                       (flow "flow"
+                         [x identity]
+                         (state/gets)))
                       first
                       :failure
                       .getMessage)))))
