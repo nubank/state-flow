@@ -8,7 +8,7 @@
 
 (def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
 
-(def add-two (state/modify (fn [s] (update s :value + 2))))
+(def add-two (state/modify update :value + 2))
 
 (def nested-flow
   (flow "root"

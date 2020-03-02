@@ -99,21 +99,6 @@
                 :caller-meta (meta &form)}
          flows))
 
-(defn run
-  "Given an initial-state (default {}), runs a flow and returns a pair of
-  the result of the last step in the flow and the end state."
-  ([flow]
-   (run flow {}))
-  ([flow initial-state]
-   (assert (state/state? flow) "First argument must be a flow")
-   (assert (map? initial-state) "Initial state must be a map")
-   (let [pair (state/run flow initial-state)]
-     (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
-       (d/pair (#'cats.monad.exception/->Failure
-                (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
-               (second pair))
-       pair))))
-
 (defn log-and-throw-error!
   "Error handler that logs the error and throws an exception to notify the flow
   has failed."
@@ -134,6 +119,23 @@
   (when (e/failure? (first pair))
     (on-error pair)))
 
+(defn- clarify-illegal-arg [pair]
+  (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
+    (d/pair (#'cats.monad.exception/->Failure
+             (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
+            (second pair))
+    pair))
+
+(defn run
+  "Given an initial-state (default {}), runs a flow and returns a pair of
+  the result of the last step in the flow and the end state."
+  ([flow]
+   (run flow {}))
+  ([flow initial-state]
+   (assert (state/state? flow) "First argument must be a flow")
+   (assert (map? initial-state) "Initial state must be a map")
+   (clarify-illegal-arg (state/run flow initial-state))))
+
 (defn run*
   "Run a flow with specified parameters
 
@@ -152,7 +154,7 @@
         pair          (runner flow initial-state)]
     (try
       (cleanup (second pair))
-      pair
+      (clarify-illegal-arg pair)
       (finally
         (run-policy-on-error! pair on-error)))))
 
