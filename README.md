@@ -284,3 +284,62 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
       saved-data
       expected-data)))
 ```
+
+## Writing Helpers
+
+Test helpers specific to your domain can make state-flow tests more readable
+and intention-revealing. When writing them, we recommend that you start with
+state-flow functions in the `state-flow.core` and `state-flow.state` namespaces.
+For example, if you're testing a webapp, you might want a helper like this:
+
+``` clojure
+(defflow users
+  (flow "fetch registered users"
+    (http-helpers/request {:method :post
+                           :uri "/users"
+                           :body {:user/first-name "David"}})
+    [users (http-helpers/request {:method :get
+                          :uri "/users"})]
+    (match? ["David"]
+            (map :user/first-name users)))
+```
+
+The `http/request` helper could be implemented as simply as this:
+
+``` clojure
+(ns http-helpers
+  (:require [my-app.http :as http))
+(defn request [req]
+  (state-flow.state/wrap-fn #(http/request req))
+```
+
+This produces a step that can be used in a flow, as above.
+
+### funcool.cats
+
+`state-flow` is built on the `funcool.cats` library, which supports
+monads in Clojure. `state-flow` exposes some, but not all, `cats`
+functions as its own API. As mentioned above, we recommend that you
+stick with `state-flow` functions as much as possible, however, if the
+available functions do not suit your need for a helper, you can always
+drop down to functions directly in the `cats` library. For example,
+let's say you want to execute a step `n` times:
+
+``` clojure
+(state-flow.core/run
+  (flow "x"
+      (cats.core/sequence (repeat 5 (state-flow.state/modify update :count inc))))
+  {:count 0})
+```
+
+Or wrap that in a helper:
+
+``` clojure
+(defn repeat-step [n step]
+    (cats.core/sequence (repeat n step)))
+
+(state-flow/run
+  (flow "x"
+      (repeat-step 5 (state/modify update :count inc)))
+  {:count 0})
+```
