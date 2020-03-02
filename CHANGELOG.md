@@ -2,8 +2,11 @@
 
 ## [2.3.0]
 
-- Add `on-error` option to `run*`
-- `cleanup` is now called when runner throws an exception
+- Enhancements to `state-flow.core/run*`
+  - Add `:on-error` option (with default to log and rethrow)
+  - Add `:cleanup` option to clean up after an exception
+- Deprecate `state-flow.core/run!`
+  - `run*` now has the same behavior by default
 
 ## [2.2.6]
 
