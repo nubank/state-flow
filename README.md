@@ -287,10 +287,11 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
 
 ## Writing Helpers
 
-Test helpers specific to your domain can make state-flow tests more readable
-and intention-revealing. When writing them, we recommend that you start with
-state-flow functions in the `state-flow.core` and `state-flow.state` namespaces.
-For example, if you're testing a webapp, you might want a helper like this:
+Test helpers specific to your domain can make state-flow tests more
+readable and intention-revealing. When writing them, we recommend that
+you start with state-flow functions in the `state-flow.core` and
+`state-flow.state` namespaces.  If, for example, you're testing a
+webapp, you might want a `request` helper like this:
 
 ``` clojure
 (defflow users
@@ -299,18 +300,24 @@ For example, if you're testing a webapp, you might want a helper like this:
                            :uri "/users"
                            :body {:user/first-name "David"}})
     [users (http-helpers/request {:method :get
-                          :uri "/users"})]
+                                  :uri "/users"})]
     (match? ["David"]
             (map :user/first-name users)))
 ```
 
-The `http/request` helper could be implemented as simply as this:
+Presuming that you have an `:http-component` key in the initial state,
+the `http-helpers/request` helper could be implemented something like this:
 
 ``` clojure
 (ns http-helpers
-  (:require [my-app.http :as http))
+  (:require [my-app.http :as http]
+            [state-flow.core :refer [flow]]
+            [state-flow.state :as state]))
+
 (defn request [req]
-  (state-flow.state/wrap-fn #(http/request req))
+  (flow "make request"
+    [http (state/gets :http-component)]
+    (state/return (http/request req)))
 ```
 
 This produces a step that can be used in a flow, as above.
@@ -323,7 +330,8 @@ functions as its own API. As mentioned above, we recommend that you
 stick with `state-flow` functions as much as possible, however, if the
 available functions do not suit your need for a helper, you can always
 drop down to functions directly in the `cats` library. For example,
-let's say you want to execute a step `n` times:
+let's say you want to execute a step `n` times. You could use the
+`cats.core/sequence` function directly
 
 ``` clojure
 (state-flow.core/run
@@ -332,7 +340,7 @@ let's say you want to execute a step `n` times:
   {:count 0})
 ```
 
-Or wrap that in a helper:
+Or wrap it in a helper:
 
 ``` clojure
 (defn repeat-step [n step]
