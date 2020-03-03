@@ -3,7 +3,8 @@
             [matcher-combinators.test :refer [match?]]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.core :as state-flow :refer [flow]]
-            [state-flow.state :as state]))
+            [state-flow.state :as state]
+            [cats.monad.exception :as e]))
 
 (def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
 
@@ -96,6 +97,21 @@
              :atom
              deref))))
 
+  (testing "flow with cleanup and exception"
+    (let [cleanup-runs (atom 0)]
+      (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
+                            (state-flow/run* {:init    (constantly {:value 0})
+                                              :cleanup (fn [& _] (swap! cleanup-runs inc))}
+                              bogus-flow)))
+      (is (= 1 @cleanup-runs))))
+
+  (testing "flow with cleanup and exception, but ignoring it instead"
+    (let [result (state-flow/run* {:init     (constantly {:value 0})
+                                   :on-error state-flow/ignore-error}
+                   bogus-flow)]
+      (is (e/exception? (first result)))
+      (is (match? {:value 2} (second result)))))
+
   (testing "flow with custom runner"
     (is (match? {:value 4}
                 (-> (state-flow/run* {:init   (constantly {:value 0})
@@ -109,6 +125,7 @@
   (testing "default initial state is an empty map"
     (is (= {}
            (second (state-flow/run! (flow "just return initial state"))))))
+
   (testing "run! throws exception"
     (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
                           (test-helpers/run-flow bogus-flow {:value 0})))))
