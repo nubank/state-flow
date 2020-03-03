@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.3.1]
+
+- Upgrade to [funcool.cats 2.3.5](https://github.com/funcool/cats/blob/master/CHANGELOG.md#version-235)
+
 ## [2.3.0]
 
 - Enhancements to `state-flow.core/run*`
