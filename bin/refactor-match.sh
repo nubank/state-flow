@@ -1,9 +1,9 @@
 #!/bin/sh
 #_(
-   PROJECT_ROOT=$(dirname $(dirname $(realpath $0)))
+   STATE_FLOW_ROOT=$(dirname $(dirname $(realpath $0)))
    DEPS="
-   {:deps {rewrite-clj {:mvn/version \"0.6.1\"}
-           nubank/state-flow {:local/root \"$PROJECT_ROOT\"}}}
+   {:deps {rewrite-clj       {:mvn/version \"0.6.1\"}
+           nubank/state-flow {:local/root \"$STATE_FLOW_ROOT\"}}}
    "
    exec clojure -Sdeps "$DEPS" "$0" "$@"
 )
@@ -38,7 +38,8 @@
                                   'match? )}]
         (println (str "Processing " path "..."))
         (prn arg-map)
-        (refactor-match/refactor-require (select-keys arg-map [:path :rewrite]))
-        (refactor-match/refactor-match-exprs arg-map)))))
+        (if (:rewrite arg-map)
+          (refactor-match/refactor! arg-map)
+          (println (refactor-match/refactor! arg-map)))))))
 
   (apply -main *command-line-args*)
