@@ -351,3 +351,12 @@ Or wrap it in a helper:
       (repeat-step 5 (state/modify update :count inc)))
   {:count 0})
 ```
+
+## Tooling
+
+### Emacs + cider
+
+Add `"defflow"` to the list defined by `cider-test-defining-forms` to
+enable commands like `cider-test-run-test` for flows defined with `defflow`.
+
+See [https://docs.cider.mx/cider/testing/running_tests.html#_configuration](https://docs.cider.mx/cider/testing/running_tests.html#_configuration)
