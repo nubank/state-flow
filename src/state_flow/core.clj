@@ -5,7 +5,9 @@
             [cats.data :as d]
             [cats.monad.exception :as e]
             [state-flow.state :as state]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.pprint :as pp])
+  (:import java.lang.Throwable))
 
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
@@ -17,7 +19,7 @@
 ;;   neither is preferred
 ;;
 ;; This prevents that from happening:
-(defmethod clojure.pprint/simple-dispatch cats.monad.exception.Failure [f]
+(defmethod pp/simple-dispatch cats.monad.exception.Failure [f]
   (pr f))
 
 (defn modify-meta
@@ -58,13 +60,16 @@
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
+(defn ^:private state->current-description [s]
+  (-> (description-stack s)
+      format-description))
+
 (defn current-description
   "Returns a flow that returns the description as of the point of execution.
 
   For internal use. Subject to change."
   []
-  (m/mlet [desc-list (state/gets description-stack)]
-    (m/return (format-description desc-list))))
+  (state/gets state->current-description))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
@@ -109,35 +114,56 @@
                (second pair))
        pair))))
 
+(defn log-and-throw-error!
+  "Error handler that logs the error and throws an exception to notify the flow
+  has failed."
+  [pair]
+  (let [description (state->current-description (second pair))
+        message     (str "Flow " "\"" description "\"" " failed with exception")]
+    (log/info (m/extract (first pair)) message)
+    (throw (ex-info message {} (m/extract (first pair))))))
+
+(defn ignore-error
+  "No-op error handler that simply ignores the error."
+  [pair]
+  pair)
+
+(defn- run-policy-on-error!
+  "If flow fails with an exception, runs the supplied error policy"
+  [pair on-error]
+  (when (e/failure? (first pair))
+    (on-error pair)))
+
 (defn run!
   "Like run, but prints a log and throws an error when the flow fails with an exception"
   ([flow]
    (run! flow {}))
   ([flow initial-state]
    (let [pair (run flow initial-state)]
-     (when (e/failure? (first pair))
-       (let [description (->> pair second description-stack format-description)
-             message (str "Flow " "\"" description "\"" " failed with exception")]
-         (log/info (m/extract (first pair)) message)
-         (throw (ex-info message {}))))
-     pair)))
+     (or (run-policy-on-error! pair log-and-throw-error!)
+         pair))))
 
 (defn run*
   "Run a flow with specified parameters
 
   Receives optional parameter maps
-  `init`, a function with no arguments that returns the initial state.
+  `init`, a function with no arguments that returns the initial state
   `cleanup`, function receiving the final state to perform cleanup if necessary
-  `runner`, function that will receive a flow and an initial state and execute the flow"
-  [{:keys [init cleanup runner]
-    :or   {init    (constantly {})
-           cleanup identity
-           runner  run!}}
+  `runner`, function that will receive a flow and an initial state and execute the flow
+  `on-error`, funtion that, when a flow results in an error, will receive the final result pair. Defaults to `log-and-throw-error!`"
+  [{:keys [init cleanup runner on-error]
+    :or   {init     (constantly {})
+           cleanup  identity
+           runner   run
+           on-error log-and-throw-error!}}
    flow]
-  (let [initial-state              (init)
-        [_ final-state :as result] (runner flow initial-state)]
-    (cleanup final-state)
-    result))
+  (let [initial-state (init)
+        pair          (runner flow initial-state)]
+    (try
+      (cleanup (second pair))
+      pair
+      (finally
+        (run-policy-on-error! pair on-error)))))
 
 (defn as-step-fn
   "Transform a flow step into a state transition function"
