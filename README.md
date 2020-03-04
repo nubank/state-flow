@@ -35,8 +35,10 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 ```clojure
 (def a-flow (flow ...))
 
-(state-flow.core/run* <one-option-map> flow)
-(state-flow.core/run* <another-option-map> flow)
+(defn build-initial-state [] { ... })
+(state-flow.core/run* {:init build-initial-state} flow)
+
+(state-flow.core/run* {:init (constantly {:service-system (atom nil))} flow)
 ```
 
 ### Primitive steps
