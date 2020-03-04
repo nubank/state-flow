@@ -19,7 +19,7 @@ reference. Use the `flow` macro to define a flow:
 (flow <description> <step/bindings>*)
 ```
 
-Once defined, you can run it with `(state-flow.core/run* (flow ...) <initial-state>)`.
+Once defined, you can run it with `(state-flow.core/run* <options> (flow ...))`.
 
 You can think flows and the steps within them as functions of the state, e.g.
 
@@ -35,8 +35,10 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 ```clojure
 (def a-flow (flow ...))
 
-(state-flow.core/run* flow <one-initial-state>)
-(state-flow.core/run* flow <another-initial-state>)
+(defn build-initial-state [] { ... })
+(state-flow.core/run* {:init build-initial-state} flow)
+
+(state-flow.core/run* {:init (constantly {:service-system (atom nil))} flow)
 ```
 
 ### Primitive steps
@@ -105,7 +107,7 @@ fetches the value bound to `:value`.
 
 ```clojure
 (def get-value (flow "get-value" (state/gets :value)))
-(state-flow/run* get-value {:value 4})
+(state-flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
@@ -113,7 +115,7 @@ Primitive steps have the same underlying structure as flows and can be passed di
 
 ```clojure
 (def get-value (state/gets :value))
-(state-flow/run* get-value {:value 4})
+(state-flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
@@ -121,7 +123,7 @@ We can use `state/modify` to modify the state. Here's a primitive that increment
 
 ```clojure
 (def inc-value (state/modify #(update % :value inc)))
-(state-flow/run* inc-value {:value 4})
+(state-flow/run* {:init (constantly {:value 4})} inc-value)
 ; => [{:value 4} {:value 5}]
 ```
 
@@ -134,7 +136,7 @@ multiplied by two, we could do it like this:
   (flow "get double value"
     [value get-value]
     (state/return (* value 2))))
-(state-flow/run* double-value {:value 4})
+(state-flow/run* {:init (constantly {:value 4})} double-value)
 ; => [8 {:value 4}]
 ```
 
@@ -146,7 +148,7 @@ Or we could increment the value first and then return it doubled:
     inc-value
     [value get-value]
     (state/return (* value 2))))
-(state-flow/run* inc-and-double-value {:value 4})
+(state-flow/run* {:init (constantly {:value 4})} inc-and-double-value)
 ; => [10 {:value 5}]
 ```
 

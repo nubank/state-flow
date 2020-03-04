@@ -10,7 +10,8 @@
   - Add `:on-error` option (with default to log and rethrow)
   - Add `:cleanup` option to clean up after an exception
 - Deprecate `state-flow.core/run!`
-  - `run*` now has the same behavior by default
+  - `run*` now has the same behavior by default (note the argument order is
+    switched and the initial state is passed in as a part of the option map)
 
 ## [2.2.6]
 
