@@ -19,7 +19,7 @@ reference. Use the `flow` macro to define a flow:
 (flow <description> <step/bindings>*)
 ```
 
-Once defined, you can run it with `(state-flow.core/run* <initial-state> (flow ...))`.
+Once defined, you can run it with `(state-flow.core/run* <options> (flow ...))`.
 
 You can think flows and the steps within them as functions of the state, e.g.
 
@@ -35,8 +35,8 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 ```clojure
 (def a-flow (flow ...))
 
-(state-flow.core/run* <one-initial-state> flow)
-(state-flow.core/run* <another-initial-state> flow)
+(state-flow.core/run* <one-option-map> flow)
+(state-flow.core/run* <another-option-map> flow)
 ```
 
 ### Primitive steps
