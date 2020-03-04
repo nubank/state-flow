@@ -19,7 +19,7 @@ reference. Use the `flow` macro to define a flow:
 (flow <description> <step/bindings>*)
 ```
 
-Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
+Once defined, you can run it with `(state-flow.core/run* (flow ...) <initial-state>)`.
 
 You can think flows and the steps within them as functions of the state, e.g.
 
@@ -35,8 +35,8 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 ```clojure
 (def a-flow (flow ...))
 
-(state-flow.core/run! flow <one-initial-state>)
-(state-flow.core/run! flow <another-initial-state>)
+(state-flow.core/run* flow <one-initial-state>)
+(state-flow.core/run* flow <another-initial-state>)
 ```
 
 ### Primitive steps
@@ -105,15 +105,15 @@ fetches the value bound to `:value`.
 
 ```clojure
 (def get-value (flow "get-value" (state/gets :value)))
-(state-flow/run! get-value {:value 4})
+(state-flow/run* get-value {:value 4})
 ; => [4 {:value 4}]
 ```
 
-Primitive steps have the same underlying structure as flows and can be passed directly to `run!`:
+Primitive steps have the same underlying structure as flows and can be passed directly to `run*`:
 
 ```clojure
 (def get-value (state/gets :value))
-(state-flow/run! get-value {:value 4})
+(state-flow/run* get-value {:value 4})
 ; => [4 {:value 4}]
 ```
 
@@ -121,7 +121,7 @@ We can use `state/modify` to modify the state. Here's a primitive that increment
 
 ```clojure
 (def inc-value (state/modify #(update % :value inc)))
-(state-flow/run! inc-value {:value 4})
+(state-flow/run* inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 ```
 
@@ -134,7 +134,7 @@ multiplied by two, we could do it like this:
   (flow "get double value"
     [value get-value]
     (state/return (* value 2))))
-(state-flow/run! double-value {:value 4})
+(state-flow/run* double-value {:value 4})
 ; => [8 {:value 4}]
 ```
 
@@ -146,7 +146,7 @@ Or we could increment the value first and then return it doubled:
     inc-value
     [value get-value]
     (state/return (* value 2))))
-(state-flow/run! inc-and-double-value {:value 4})
+(state-flow/run* inc-and-double-value {:value 4})
 ; => [10 {:value 5}]
 ```
 
@@ -158,7 +158,7 @@ out of flows.
 `state-flow.cljtest.defflow` defines a test (using `deftest`) that
 will execute the flow with the parameters that we set.
 
-`state-flow.assertions.match?` produces a flow that will make an assertion, which
+`state-flow.assertions.matcher-combinators/match?` produces a flow that will make an assertion, which
 will be reported via clojure.test when used within a `defflow`. It
 uses the
 [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/)
@@ -192,7 +192,7 @@ values need some explanation:
 Or with custom parameters:
 
 ```clojure
-(defflow my-flow {:init aux.init! :runner (comp run! s/with-fn-validation)}
+(defflow my-flow {:init aux.init! :runner (comp run* s/with-fn-validation)}
   (match? 1 1))
 
 ```
@@ -226,7 +226,7 @@ expression, up to `:times-to-try`.
 
 ### NOTE: about upgrading to state-flow-2.2.4
 
-We introduced `state-flow.assertions.match?` in state-flow-2.2.4, and
+We introduced `state-flow.assertions.matcher-combinators/match?` in state-flow-2.2.4, and
 deprecated `state-flow.cljtest.match?` in that release. The signature
 for the old version was `(match? <description> <actual> <expected>)`.
 We removed the description because it was quite common for the description
