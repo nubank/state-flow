@@ -261,6 +261,8 @@ bin/refactor-match --help
 ;; now follow the instructions
 ```
 
+Note that if you have a `defflow` defined in a different namespace, and it depends on `state-flow.cljtest`, you may need to require it in that namespace.
+
 ## Midje Support
 
 We use `verify` to write midje tests with StateFlow. `verify` is a function that of three arguments: a description, a value or step, and another value or midje checker. It
