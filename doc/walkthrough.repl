@@ -1,6 +1,6 @@
 (require '[state-flow.core :refer [flow run]]
          '[state-flow.state :as state]
-         '[state-flow.cljtest :refer [match?]])
+         '[state-flow.assertions.matcher-combinators :refer [match?]])
 
 ;; -------------------------------------------
 ;; introduction the state monad and primitives
@@ -144,8 +144,8 @@
 
 (def inc-twice
   (flow "increment twice"
-        inc-count
-        inc-count))
+    inc-count
+    inc-count))
 
 (run inc-twice {:count 0})
 ;; => [{:count 1} {:count 2}]
@@ -154,11 +154,11 @@
 
 (run
   (flow "inc (parent)"
-        inc-count
-        (flow "inc twice (child)"
-              inc-twice
-              (flow "inc 2 more times (grandchild)"
-                    inc-twice))
+    inc-count
+    (flow "inc twice (child)"
+      inc-twice
+      (flow "inc 2 more times (grandchild)"
+        inc-twice))
     (state/gets update :count * 3))
   {:count 0})
 ;; => [{:count 15} {:count 5}]
@@ -172,11 +172,11 @@
 
 (run
   (flow "binding example"
-        [count-before (state/gets :count)] ;; <- binds 0 to `count-before`
-        inc-count
-        [count-after (state/gets :count)]  ;; <- binds 1 to `count-after`
-        (state/return {:before count-before
-                       :after count-after}))
+    [count-before (state/gets :count)] ;; <- binds 0 to `count-before`
+    inc-count
+    [count-after (state/gets :count)]  ;; <- binds 1 to `count-after`
+    (state/return {:before count-before
+                   :after count-after}))
   {:count 0})
 ;; => [{:before 0, :after 1} {:count 1}]
 
@@ -186,9 +186,9 @@
 
 (run
   (flow "binding example"
-        [:let [start 37]]
-        (state/modify update :count + start)
-        (state/gets :count))
+    [:let [start 37]]
+    (state/modify update :count + start)
+    (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
 
@@ -196,9 +196,9 @@
 
 (run
   (flow "binding example"
-        [:let [start (+ 30 7)]]
-        (state/modify update :count + start)
-        (state/gets :count))
+    [:let [start (+ 30 7)]]
+    (state/modify update :count + start)
+    (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
 
@@ -243,9 +243,9 @@
     [db (state/gets :db)]
     (state/wrap-fn #(register-user db {:name "Phillip"}))
     [users (state/wrap-fn #(fetch-users db))]
-    (match? "user got added"
-            users
-            #{{:name "Phillip"}}))
+    (flow "user got added"
+      (match? #{{:name "Phillip"}}
+              users)))
   {:db (atom {:users #{}})})
 
 ;; could also be written as
@@ -254,9 +254,9 @@
   (flow "interact with db"
     [db (state/gets :db)]
     (state/wrap-fn #(register-user db {:name "Phillip"}))
-    (match? "user got added"
-            (state/wrap-fn #(fetch-users db))
-            #{{:name "Phillip"}}))
+    (flow "user got added"
+      (match? #{{:name "Phillip"}}
+              (state/wrap-fn #(fetch-users db)))))
   {:db (atom {:users #{}})})
 
 ;; ---------------------------
@@ -270,15 +270,15 @@
   (flow "interact with db"
     [db (state/gets :db)]
     (state/wrap-fn #(register-user db {:name "Phillip"}))
-    (match? "user got added"
-            (state/wrap-fn #(fetch-users db))
-            #{{:name "Philip"}})) ;; <- different spelling
+    (flow "user got added"
+      (match? #{{:name "Philip"}}
+              (state/wrap-fn #(fetch-users db))))) ;; <- different spelling
   {:db (atom {:users #{}})})
 ;; => [#{{:name "Phillip"}} {:db #<Atom@4a65a50f: {:users #{{:name "Phillip"}}}>}]
 
 ;; --- printed to repl ---
 ;; FAIL in () (form-init13207122878088623810.clj:256)
-;; interact with db (line 253) -> user got added
+;; interact with db (line 270) -> user got added (line 273) -> match? (line 274)
 ;; expected: (match? #{{:name "Philip"}} actual__12555__auto__)
 ;; actual: #{{:name (mismatch "Philip" "Phillip")}}
 ;; --- /printed to repl ---
@@ -290,16 +290,19 @@
 ;; When a flow throws an exception ...
 ;;
 ;; `run` returns the exception as a value
-(run (flow ""
-       (match? "fails" 1 2)
-       (state/wrap-fn #(throw (ex-info "boom!" {})))
-       (match? "is never run" 3 4))
-     {})
+(run
+  (flow "fails"
+    (match? 2 1)
+    (state/wrap-fn #(throw (ex-info "boom!" {})))
+    (flow "is never run"
+      (match? 4 3)))
+  {})
 
-;; `run!` raises the exception
-(state-flow.core/run!
-  (flow ""
-       (match? "fails" 1 2)
-       (state/wrap-fn #(throw (ex-info "boom!" {})))
-       (match? "is never run" 3 4))
-     {})
+;; `run*` raises the exception
+(state-flow.core/run*
+  {:init (constantly {})}
+  (flow "fails"
+    (match? 2 1)
+    (state/wrap-fn #(throw (ex-info "boom!" {})))
+    (flow "is never run"
+      (match? 4 3))))
