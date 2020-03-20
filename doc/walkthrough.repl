@@ -22,21 +22,26 @@
 ;; (state monads) e.g.
 
 (state/return {:count 37})
-;; => #cats.monad.state.State{:mfn #function[...],
-;;                            :state-context #<State-E>}
+;; => {:mfn #function[...],
+;;     :state-context #<State-E>}
+
+(class *1)
+;; => cats.monad.state.State
 ;;
 ;; - cats.monad.state.State is the class of the underlying object
 ;; - :mfn is the wrapped (monadic) function
 ;; - :state-context is a reference to mutable state, which will be
 ;;   managed by state-flow
 ;;
-;; The :mfn of any state monad is a function of state, which returns
-;; a vector of [return-value, state-after-invocation]. Since this is
-;; just a Clojure function, you can extract it from the monad and
-;; invoke it directly:
+;; The :mfn of any state monad is a function of state, which returns a
+;; vector of [return-value, state-after-invocation]. Since this is
+;; just a Clojure function, you can extract it from the step (monad)
+;; and invoke it directly:
 
-(let [mfn (:mfn (state/return {:count 37}))]
-  (mfn {:count 0}))
+(let [step       (state/return {:count 37})
+      mfn        (:mfn step)
+      init-state {:count 0}]
+  (mfn init-state))
 ;; => [{:count 37} {:count 0}]
 ;;
 ;; The return value of the :mfn of `(state/return <value>)` is whatever argument
@@ -46,13 +51,16 @@
 ;; state-flow provides a `run` function that handles the unwrapping
 ;; and manages state for you:
 
-(run (state/return {:count 37})
-  {:count 0})
+(run (state/return {:count 37}) {:count 0})
 ;; => [{:count 37} {:count 0}]
 ;;
-;; The `run` function takes a state monad and an (optional - defaults
-;; to an empty {}) initial state, and returns the return value from
-;; invoking the :mfn with the state.
+;; The `run` function takes a step and an (optional - defaults to an
+;; empty {}) initial state, and returns the return value from invoking
+;; the :mfn with the state. Here's the same example with the default
+;; initial-state:
+
+(run (state/return {:count 37}))
+;; => [{:count 37} {}]
 ;;
 ;; Here's a primitive step that returns the application of a function
 ;; to the state, without actually changing the state:
@@ -61,27 +69,28 @@
 ;; => [{:count 1} {:count 0}]
 ;;
 ;; In case is is not clear, the first element in the vector is the
-;; return value, the result of applying the anonymous function
-;; passed to `state/gets` to the state, `{:count 0}`. The result
-;; is that the value of `:count` is incremented, in the return-value,
-;; but the state, the second element of the vector, is unchanged.
+;; return value of applying the anonymous function passed to
+;; `state/gets` to the state, `{:count 0}`. The result is that the
+;; value of `:count` is incremented, in the return-value, but the
+;; state, the second element of the vector, is unchanged.
 ;;
-;; This next one does the reverse of `state/gets`: it returns the
-;; unmodified state and applies a function to the state
+;; `state/gets` also supports function composition by passing
+;; additional args to the function, like e.g. Clojure's `swap!` and
+;; `update` functions:
 
-(run (state/modify (fn [s] (update s :count inc))) {:count 0})
-;; => [{:count 0} {:count 1}]
+(run (state/gets update :count + 2) {:count 0})
+;; => [{:count 2} {:count 0}]
 ;;
-;; `modify` and `gets` each pass additional args to the function,
-;; so this `modify` could look like this, instead:
+;; `state/modify` does the reverse of `state/gets`: it returns the
+;; unmodified state and applies a function to the state:
 
-(run (state/modify update :count inc) {:count 0})
-;; => [{:count 0} {:count 1}]
+(run (state/modify (fn [s] (update s :count + 2))) {:count 0})
+;; => [{:count 0} {:count 2}]
+;;
+;; And `state/modify` also passes additional args to the function;
 
-;; ... and the `gets`, above, could look like this:
-
-(run (state/gets update :count inc) {:count 0})
-;; => [{:count 1} {:count 0}]
+(run (state/modify update :count + 2) {:count 0})
+;; => [{:count 0} {:count 2}]
 
 ;; We can also replace the internal state entirely, returning the previous state:
 
@@ -209,7 +218,8 @@
 ;; So far we've only dealt with functions that interact directly with
 ;; state. In practice, we want to execute functions that are specific
 ;; to our domain, that don't interact directly with the flow state
-;; To run a normal clojure expression in a flow, you need to wrap it.
+;; To run a normal clojure expression in a flow, you can wrap it
+;; in a function and pass it to `wrap-fn`:
 
 (run (flow "vanilla clojure in a flow" (state/wrap-fn #(+ 1 2))) {})
 ;; => [3 {}]
