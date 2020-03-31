@@ -51,7 +51,9 @@
 ;; state-flow provides a `run` function that handles the unwrapping
 ;; and manages state for you:
 
-(run (state/return {:count 37}) {:count 0})
+(run
+  (state/return {:count 37})
+  {:count 0})
 ;; => [{:count 37} {:count 0}]
 ;;
 ;; The `run` function takes a step and an (optional - defaults to an
@@ -65,7 +67,8 @@
 ;; Here's a primitive step that returns the application of a function
 ;; to the state, without actually changing the state:
 
-(run (state/gets (fn [s] (update s :count inc))) {:count 0})
+(run (state/gets (fn [s] (update s :count + 1))) {:count 0})
+;;     result     state
 ;; => [{:count 1} {:count 0}]
 ;;
 ;; In case is is not clear, the first element in the vector is the
@@ -77,6 +80,11 @@
 ;; `state/gets` also supports function composition by passing
 ;; additional args to the function, like e.g. Clojure's `swap!` and
 ;; `update` functions:
+
+(update {:count 0} :count + 2)
+
+(let [state (atom {:count 0})]
+  (swap! state update :count + 2))
 
 (run (state/gets update :count + 2) {:count 0})
 ;; => [{:count 2} {:count 0}]
@@ -107,60 +115,39 @@
   (state/modify update :count inc)
   (state/modify update :count inc)
   (state/modify update :count inc))
-;; => #cats.monad.state.State{:mfn #object[...],
-;;                            :state-context #<State-E>}
+;; => {:mfn #object[...],
+;;     :state-context #<State-E>}
 ;;
-;; And, then we can hand that directly to the run function:
+;; And, then we can hand that directly to the run function, which
+;; returns the result of the last step
 
 (run (flow "counter"
-       (state/modify update :count inc)
-       (state/modify update :count inc)
-       (state/modify update :count inc))
+       (state/modify update :count inc)  ;; [{:count 0} {:count 1}]
+       (state/modify update :count inc)  ;; [{:count 1} {:count 2}]
+       (state/modify update :count inc)) ;; [{:count 2} {:count 3}]
   {:count 0})
 ;; => [{:count 2} {:count 3}]
-;;
-;; `run` returns a vector of [return state], just as in previous examples.
-;; The return of a flow is the return of the last step. Within the flow,
-;; each step is run in sequence, passing the initial state to the first
-;; step, then the resulting state (the 2nd element of the returned vector)
-;; to the next, and so on, e.g.
-;;
 
-;; (run (flow "counter"
-;;        (state/modify update :count inc)
-;;        ^^ fn is invoked with {:count 0}, produces [{:count 0} {:count 1}]
-;;        (state/modify update :count inc)
-;;        ^^ fn is invoked with {:count 1}, produces [{:count 1} {:count 2}]
-;;        (state/modify update :count inc)
-;;        ^^ fn is invoked with {:count 2}, produces [{:count 2} {:count 3}]
-;;   {:count 0})
-;; => [{:count 2} {:count 3}]
-;;    ^^ the value produced by the last invocation within the flow
-;;
-;; The return from running a flow is no different than the return from
-;; running a primitive: a vector of [result state], where result is the
-;; result of applying the last monad function in the flow to the state
-;; _after_ having applied the previous functions (hence the input)
-;;
-;; -------------------------------------------
-;; programming model
-;; -------------------------------------------
-;;
-;; Since steps and flows are state monads, which are values, we can use all
-;; the familiar tools of Clojure to define and compose them.
+(run (flow "counter"
+       (state/gets update :count inc)  ;; [{:count 1} {:count 0}]
+       (state/gets update :count inc)  ;; [{:count 1} {:count 0}]
+       (state/gets update :count inc)) ;; [{:count 1} {:count 0}]
+  {:count 0})
+;; => [{:count 1} {:count 0}]
 
+;; Since steps are values, we can def them
 (def inc-count (state/modify update :count inc))
 
-(def inc-twice
-  (flow "increment twice"
-    inc-count
-    inc-count))
+(run inc-count {:count 0})
+;; => [{:count 0} {:count 1}]
+
+;; Same with flows
+(def inc-twice (flow "increment twice" inc-count inc-count))
 
 (run inc-twice {:count 0})
 ;; => [{:count 1} {:count 2}]
-;;
-;; And we can nest flows arbitrarily deeply!
 
+;; And we can nest flows arbitrarily deeply!
 (run
   (flow "inc (parent)"
     inc-count
@@ -181,9 +168,9 @@
 
 (run
   (flow "binding example"
-    [count-before (state/gets :count)] ;; <- binds 0 to `count-before`
-    inc-count
-    [count-after (state/gets :count)]  ;; <- binds 1 to `count-after`
+    [count-before (state/gets :count)] ;; <- step produces [0 {:count 0}], binding binds 0 to `count-before`
+    (state/modify update :count inc)   ;; <- increments the value :count within the state
+    [count-after (state/gets :count)]  ;; <- step produces [1 {:count 1}], binding binds 1 to `count-after`
     (state/return {:before count-before
                    :after count-after}))
   {:count 0})
@@ -195,8 +182,9 @@
 
 (run
   (flow "binding example"
-    [:let [start 37]]
-    (state/modify update :count + start)
+    [:let [value-to-add-to-count 37]] ;; <- binds 37 to `value-to-add-to-count`
+    ;; same as [value-to-add-to-count (state/return 37)]
+    (state/modify update :count + value-to-add-to-count)
     (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
@@ -205,8 +193,9 @@
 
 (run
   (flow "binding example"
-    [:let [start (+ 30 7)]]
-    (state/modify update :count + start)
+    [:let [value-to-add-to-count (+ 30 7)]]
+    ;; same as [value-to-add-to-count (state/return (+ 30 7))]
+    (state/modify update :count + value-to-add-to-count)
     (state/gets :count))
   {:count 0})
 ;; => [37 {:count 37}]
@@ -221,7 +210,9 @@
 ;; To run a normal clojure expression in a flow, you can wrap it
 ;; in a function and pass it to `wrap-fn`:
 
-(run (flow "vanilla clojure in a flow" (state/wrap-fn #(+ 1 2))) {})
+(run (flow "vanilla clojure in a flow"
+       (state/wrap-fn #(+ 1 2)))
+  {})
 ;; => [3 {}]
 
 ;; Here's a more practical example, in which we draw from state
@@ -254,8 +245,8 @@
     (state/wrap-fn #(register-user db {:name "Phillip"}))
     [users (state/wrap-fn #(fetch-users db))]
     (flow "user got added"
-      (match? #{{:name "Phillip"}}
-              users)))
+      (match? #{{:name "Phillip"}} ;; << expected value
+              users)))             ;; << actual value
   {:db (atom {:users #{}})})
 
 ;; could also be written as
@@ -266,7 +257,7 @@
     (state/wrap-fn #(register-user db {:name "Phillip"}))
     (flow "user got added"
       (match? #{{:name "Phillip"}}
-              (state/wrap-fn #(fetch-users db)))))
+              (state/wrap-fn #(fetch-users db))))) ;; << step instead of value
   {:db (atom {:users #{}})})
 
 ;; ---------------------------
@@ -310,7 +301,9 @@
 
 ;; `run*` raises the exception
 (state-flow.core/run*
-  {:init (constantly {})}
+  {:init (constantly {})
+   :cleanup identity ;; default - replace to clean up resources
+   :on-error state-flow.core/log-and-throw-error!}  ;; default - use state-flow/ignore-error to behave like `run`
   (flow "fails"
     (match? 2 1)
     (state/wrap-fn #(throw (ex-info "boom!" {})))
