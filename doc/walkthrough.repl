@@ -164,7 +164,7 @@
 ;; -----------------------------
 ;;
 ;; bindings let you bind the returns of steps to symbols,
-;; which are then in scope for the remainder of the flow
+;; which are then in scope for the remainder of the flow.
 
 (run
   (flow "binding example"
@@ -237,7 +237,9 @@
 ;; ---------------------------
 ;;
 ;; state-flow includes a wrapper around matcher-combinators to support
-;; making assertions
+;; making assertions.
+;;
+;; See https://github.com/nubank/matcher-combinators
 
 (run
   (flow "interact with db"
@@ -309,3 +311,48 @@
     (state/wrap-fn #(throw (ex-info "boom!" {})))
     (flow "is never run"
       (match? 4 3))))
+
+;; -------------------------------------------
+;; clojure.test integration: defflow
+;; -------------------------------------------
+
+(require '[state-flow.cljtest :refer [defflow]])
+
+;; defflow produces a function, like clojure.test's deftest, which
+;; can be invoked directly, or through clojure.test's run functions
+(defflow store-and-retrieve-users {:init (constantly {:db (atom {:users #{}})})}
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (flow "user got added"
+      (match? #{{:name "Philip"}}
+              (state/wrap-fn #(fetch-users db))))))
+
+(meta #'store-and-retrieve-users)
+;; => {:test #function[user/fn--16196],
+;;     :line 324,
+;;     :column 1,
+;;     :file "/Users/david/work/nubank/state-flow/doc/walkthrough.repl",
+;;     :name store-and-retrieve-users,
+;;     :ns #namespace[user]}
+
+(clojure.test/test-var #'store-and-retrieve-users)
+
+;; Common practice is to include a project-specific version of
+;; defflow, which wraps defflow and passes it a common :init,
+;; e.g.
+
+(defmacro my-defflow [name & flows]
+  `(defflow ~name {:init (constantly {:db (atom {:users #{}})})
+                   :runner run}
+     ~@flows))
+
+(my-defflow store-and-retrieve-users-again
+  (flow "interact with db"
+    [db (state/gets :db)]
+    (state/wrap-fn #(register-user db {:name "Phillip"}))
+    (flow "user got added"
+      (match? #{{:name "Philip"}}
+              (state/wrap-fn #(fetch-users db))))))
+
+(clojure.test/test-var #'store-and-retrieve-users-again)
