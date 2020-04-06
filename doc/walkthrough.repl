@@ -1,27 +1,87 @@
-(require '[state-flow.core :refer [flow run]]
+(require '[state-flow.core :refer [flow run run*]]
          '[state-flow.state :as state]
+         '[matcher-combinators.core]
          '[state-flow.assertions.matcher-combinators :refer [match?]])
 
-;; -------------------------------------------
-;; introduction the state monad and primitives
-;; -------------------------------------------
+;; An integration test flow, as we see it, is a series of steps with
+;; assertions mixed in. Ideally, all of the steps are pure functions,
+;; meaning they don't access any external state. To support that, we
+;; need to thread the state through the functions. One way we can do
+;; this in Clojure is with the -> macro:
+
+(-> {:count 0} ;; << state - we'll refer to it as s in the next steps
+    ((fn [s] (update s :count inc)))
+    ((fn [s] (assert (= 1 (:count s))) s)))
+
+;; Each of those inline functions could be def'd ...
+
+(defn inc-count [s] (update s :count inc))
+(defn match [expected f] (fn [s] (assert (= expected (f s)))))
+
+;; ... so we end up with a flow this:
+
+(-> {:count 0}
+    inc-count
+    ((match 1 :count)))
+
+;; That's a bit more expressive, but there's a lot more we'd like to
+;; have in a testing framework.
+;;
+;; Enter state-flow: a framework for defining integration test flows
+;; using (mostly) pure functions of state, which is managed for you by
+;; a runner that threads the state through the functions and provides
+;; many additional services along the way.
+;;
+;; Here's an example. Don't worry about the details; we'll cover everything
+;; below.
+
+(run                                 ;; << `run` takes a flow and an initial state
+  (flow "increment count"            ;; << a `flow` is a collection of steps
+    (state/modify update :count inc) ;; << step that updates state, incrementing :count
+    (match? 1 (state/gets :count))   ;; << step that asserts the :count is 1
+    (state/get))                     ;; << step that returns the state
+  {:count 0})                        ;; << initial state
+;; => [{:count 1} {:count 1}]        ;; << result pair - we'll explain this later
+;;
+;; Note that we said "step that updates state". But we just said
+;; that these functions should be pure! Well, actually the `state/modify`
+;; function itself just returns the result of applying `update`, in
+;; this example, to whatever is passed to it, e.g.
+
+(fn [s] (update s :count inc))
+
+;; ... just like in the -> example above. As you'll see, it's the runner that
+;; takes care of binding state to the function argument, and binding the
+;; response back to the state context.
+;;
+;; ------------------------------------------------
+;; introduction the state monad and primitive steps
+;; ------------------------------------------------
 ;;
 ;; state-flow is implemented using a state monad. If you're already
 ;; familiar with monads, great! If not, don't worry. We'll explain
 ;; just enough about the state monad to understand state-flow.
 ;;
 ;; - A monad is a wrapper around a function.
-;; - The wrapped function will be invoked by a runner later.
-;; - A state monad is a monad with a function of some mutable state,
-;;   which is managed for you by the runner.
+;; - The wrapped function will be invoked by a monad runner later.
+;;   - The monad runner manages binding arguments to the function.
+;; - A state monad is a monad whose function is that of some mutable state.
+;; - The return value of a state monad is a pair of [<left-value> <right-value>].
+;;   - The <right-value> is always the state _after_ the function is
+;;     invoked. Note: not all functions modify the state.
+;;   - The <left-value> depends on the function, as we'll see below.
 ;;
-;; The state monad is the underlying structure for any primitive
-;; step or flow (collection of steps) in state-flow.
-;;
-;; state-flow includes a number of constructors for primitive steps
-;; (state monads) e.g.
+;; The state monad is the underlying structure for any primitive step
+;; or flow (collection of steps) in state-flow.  state-flow includes a
+;; number of constructors for primitive steps (state monads).
 
-(state/return {:count 37})
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state/get
+;;
+;; `state/get` is a primitive step whose <left-value> is the state.
+
+;; First, let's just see what it evaluates to by itself.
+(state/get)
 ;; => {:mfn #function[...],
 ;;     :state-context #<State-E>}
 
@@ -30,84 +90,115 @@
 ;;
 ;; - cats.monad.state.State is the class of the underlying object
 ;; - :mfn is the wrapped (monadic) function
-;; - :state-context is a reference to mutable state, which will be
-;;   managed by state-flow
+;; - :state-context is a reference to mutable state, which the runner
+;;   will bind to the function's argument.
 ;;
-;; The :mfn of any state monad is a function of state, which returns a
-;; vector of [return-value, state-after-invocation]. Since this is
-;; just a Clojure function, you can extract it from the step (monad)
-;; and invoke it directly:
+;; The :mfn of a state monad is a function of the state. When you invoke
+;; :mfn with some state, it returns a pair of [<left-value> <right-value>],
+;; where the <left-value> is what the function actually returns and
+;; <right-value> is the state after the function is applied. So you can
+;; think of [<left-value> <right-value>] to mean [<return-value> <state>].
+;;
+;; Since this is just a Clojure function, you can extract it from the
+;; step (monad) and invoke it directly:
 
-(let [step       (state/return {:count 37})
-      mfn        (:mfn step)
-      init-state {:count 0}]
-  (mfn init-state))
-;; => [{:count 37} {:count 0}]
+(let [f (:mfn (state/get))]
+  (f {:count 0}))
+;; => [{:count 0} {:count 0}]
 ;;
-;; The return value of the :mfn of `(state/return <value>)` is whatever argument
-;; you provide. Also, as you can see in the output above, this function doesn't
-;; change the state.
+;; The `{count 0}` on the left, the <left-value> or <return-value>, is
+;; the state before invoking `state/get`.  Since we passed `{count 0}`
+;; to `f`, that is what `state/get` returns.
 ;;
-;; state-flow provides a `run` function that handles the unwrapping
-;; and manages state for you:
+;; The `{count 0}` on the right, the <right-value> or <state>, is the
+;; state _after_ invoking `state/get`.  Since `state/get` does not
+;; modify the state, it's the same value we handed to `f`.
+;;
+;; state-flow provides a `run` function that binds the state to the
+;; function argument for you:
 
-(run
-  (state/return {:count 37})
-  {:count 0})
-;; => [{:count 37} {:count 0}]
+(run (state/get) {:count 0})
+;; => [{:count 0} {:count 0}]
 ;;
 ;; The `run` function takes a step and an (optional - defaults to an
 ;; empty {}) initial state, and returns the return value from invoking
 ;; the :mfn with the state. Here's the same example with the default
 ;; initial-state:
 
-(run (state/return {:count 37}))
-;; => [{:count 37} {}]
-;;
-;; Here's a primitive step that returns the application of a function
-;; to the state, without actually changing the state:
+(run (state/get))
+;; => [{} {}]
 
-(run (state/gets (fn [s] (update s :count + 1))) {:count 0})
-;;     result     state
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state/gets
+;;
+;; state/gets is a primitive step that returns the application of a
+;; function to the state, leaving the state intact.
+
+(run (state/gets (fn [s] (update s :count inc))) {:count 0})
+;;      return     state
 ;; => [{:count 1} {:count 0}]
 ;;
-;; In case is is not clear, the first element in the vector is the
-;; return value of applying the anonymous function passed to
-;; `state/gets` to the state, `{:count 0}`. The result is that the
-;; value of `:count` is incremented, in the return-value, but the
-;; state, the second element of the vector, is unchanged.
+;; The `{count 1}` on the left, the <left-value> or <return-value>, is
+;; the result of applying the function we passed to `state/gets` to
+;; the state.  Since we passed `{count 0}` to `f`, that is passed to
+;; `(fn [s] (update s :count + 1))`, which returns `{count 1}`.
 ;;
-;; `state/gets` also supports function composition by passing
-;; additional args to the function, like e.g. Clojure's `swap!` and
-;; `update` functions:
+;; The `{count 0}` on the right, the <right-value> or <state>, is the
+;; state _after_ invoking `state/gets`.  Since `state/gets` does not
+;; modify the state, it's the same value we handed to `f`.
+;;
+;; `state/gets` also supports compositional function chaining by
+;; passing additional args to the function, like e.g. Clojure's
+;; `update` function
 
-(update {:count 0} :count + 2)
-
-(let [state (atom {:count 0})]
-  (swap! state update :count + 2))
+(run (state/gets update :count inc) {:count 0})
+;; => [{:count 1} {:count 0}]
 
 (run (state/gets update :count + 2) {:count 0})
 ;; => [{:count 2} {:count 0}]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state/modify
 ;;
 ;; `state/modify` does the reverse of `state/gets`: it returns the
 ;; unmodified state and applies a function to the state:
 
-(run (state/modify (fn [s] (update s :count + 2))) {:count 0})
-;; => [{:count 0} {:count 2}]
+(run (state/modify (fn [s] (update s :count inc))) {:count 0})
+;; => [{:count 0} {:count 1}]
+;;
+;; The `{count 0}` on the left, the <left-value> or <return-value>, is
+;; the value of the state before `state/modify`.
+;;
+;; The `{count 1}` on the right, the <right-value> or <state>, is the
+;; the result of applying the function we passed to `state/modify` to
+;; the state.  Since we passed `{count 0}` to `f`, that is passed to
+;; `(fn [s] (update s :count + 1))`, which leaves the state `{count 1}`.
 ;;
 ;; And `state/modify` also passes additional args to the function;
 
-(run (state/modify update :count + 2) {:count 0})
-;; => [{:count 0} {:count 2}]
+(run (state/modify update :count inc) {:count 0})
+;; => [{:count 0} {:count 1}]
 
-;; We can also replace the internal state entirely, returning the previous state:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state/return
+;;
+;; `state/return` returns the value given to it, leaving state unchanged
+
+(run (state/return {:a 37}) {:b 42})
+;; => [{:a 37} {:b 42}]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state/put
+;;
+;; `state/put` replaces the state entirely, returning the state
+;; as it was before the step.
 
 (run (state/put {:name "Jacob"}) {:count 0})
 ;; => [{:count 0} {:name "Jacob"}]
 
-;; -------------------------------------------
+;; ------------------------------------------------
 ;; flows
-;; -------------------------------------------
+;; ------------------------------------------------
 ;;
 ;; We use flows to string together several steps in a single step:
 
@@ -159,9 +250,9 @@
   {:count 0})
 ;; => [{:count 15} {:count 5}]
 
-;; -----------------------------
+;; ------------------------------------------------
 ;; bindings
-;; -----------------------------
+;; ------------------------------------------------
 ;;
 ;; bindings let you bind the returns of steps to symbols,
 ;; which are then in scope for the remainder of the flow.
@@ -200,9 +291,9 @@
   {:count 0})
 ;; => [37 {:count 37}]
 
-;; -----------------------------
+;; ------------------------------------------------
 ;; beyond primitives
-;; -----------------------------
+;; ------------------------------------------------
 ;;
 ;; So far we've only dealt with functions that interact directly with
 ;; state. In practice, we want to execute functions that are specific
@@ -210,72 +301,89 @@
 ;; To run a normal clojure expression in a flow, you can wrap it
 ;; in a function and pass it to `wrap-fn`:
 
-(run (flow "vanilla clojure in a flow"
-       (state/wrap-fn #(+ 1 2)))
-  {})
+(run (state/wrap-fn #(+ 1 2)) {})
 ;; => [3 {}]
+
+(run
+  (flow "get three"
+    [three (state/wrap-fn #(+ 1 2))]
+    (state/return three))
+  {})
+;; [3 {}]
 
 ;; Here's a more practical example, in which we draw from state
 ;; to provide arguments to domain functions.
 
-(defn register-user [db user]
-  (swap! db update :users conj user))
+;; domain fns
 
-(defn fetch-users [db]
-  (:users @db))
+(defn new-db [] (atom {:users #{}}))
+(defn register-user [db user] (swap! db update :users conj user))
+(defn fetch-users [db] (:users @db))
+
+;; helper fns
+
+(defn register-user-helper [user]
+  (flow "register user"
+    (state/gets (fn [{:keys [db]}] (register-user db user)))))
+
+(defn fetch-users-helper []
+  (flow "fetch users"
+    (state/gets (fn [{:keys [db]}] (fetch-users db)))))
+
+;; flow
 
 (run
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
-    (state/wrap-fn #(fetch-users db)))
-  {:db (atom {:users #{}})})
+  (flow "store and retrieve a user"
+    (register-user-helper {:name "Phillip"})
+    (fetch-users-helper))
+  {:db (new-db)})
 ;; => [#{{:name "Phillip"}} {:db #<Atom@4d7999d2: {:users #{{:name "Phillip"}}}>}]
 ;;
-;; ---------------------------
+;; ------------------------------------------------
 ;; assertions
-;; ---------------------------
+;; ------------------------------------------------
 ;;
 ;; state-flow includes a wrapper around matcher-combinators to support
 ;; making assertions.
 ;;
 ;; See https://github.com/nubank/matcher-combinators
 
+;; `match?` takes two args:
+;;  - an expected value, or matcher
+;;  - an actual value, or a step that will produce one
+;;
+;; example matching a value
 (run
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
-    [users (state/wrap-fn #(fetch-users db))]
+  (flow "store and retrieve a user"
+    (register-user-helper {:name "Phillip"})
+    [users (fetch-users-helper)]
     (flow "user got added"
       (match? #{{:name "Phillip"}} ;; << expected value
               users)))             ;; << actual value
-  {:db (atom {:users #{}})})
+  {:db (new-db)})
 
-;; could also be written as
-
+;; example matching the <left-value> produced by a step
 (run
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
+  (flow "store and retrieve a user"
+    (register-user-helper {:name "Phillip"})
     (flow "user got added"
-      (match? #{{:name "Phillip"}}
-              (state/wrap-fn #(fetch-users db))))) ;; << step instead of value
-  {:db (atom {:users #{}})})
+      (match? #{{:name "Phillip"}}    ;; << expected value
+              (fetch-users-helper)))) ;; << step which produces value
+  {:db (new-db)})
 
-;; ---------------------------
+;; ------------------------------------------------
 ;; failure semantics
-;; ---------------------------
+;; ------------------------------------------------
 
 ;; When an assertion fails, it prints the failure message to the
 ;; repl, e.g.
 
 (run
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
+  (flow "store and retrieve a user"
+    (register-user-helper {:name "Phillip"})
     (flow "user got added"
-      (match? #{{:name "Philip"}}
-              (state/wrap-fn #(fetch-users db))))) ;; <- different spelling
+      (match? #{{:name "Philip"}}  ;; <- different spelling
+              (fetch-users-helper))))
   {:db (atom {:users #{}})})
 ;; => [#{{:name "Phillip"}} {:db #<Atom@4a65a50f: {:users #{{:name "Phillip"}}}>}]
 
@@ -285,10 +393,6 @@
 ;; expected: (match? #{{:name "Philip"}} actual__12555__auto__)
 ;; actual: #{{:name (mismatch "Philip" "Phillip")}}
 ;; --- /printed to repl ---
-
-;; ---------------------------
-;; exceptions
-;; ---------------------------
 
 ;; When a flow throws an exception ...
 ;;
@@ -301,32 +405,29 @@
       (match? 4 3)))
   {})
 
-;; `run*` raises the exception
+;; `run*` raises the exception by default
 (state-flow.core/run*
-  {:init (constantly {})
-   :cleanup identity ;; default - replace to clean up resources
-   :on-error state-flow.core/log-and-throw-error!}  ;; default - use state-flow/ignore-error to behave like `run`
+  {:init (constantly {})}
   (flow "fails"
     (match? 2 1)
     (state/wrap-fn #(throw (ex-info "boom!" {})))
     (flow "is never run"
       (match? 4 3))))
 
-;; -------------------------------------------
+;; ------------------------------------------------
 ;; clojure.test integration: defflow
-;; -------------------------------------------
+;; ------------------------------------------------
 
 (require '[state-flow.cljtest :refer [defflow]])
 
 ;; defflow produces a function, like clojure.test's deftest, which
 ;; can be invoked directly, or through clojure.test's run functions
 (defflow store-and-retrieve-users {:init (constantly {:db (atom {:users #{}})})}
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
-    (flow "user got added"
-      (match? #{{:name "Philip"}}
-              (state/wrap-fn #(fetch-users db))))))
+  [db (state/gets :db)]
+  (register-user-helper {:name "Phillip"})
+  (flow "user got added"
+    (match? #{{:name "Philip"}}
+            (fetch-users-helper))))
 
 (meta #'store-and-retrieve-users)
 ;; => {:test #function[user/fn--16196],
@@ -342,17 +443,17 @@
 ;; defflow, which wraps defflow and passes it a common :init,
 ;; e.g.
 
-(defmacro my-defflow [name & flows]
+(defmacro custom-defflow [name & flows]
   `(defflow ~name {:init (constantly {:db (atom {:users #{}})})
                    :runner run}
      ~@flows))
 
-(my-defflow store-and-retrieve-users-again
-  (flow "interact with db"
-    [db (state/gets :db)]
-    (state/wrap-fn #(register-user db {:name "Phillip"}))
-    (flow "user got added"
-      (match? #{{:name "Philip"}}
-              (state/wrap-fn #(fetch-users db))))))
+(custom-defflow
+ store-and-retrieve-users-again
+ [db (state/gets :db)]
+ (state/wrap-fn #(register-user db {:name "Phillip"}))
+ (flow "user got added"
+   (match? #{{:name "Philip"}}
+           (state/wrap-fn #(fetch-users db)))))
 
 (clojure.test/test-var #'store-and-retrieve-users-again)
