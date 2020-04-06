@@ -1,5 +1,9 @@
 # Changelog
 
+## [DEV]
+
+- Upgrade to [matcher-combinators 1.5.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#151) (from 1.2.7))
+
 ## [2.3.1]
 
 - Upgrade to [funcool.cats 2.3.5](https://github.com/funcool/cats/blob/master/CHANGELOG.md#version-235)
