@@ -21,23 +21,23 @@
                        :actual   3
                        :report   {:match/result :match}}
                       ret)))
-        (testing "adds match result to state"
-          (is (match? {:match/results [{:match/result :match}]} state)))))
+        (testing "doesn't change state"
+          (is (= {:initial :state} state)))))
 
     (testing "with state monad for actual"
       (let [[ret state] (state-flow/run (testing "DESC" (assertions.matcher-combinators/match? 3 test-helpers/add-two)) {:value 1})]
         (testing "returns match result"
           (is (match? {:report {:match/result :match}} ret)))
-        (testing "adds match result to state"
-          (is (match? {:match/results [{:match/result :match}]} state)))))
+        (testing "doesn't change state"
+          (is (= {:value 1} state)))))
 
     (testing "with explicit matcher for expected"
       (let [[ret state] (state-flow/run (testing "DESC" (assertions.matcher-combinators/match? (matchers/equals 3)
                                                                                                test-helpers/add-two)) {:value 1})]
         (testing "returns match result"
           (is (match? {:report {:match/result :match}} ret)))
-        (testing "adds match result to state"
-          (is (match? {:match/results [{:match/result :match}]} state)))))
+        (testing "doesn't change state"
+          (is (= {:value 1} state)))))
 
     (testing "forcing probe to try more than once"
       (let [{:keys [flow-ret flow-state]}
@@ -51,7 +51,9 @@
           (is (match? {:expected 2
                        :actual   2
                        :report   {:match/result :match}}
-                      flow-ret))))))
+                      flow-ret)))
+        (testing "doesn't change state after the last probe"
+          (is (= 2 (-> flow-state :value deref)))))))
 
   (testing "failure case"
     (testing "with probe result that never changes"
