@@ -44,13 +44,13 @@
     :report   - the matcher-combinators match/mismatch report "
   [expected actual & [{:keys [times-to-try
                               sleep-time]
-                       :as params}]]
+                       :as   params}]]
    ;; description is here to support the
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
-  (let [params* (merge {:description "match?"
-                        :caller-meta (meta &form)
+  (let [params* (merge {:description  "match?"
+                        :caller-meta  (meta &form)
                         :times-to-try 1}
                        params)]
     (core/flow*
@@ -65,11 +65,10 @@
                      (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
                      (state/ensure-step ~actual))
         report#    (state/return (matcher-combinators/match ~expected actual#))]
-       (state/modify update :match/results (fnil conj []) (assoc report# :match/desc flow-desc#))
-        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
-        ;; assertions from reporting in a future release. Remove this
-        ;; next line when that happens.
+       ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
+       ;; assertions from reporting in a future release. Remove this
+       ;; next line when that happens.
        (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
        (state/return {:expected ~expected
-                      :actual actual#
-                      :report report#})))))
+                      :actual   actual#
+                      :report   report#})))))
