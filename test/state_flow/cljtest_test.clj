@@ -88,6 +88,22 @@
                        :matcher-combinators.result/value {:expected 2 :actual 0}}
                       (-> report-data :actual :match-result))))))))
 
+(deftest test-report->actual
+  (testing "as value"
+    (is (= 3 (first
+              (state-flow/run
+                (flow ""
+                  [report (assertions.matcher-combinators/match? 3 3)
+                   actual (assertions.matcher-combinators/report->actual report)]
+                  (state/return actual)))))))
+  (testing "as step"
+    (is (= 3 (first
+              (state-flow/run
+                (flow ""
+                  [actual (assertions.matcher-combinators/report->actual
+                           (assertions.matcher-combinators/match? 3 3))]
+                  (state/return actual))))))))
+
 ;; TODO:(dchelimsky,2019-12-27) I do not understand why, but inlining these expansions
 ;; in the deftest below causes test failures. I think it has to do with calling macroexpand
 ;; within a macro body.
