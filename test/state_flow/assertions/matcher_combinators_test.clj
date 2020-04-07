@@ -40,7 +40,7 @@
     (let [[flow-ret flow-state]
           (state/run
             (flow "flow"
-              (test-helpers/delayed-modify 100 update :value swap! + 2)
+              (test-helpers/swap-later 100 :value + 2)
               (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
                                                              :sleep-time   110}))
             {:value (atom 0)})]
@@ -85,7 +85,7 @@
     (let [{:keys [flow-ret flow-state report-data]}
           (test-helpers/run-flow
            (flow "flow"
-             (test-helpers/delayed-modify 200 update :count swap! + 2)
+             (test-helpers/swap-later 200 :count + 2)
              (testing "2" (mc/match? 2
                                      (state/gets (comp deref :count))
                                      {:times-to-try 2
