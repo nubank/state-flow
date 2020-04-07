@@ -7,7 +7,7 @@
 breaking change.
 
 ``` clojure
-;; if you were doing this before
+;; if you were doing this before in a binding
 [actual (match? <expected> <step-that-produces-actual>)]
 ;; you can do this, now
 [actual (fmap report->actual (match? <expected> <step-that-produces-actual>)]
