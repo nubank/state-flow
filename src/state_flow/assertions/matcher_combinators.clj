@@ -9,19 +9,21 @@
 (defn ^:private match-probe
   "Internal use only.
 
-  Returns the right value returned by probe/probe.
+  Returns the result of calling probe/probe with a function that
+  uses matcher-combinators to match the actual value.
 
   args:
-  - step is a step (monad) which should produce the actual value
-  - matcher is a matcher-combinators matcher object
+  - step is a monad which should produce the actual value
+  - expected is any valid first argument to `matcher-combinators/match?`
   - params are passed directly to probe "
-  [step matcher params]
+  [step expected params]
   (probe/probe step
-               #(matcher-combinators/match? matcher %)
+               (fn [actual] (matcher-combinators/match? expected actual))
                params))
 
 (defmacro match?
-  "Builds a state-flow assertion using matcher-combinators.
+  "Builds a state-flow step which uses matcher-combinators to make an
+  assertion.
 
   `expected` can be a literal value or a matcher-combinators matcher
   `actual` can be a literal value, a primitive step, or a flow
@@ -36,14 +38,9 @@
   retry up to :times-to-try times, waiting :sleep-time between each try,
   and stopping when `actual` produces a value that matches `expected`.
 
-  Returns a map (in the left value) of:
-
-    :match/expected     - the expected value
-    :match/actual       - the actual value (potentially after probing)
-    :match/result       - :match or :mismatch
-    :probe/times-to-try - number of times to try         ;; when (> times-to-try 1)
-    :probe/sleep-time   - time to sleep between each try ;; when (> times-to-try 1)
-    :probe/results      - the results of each try        ;; when (> times-to-try 1)"
+  Returns a map (in the left value) with information about the success
+  or failure of the match, the details of which are used internally by
+  state-flow and subject to change."
   [expected actual & [{:keys [times-to-try
                               sleep-time]
                        :as   params}]]
