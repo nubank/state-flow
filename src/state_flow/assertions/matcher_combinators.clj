@@ -76,21 +76,7 @@
        (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
        (state/return report#)))))
 
-(defmacro report->actual
-  "Returns the actual value from a match report returned by `match?`.
-
-  `report-or-match` can be a report (map) or a match? expression, e.g. either
-  of these will produce 3
-
-    (flow \"example\"
-      [report (match? 2 3)
-       actual (report->actual report)]
-      (state/return actual))
-
-    (flow \"example\"
-      [actual (report->actual (match? 2 3))]
-      (state/return actual)) "
-  [report-or-match]
-  `(m/do-let
-    [report# (state/ensure-step ~report-or-match)]
-    (state/return (:match/actual report#))))
+(defn report->actual
+  "Returns the actual value from the report returned by `match?`."
+  [report]
+  (:match/actual report))

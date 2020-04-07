@@ -14,13 +14,23 @@
 (def add-two
   (state/gets (comp (partial + 2) :value)))
 
-(defn delayed-add-two
-  [delay-ms]
-  "Changes state in the future"
+(defn delayed-modify
+  "Applies f to state + any additional args in the future."
+  [delay-ms f & args]
   (state/modify (fn [state]
                   (future (do (Thread/sleep delay-ms)
-                              (swap! (:value state) + 2)))
+                              (apply f state args)))
                   state)))
+
+(defn delayed-add-two
+  "Adds 2 to the value of state in the future."
+  [delay-ms]
+  (delayed-modify delay-ms (fn [state] (swap! (:value state) + 2))))
+
+(defmacro shhh! [& body]
+  `(with-redefs [clojure.test/do-report identity]
+     (binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
+       ~@body)))
 
 (defmacro run-flow
   "Wrapper for `state-flow.core/run!`, but captures clojure.test's report data
@@ -29,13 +39,13 @@
     :report-data - the data that _would_ be reported via clojure.test
     :flow-ret    - the return value of the flow
     :flow-state  - the end-state of the flow "
-  [flow state]
+  [flow & [state]]
   `(let [report-data# (atom nil)
          res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
                         (binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
                           (state-flow.core/run!
                            ~flow
-                           ~state)))]
+                           ~(or state {}))))]
      {:report-data (->> (deref report-data#)
                         ;; NOTE: :matcher-combinators.result/value is a Mismatch object, which is
                         ;; a defrecord, so equality on a map won't pass, hence pouring it into a map
