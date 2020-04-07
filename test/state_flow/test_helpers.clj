@@ -14,18 +14,19 @@
 (def add-two
   (state/gets (comp (partial + 2) :value)))
 
-(defn delayed-modify
-  "Applies f to state + any additional args in the future."
-  [delay-ms f & args]
+(defn swap-later
+  "Returns a state/modify step which will (apply swap! (get state k) f args)
+  in `delay-ms` milliseconds."
+  [delay-ms k f & args]
   (state/modify (fn [state]
                   (future (do (Thread/sleep delay-ms)
-                              (apply f state args)))
+                              (apply swap! (get state k) f args)))
                   state)))
 
 (defn delayed-add-two
   "Adds 2 to the value of state in the future."
   [delay-ms]
-  (delayed-modify delay-ms (fn [state] (swap! (:value state) + 2))))
+  (swap-later delay-ms :value + 2))
 
 (defmacro shhh! [& body]
   `(with-redefs [clojure.test/do-report identity]
