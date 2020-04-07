@@ -1,5 +1,5 @@
-(defproject nubank/state-flow "2.3.1"
-  :description "Postman-like integration testing with composable flows"
+(defproject nubank/state-flow "3.0.0"
+  :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
 
