@@ -38,9 +38,12 @@
 
   Returns a map (in the left value) of:
 
-    :expected - the expected value
-    :actual   - the actual value (after probing)
-    :report   - the matcher-combinators match/mismatch report "
+    :match/expected     - the expected value
+    :match/actual       - the actual value (potentially after probing)
+    :match/result       - :match or :mismatch
+    :probe/times-to-try - number of times to try         ;; when (> times-to-try 1)
+    :probe/sleep-time   - time to sleep between each try ;; when (> times-to-try 1)
+    :probe/results      - the results of each try        ;; when (> times-to-try 1)"
   [expected actual & [{:keys [times-to-try
                               sleep-time]
                        :as   params}]]
@@ -50,7 +53,8 @@
    ;; caller-meta is definitely not part of the API.
   (let [params* (merge {:description  "match?"
                         :caller-meta  (meta &form)
-                        :times-to-try 1}
+                        :times-to-try 1
+                        :sleep-time   probe/default-sleep-time}
                        params)]
     (core/flow*
      {:description (:description params*)
@@ -62,14 +66,18 @@
        [flow-desc# (core/current-description)
         probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
-              report# (matcher-combinators/match ~expected actual#)]]
+              report# (cond-> (assoc (matcher-combinators/match ~expected actual#)
+                                     :match/expected ~expected
+                                     :match/actual   actual#)
+                        (> (count probe-res#) 1)
+                        (assoc :probe/results      probe-res#
+                               :probe/sleep-time   ~(:sleep-time params*)
+                               :probe/times-to-try ~(:times-to-try params*)))]]
        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
        (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
-       (state/return {:expected ~expected
-                      :actual   actual#
-                      :report   report#})))))
+       (state/return report#)))))
 
 (defmacro report->actual
   "Returns the actual value from a match report returned by `match?`.
@@ -88,4 +96,4 @@
   [report-or-match]
   `(m/do-let
     [report# (state/ensure-step ~report-or-match)]
-    (state/return (:actual report#))))
+    (state/return (:match/actual report#))))

@@ -3,6 +3,7 @@
             [matcher-combinators.test :refer [match?]]
             [matcher-combinators.matchers :as matchers]
             [state-flow.assertions.matcher-combinators :as assertions.matcher-combinators]
+            [state-flow.probe :as probe]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.cljtest :refer [defflow]]
             [state-flow.core :as state-flow :refer [flow]]
@@ -17,17 +18,18 @@
                           (testing "DESC" (assertions.matcher-combinators/match? 3 3))
                           {:initial :state})]
         (testing "returns match result"
-          (is (match? {:expected 3
-                       :actual   3
-                       :report   {:match/result :match}}
+          (is (match? {:match/expected 3
+                       :match/actual   3
+                       :match/result   :match}
                       ret)))
         (testing "doesn't change state"
           (is (= {:initial :state} state)))))
 
-    (testing "with state monad for actual"
+    (testing "with step for actual"
       (let [[ret state] (state-flow/run (testing "DESC" (assertions.matcher-combinators/match? 3 test-helpers/add-two)) {:value 1})]
+
         (testing "returns match result"
-          (is (match? {:report {:match/result :match}} ret)))
+          (is (match? {:match/result :match} ret)))
         (testing "doesn't change state"
           (is (= {:value 1} state)))))
 
@@ -35,7 +37,7 @@
       (let [[ret state] (state-flow/run (testing "DESC" (assertions.matcher-combinators/match? (matchers/equals 3)
                                                                                                test-helpers/add-two)) {:value 1})]
         (testing "returns match result"
-          (is (match? {:report {:match/result :match}} ret)))
+          (is (match? {:match/result :match} ret)))
         (testing "doesn't change state"
           (is (= {:value 1} state)))))
 
@@ -47,25 +49,36 @@
                (testing "2" (assertions.matcher-combinators/match? 2 get-value-state {:times-to-try 3
                                                                                       :sleep-time   110})))
              {:value (atom 0)})]
-        (testing "returns match result"
-          (is (match? {:expected 2
-                       :actual   2
-                       :report   {:match/result :match}}
+        (testing "returns match result with probe info"
+          (is (match? {:probe/sleep-time   110
+                       :probe/times-to-try 3
+                       :probe/results      [{:check-result false :value 0} {:check-result true :value 2}]
+                       :match/expected     2
+                       :match/actual       2
+                       :match/result       :match}
                       flow-ret)))
         (testing "doesn't change state after the last probe"
           (is (= 2 (-> flow-state :value deref)))))))
 
-  (testing "failure case"
+  (testing "failing cases"
     (testing "with probe result that never changes"
       (let [three-lines-before-call-to-match (this-line-number)
             {:keys [flow-ret flow-state report-data]}
             (test-helpers/run-flow
-             (testing "contains with monadic left value" (assertions.matcher-combinators/match? (matchers/equals {:n 1})
-                                                                                                (state/gets :value)
-                                                                                                {:times-to-try 2}))
+             (assertions.matcher-combinators/match? (matchers/equals {:n 1})
+                                                    (state/gets :value)
+                                                    {:times-to-try 2})
              {:value {:n 2}})]
         (testing "returns match result"
-          (is (match? {:report {:match/result :mismatch}} flow-ret)))
+          (is (match? {:match/result       :mismatch
+                       :mismatch/detail    {:n {:expected 1 :actual 2}}
+                       :probe/results      [{:check-result false :value {:n 2}}
+                                            {:check-result false :value {:n 2}}]
+                       :probe/sleep-time   200
+                       :probe/times-to-try 2
+                       :match/expected     {:expected {:n 1}}
+                       :match/actual       {:n 2}}
+                      flow-ret)))
         (testing "reports match-results to clojure.test"
           (testing "including the line number where match? was called"
             (= (+ three-lines-before-call-to-match 3) (:line report-data)))
@@ -82,7 +95,7 @@
                                                                                       :sleep-time   75})))
              {:value (atom 0)})]
         (testing "returns match result"
-          (is (match? {:report {:match/result :mismatch}} flow-ret)))
+          (is (match? {:match/result :mismatch} flow-ret)))
         (testing "reports match-results to clojure.test"
           (is (match? {:matcher-combinators.result/type  :mismatch
                        :matcher-combinators.result/value {:expected 2 :actual 0}}
