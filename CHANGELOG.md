@@ -10,7 +10,10 @@ breaking change.
 ;; if you were doing this before in a binding
 [actual (match? <expected> <step-that-produces-actual>)]
 ;; you can do this, now
-[actual (fmap report->actual (match? <expected> <step-that-produces-actual>)]
+[actual (fmap report->actual (match? <expected> <step-that-produces-actual>))]
+;; or
+[report (match? <expected> <step-that-produces-actual>)
+ :let [actual (report->actual report)]]
 ```
 
 - `state-flow.assertions.matcher-combinators/match?` returns a map instead of
