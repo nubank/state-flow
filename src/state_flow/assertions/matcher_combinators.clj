@@ -16,10 +16,9 @@
   - matcher is a matcher-combinators matcher object
   - params are passed directly to probe "
   [step matcher params]
-  (m/fmap (comp :value last)
-          (probe/probe step
-                       #(matcher-combinators/match? matcher %)
-                       params)))
+  (probe/probe step
+               #(matcher-combinators/match? matcher %)
+               params))
 
 (defmacro match?
   "Builds a state-flow assertion using matcher-combinators.
@@ -61,10 +60,9 @@
       ;; information from core/current-description.
      `(m/do-let
        [flow-desc# (core/current-description)
-        actual#    (if (> (:times-to-try ~params*) 1)
-                     (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
-                     (state/ensure-step ~actual))
-        report#    (state/return (matcher-combinators/match ~expected actual#))]
+        probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
+        :let [actual# (-> probe-res# last :value)
+              report# (matcher-combinators/match ~expected actual#)]]
        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
