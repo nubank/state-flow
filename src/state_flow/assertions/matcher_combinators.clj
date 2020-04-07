@@ -63,13 +63,12 @@
        [flow-desc# (core/current-description)
         probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
-              report# (cond-> (assoc (matcher-combinators/match ~expected actual#)
-                                     :match/expected ~expected
-                                     :match/actual   actual#)
-                        (> (count probe-res#) 1)
-                        (assoc :probe/results      probe-res#
-                               :probe/sleep-time   ~(:sleep-time params*)
-                               :probe/times-to-try ~(:times-to-try params*)))]]
+              report# (assoc (matcher-combinators/match ~expected actual#)
+                             :match/expected     ~expected
+                             :match/actual       actual#
+                             :probe/results      probe-res#
+                             :probe/sleep-time   ~(:sleep-time params*)
+                             :probe/times-to-try ~(:times-to-try params*))]]
        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
