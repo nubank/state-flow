@@ -1,7 +1,24 @@
 # Changelog
 
-## [DEV]
+## [3.0.0]
 
+*WARNING*: for any code relying on previously undocumented behavior of
+`state-flow.assertions.matcher-combinators/match?`, this release includes a
+breaking change.
+
+``` clojure
+;; if you were doing this before in a binding
+[actual (match? <expected> <step-that-produces-actual>)]
+;; you can do this, now
+[actual (fmap report->actual (match? <expected> <step-that-produces-actual>))]
+;; or
+[report (match? <expected> <step-that-produces-actual>)
+ :let [actual (report->actual report)]]
+```
+
+- `state-flow.assertions.matcher-combinators/match?` returns a map instead of
+   the `actual` value [#110](https://github.com/nubank/state-flow/pull/110)
+  - use `state-flow.assertions.matcher-combinators/report->actual` to get the actual value if you need it
 - Upgrade to [matcher-combinators 1.5.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#151) (from 1.2.7))
 
 ## [2.3.1]
