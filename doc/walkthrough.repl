@@ -213,16 +213,16 @@
 ;; returns the result of the last step
 
 (run (flow "counter"
-       (state/modify update :count inc)  ;; [{:count 0} {:count 1}]
-       (state/modify update :count inc)  ;; [{:count 1} {:count 2}]
-       (state/modify update :count inc)) ;; [{:count 2} {:count 3}]
+       (state/modify update :count inc)
+       (state/modify update :count inc)
+       (state/modify update :count inc))
   {:count 0})
 ;; => [{:count 2} {:count 3}]
 
 (run (flow "counter"
-       (state/gets update :count inc)  ;; [{:count 1} {:count 0}]
-       (state/gets update :count inc)  ;; [{:count 1} {:count 0}]
-       (state/gets update :count inc)) ;; [{:count 1} {:count 0}]
+       (state/gets update :count inc)
+       (state/gets update :count inc)
+       (state/gets update :count inc))
   {:count 0})
 ;; => [{:count 1} {:count 0}]
 
@@ -233,7 +233,9 @@
 ;; => [{:count 0} {:count 1}]
 
 ;; Same with flows
-(def inc-twice (flow "increment twice" inc-count inc-count))
+(def inc-twice (flow "increment twice"
+                 inc-count
+                 inc-count))
 
 (run inc-twice {:count 0})
 ;; => [{:count 1} {:count 2}]
@@ -263,7 +265,7 @@
     (state/modify update :count inc)   ;; <- increments the value :count within the state
     [count-after (state/gets :count)]  ;; <- step produces [1 {:count 1}], binding binds 1 to `count-after`
     (state/return {:before count-before
-                   :after count-after}))
+                   :after  count-after}))
   {:count 0})
 ;; => [{:before 0, :after 1} {:count 1}]
 
@@ -306,8 +308,8 @@
 
 (run
   (flow "get three"
-    [three (state/wrap-fn #(+ 1 2))]
-    (state/return three))
+    [result (state/wrap-fn #(+ 1 2))]
+    (state/return result))
   {})
 ;; [3 {}]
 
@@ -423,7 +425,6 @@
 ;; defflow produces a function, like clojure.test's deftest, which
 ;; can be invoked directly, or through clojure.test's run functions
 (defflow store-and-retrieve-users {:init (constantly {:db (atom {:users #{}})})}
-  [db (state/gets :db)]
   (register-user-helper {:name "Phillip"})
   (flow "user got added"
     (match? #{{:name "Philip"}}
@@ -448,12 +449,12 @@
                    :runner run}
      ~@flows))
 
-(custom-defflow
- store-and-retrieve-users-again
- [db (state/gets :db)]
- (state/wrap-fn #(register-user db {:name "Phillip"}))
+(custom-defflow store-and-retrieve-users-again
+ (register-user-helper {:name "Phillip"})
  (flow "user got added"
    (match? #{{:name "Philip"}}
-           (state/wrap-fn #(fetch-users db)))))
+           (fetch-users-helper))))
+
+  (meta #'store-and-retrieve-users-again)
 
 (clojure.test/test-var #'store-and-retrieve-users-again)
