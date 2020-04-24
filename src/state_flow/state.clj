@@ -1,7 +1,6 @@
 (ns state-flow.state
   (:refer-clojure :exclude [eval get])
-  (:require [cats.context :as ctx :refer [*context*]]
-            [cats.core :as m]
+  (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
@@ -30,7 +29,7 @@
     p/Context
 
     p/Functor
-    (-fmap [self f fv]
+    (-fmap [_ f fv]
       (error-state
        (fn [s]
          (let [[v s'] ((p/-extract fv) s)]
@@ -72,8 +71,8 @@
   (state/get error-context))
 
 (defn gets
-  [f & args]
   "Returns the equivalent of (fn [state] [state, (apply f state args)])"
+  [f & args]
   (state/gets #(apply f % args) error-context))
 
 (defn put
