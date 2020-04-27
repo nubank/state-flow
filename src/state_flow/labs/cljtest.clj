@@ -3,8 +3,9 @@
             [state-flow.state :as state]
             [clojure.test :as ctest]))
 
-(defmacro testing [desc & body]
+(defmacro testing
   "state-flow's equivalent to clojure test's `testing`"
+  [desc & body]
   `(core/flow ~desc
      [full-desc# (core/current-description)]
      (state/wrap-fn #(do ~(with-meta `(ctest/testing ~desc ~@body)

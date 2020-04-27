@@ -1,13 +1,12 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
-  (:require [clojure.string :as str]
-            [cats.core :as m]
+  (:require [cats.core :as m]
             [cats.data :as d]
             [cats.monad.exception :as e]
+            [clojure.pprint :as pp]
+            [clojure.string :as str]
             [state-flow.state :as state]
-            [taoensso.timbre :as log]
-            [clojure.pprint :as pp])
-  (:import java.lang.Throwable))
+            [taoensso.timbre :as log]))
 
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
@@ -41,10 +40,11 @@
                                                               (when line
                                                                 (format " (line %s)" line))))))))
 
-(defn pop-meta []
+(defn pop-meta
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
+  []
   (modify-meta update :description-stack pop))
 
 (defn ^:private format-description
