@@ -1,14 +1,13 @@
 (ns state-flow.assertions.matcher-combinators-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [cats.core :as m]
-            [matcher-combinators.clj-test]
+            [matcher-combinators.test]
             [matcher-combinators.matchers :as matchers]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.test-helpers :as test-helpers :refer [shhh!]]
             [state-flow.state :as state]
-            [state-flow.core :as state-flow :refer [flow]]
-            [taoensso.timbre :as log]))
+            [state-flow.core :as state-flow :refer [flow]]))
 
 (def get-value-state (state/gets (comp deref :value)))
 
@@ -97,15 +96,19 @@
       (testing "reports match-results to clojure.test"
         (is (match? {:matcher-combinators.result/type  :mismatch
                      :matcher-combinators.result/value {:expected 2 :actual 0}}
-                    (-> report-data :actual :match-result)))))))
+                    (-> report-data :actual :match-result))))))
+
+  (testing "with times-to-try > 1 and a value instead of a step"
+    (testing "throws"
+      (is (re-find #"actual must be a step or a flow when :times-to-try > 1"
+                   (.. (try
+                         (eval `(mc/match? 3 (+ 30 7) {:times-to-try 2}))
+                         (catch Exception e e))
+                       getCause
+                       getMessage))))))
 
 (deftest test-report->actual
   (is (= :actual
          (first (shhh! (state/run
                          (m/fmap mc/report->actual (mc/match? :expected :actual))
                          {}))))))
-
-(deftest test-match?-with-probe
-  (testing "warns when (> 1 times-to-try) and actual is a value instead of a step"
-    (is (match? #"WARN.*has no meaningful effect"
-                (with-out-str (state/run (mc/match? 3 3 {:times-to-try 2}) {}))))))
