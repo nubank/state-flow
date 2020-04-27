@@ -1,7 +1,6 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
   (:require [cats.core :as m]
-            [cats.data :as d]
             [cats.monad.exception :as e]
             [clojure.pprint :as pp]
             [clojure.string :as str]
@@ -73,9 +72,9 @@
 
 (defn- clarify-illegal-arg [pair]
   (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
-    (d/pair (#'cats.monad.exception/->Failure
-             (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
-            (second pair))
+    [(#'cats.monad.exception/->Failure
+      (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
+     (second pair)]
     pair))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
