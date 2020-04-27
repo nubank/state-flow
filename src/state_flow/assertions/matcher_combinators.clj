@@ -4,7 +4,8 @@
             [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.core :as core]
             [state-flow.probe :as probe]
-            [state-flow.state :as state]))
+            [state-flow.state :as state]
+            [taoensso.timbre :as log]))
 
 (defn ^:private match-probe
   "Internal use only.
@@ -48,32 +49,38 @@
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
-  (let [params* (merge {:description  "match?"
-                        :caller-meta  (meta &form)
-                        :times-to-try 1
-                        :sleep-time   probe/default-sleep-time}
-                       params)]
+  (let [caller-meta      (meta &form)
+        params*          (merge {:description  "match?"
+                                 :caller-meta  caller-meta
+                                 :times-to-try 1
+                                 :sleep-time   probe/default-sleep-time}
+                                params)]
     (core/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
       ;; Nesting m/do-let inside a call the function core/flow* is
       ;; a bit ugly, but it supports getting the correct line number
       ;; information from core/current-description.
-     `(m/do-let
-       [flow-desc# (core/current-description)
-        probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
-        :let [actual# (-> probe-res# last :value)
-              report# (assoc (matcher-combinators/match ~expected actual#)
-                             :match/expected     ~expected
-                             :match/actual       actual#
-                             :probe/results      probe-res#
-                             :probe/sleep-time   ~(:sleep-time params*)
-                             :probe/times-to-try ~(:times-to-try params*))]]
-       ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
-       ;; assertions from reporting in a future release. Remove this
-       ;; next line when that happens.
-       (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
-       (state/return report#)))))
+     `(do
+        (when (and (> (:times-to-try ~params*) 1)
+                   (not (state/state? ~actual)))
+          (log/warn (select-keys ~caller-meta [:line])
+                    ":times-to-try > 1 has no meaningful effect when 'actual' is a value."))
+        (m/do-let
+         [flow-desc# (core/current-description)
+          probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
+          :let [actual# (-> probe-res# last :value)
+                report# (assoc (matcher-combinators/match ~expected actual#)
+                               :match/expected     ~expected
+                               :match/actual       actual#
+                               :probe/results      probe-res#
+                               :probe/sleep-time   ~(:sleep-time params*)
+                               :probe/times-to-try ~(:times-to-try params*))]]
+         ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
+         ;; assertions from reporting in a future release. Remove this
+         ;; next line when that happens.
+         (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+         (state/return report#))))))
 
 (defn report->actual
   "Returns the actual value from the report returned by `match?`."

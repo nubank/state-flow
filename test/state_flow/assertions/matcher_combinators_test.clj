@@ -7,7 +7,8 @@
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.test-helpers :as test-helpers :refer [shhh!]]
             [state-flow.state :as state]
-            [state-flow.core :as state-flow :refer [flow]]))
+            [state-flow.core :as state-flow :refer [flow]]
+            [taoensso.timbre :as log]))
 
 (def get-value-state (state/gets (comp deref :value)))
 
@@ -103,3 +104,8 @@
          (first (shhh! (state/run
                          (m/fmap mc/report->actual (mc/match? :expected :actual))
                          {}))))))
+
+(deftest test-match?-with-probe
+  (testing "warns when (> 1 times-to-try) and actual is a value instead of a step"
+    (is (match? #"WARN.*has no meaningful effect"
+                (with-out-str (state/run (mc/match? 3 3 {:times-to-try 2}) {}))))))
