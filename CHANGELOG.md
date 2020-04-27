@@ -1,5 +1,9 @@
 # Changelog
 
+## [DEV]
+
+* Throw when calling match? with times-to-try > 1 and a value for actual (should be a step) [#116](https://github.com/nubank/state-flow/pull/116)
+
 ## [3.0.0]
 
 *WARNING*: for any code relying on previously undocumented behavior of
