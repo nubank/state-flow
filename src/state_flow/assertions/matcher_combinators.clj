@@ -32,11 +32,13 @@
     :times-to-try optional, default 1
     :sleep-time   optional, millis to wait between tries, default 200
 
-  Given (= :times-to-try 1), match? will evaluate `actual` just once.
+  Given (= times-to-try 1), match? will evaluate `actual` just once.
 
-  Given (> :times-to-try 1), match? will use `state-flow-probe/probe` to
+  Given (> times-to-try 1), match? will use `state-flow-probe/probe` to
   retry up to :times-to-try times, waiting :sleep-time between each try,
   and stopping when `actual` produces a value that matches `expected`.
+
+  NOTE: when (> times-to-try 1), `actual` must be a step or a flow.
 
   Returns a map (in the left value) with information about the success
   or failure of the match, the details of which are used internally by
@@ -44,21 +46,28 @@
   [expected actual & [{:keys [times-to-try
                               sleep-time]
                        :as   params}]]
+
    ;; description is here to support the
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
-  (let [params* (merge {:description  "match?"
-                        :caller-meta  (meta &form)
-                        :times-to-try 1
-                        :sleep-time   probe/default-sleep-time}
-                       params)]
+  (let [caller-meta      (meta &form)
+        params*          (merge {:description  "match?"
+                                 :caller-meta  caller-meta
+                                 :times-to-try 1
+                                 :sleep-time   probe/default-sleep-time}
+                                params)]
+    (when (and ((fnil > 1) times-to-try 1)
+               (not (state/state? (eval actual))))
+      (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
+                      {:times-to-try times-to-try
+                       :actual (eval actual)})))
     (core/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
-      ;; Nesting m/do-let inside a call the function core/flow* is
-      ;; a bit ugly, but it supports getting the correct line number
-      ;; information from core/current-description.
+     ;; Nesting m/do-let inside a call the function core/flow* is
+     ;; a bit ugly, but it supports getting the correct line number
+     ;; information from core/current-description.
      `(m/do-let
        [flow-desc# (core/current-description)
         probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
