@@ -1,7 +1,7 @@
 (ns state-flow.assertions.matcher-combinators-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [cats.core :as m]
-            [matcher-combinators.clj-test]
+            [matcher-combinators.test]
             [matcher-combinators.matchers :as matchers]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.assertions.matcher-combinators :as mc]
@@ -96,7 +96,16 @@
       (testing "reports match-results to clojure.test"
         (is (match? {:matcher-combinators.result/type  :mismatch
                      :matcher-combinators.result/value {:expected 2 :actual 0}}
-                    (-> report-data :actual :match-result)))))))
+                    (-> report-data :actual :match-result))))))
+
+  (testing "with times-to-try > 1 and a value instead of a step"
+    (testing "throws"
+      (is (re-find #"actual must be a step or a flow when :times-to-try > 1"
+                   (.. (try
+                         (eval `(mc/match? 3 (+ 30 7) {:times-to-try 2}))
+                         (catch Exception e e))
+                       getCause
+                       getMessage))))))
 
 (deftest test-report->actual
   (is (= :actual
