@@ -152,6 +152,25 @@ Or we could increment the value first and then return it doubled:
 ; => [10 {:value 5}]
 ```
 
+## Useful helpers
+
+Use `state-flow.core/fmap` to create a step that applies a function
+to the result of another step. For example
+
+``` clojure
+;; if you want to do something like this:
+(flow "count the things"
+  [things (state/return [:thing-1 :thing-2 :thing-3])
+   n-things (state/return (count things))]
+  (match? 3 n-things))
+
+;; use fmap to make it more concise
+
+(flow "count the things"
+  (match? 3
+    (state-flow/fmap count (state/return [:thing-1 :thing-2 :thing-3]))))
+```
+
 ## clojure.test and matcher-combinators
 
 We use the `defflow` and `match?` macros to build `clojure.test` tests

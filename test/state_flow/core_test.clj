@@ -261,3 +261,7 @@
                       first
                       :failure
                       .getMessage)))))
+
+(deftest fmap
+  (testing "works just like cats.core/fmap"
+    (is (= 3 (state/eval (state-flow/fmap count (state/return [1 2 3])) {})))))

@@ -110,6 +110,11 @@
   [flow]
   (fn [s] (state/exec flow s)))
 
+(defn fmap
+  "Returns a flow which applies f to return of flow."
+  [f flow]
+  (m/fmap f flow))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Error handlers
 
