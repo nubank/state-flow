@@ -7,6 +7,8 @@
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
+(declare get-state swap-state)
+
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
 ;;
@@ -25,7 +27,7 @@
 
   For internal use. Subject to change."
   [f & args]
-  (state/modify (fn [s] (apply vary-meta s f args))))
+  (apply swap-state vary-meta f args))
 
 (defn push-meta
   "Returns a flow that will modify the state metadata.
@@ -68,7 +70,7 @@
 
   For internal use. Subject to change."
   []
-  (state/gets state->current-description))
+  (get-state state->current-description))
 
 (defn- clarify-illegal-arg [pair]
   (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
@@ -80,7 +82,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
 
-(defn flow* [{:keys [description caller-meta]} & flows]
+(defn flow*
+  "For use within macros that create flows"
+  [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (let [flow-meta caller-meta
@@ -105,13 +109,39 @@
   [s]
   (-> s meta :top-level-description))
 
-(defn as-step-fn
+(defn ^:deprecated as-step-fn
   "Transform a flow step into a state transition function"
   [flow]
   (fn [s] (state/exec flow s)))
 
+(defn get-state
+  "Used to access the state inside a flow.
+
+  Given no arguments, creates a flow that returns the value of state.
+  Given f, creates a flow that returns the result of applying f to state
+  with any additional args."
+  ([]
+   (get-state identity))
+  ([f & args]
+   (cats.monad.state/gets #(apply f % args) state/error-context)))
+
+(defn reset-state
+  "Creates a flow that resets the value of state to new-state"
+  [new-state]
+  (cats.monad.state/put new-state state/error-context))
+
+(defn swap-state
+  "Creates a flow that performs a swap on the state with f and any additional args"
+  [f & args]
+  (cats.monad.state/swap #(apply f % args) state/error-context))
+
+(defn return
+  "Creates a flow that returns v"
+  [v]
+  (m/return state/error-context v))
+
 (defn fmap
-  "Returns a flow which applies f to return of flow."
+  "Creates a flow which applies f to return of the provided flow."
   [f flow]
   (m/fmap f flow))
 

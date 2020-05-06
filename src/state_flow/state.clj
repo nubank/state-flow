@@ -1,4 +1,5 @@
 (ns state-flow.state
+  "Internal use. Use functions from state-flow.core instead."
   (:refer-clojure :exclude [eval get])
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
@@ -65,28 +66,28 @@
 
 (util/make-printable (type error-context))
 
-(defn get
-  "Returns the equivalent of (fn [state] [state, state])"
+(defn ^:deprecated get
+  "DEPRECATED. Use state-flow.core/get-state instead"
   []
   (state/get error-context))
 
-(defn gets
-  "Returns the equivalent of (fn [state] [state, (apply f state args)])"
+(defn ^:deprecated gets
+  "DEPRECATED. Use state-flow.core/get-state instead"
   [f & args]
   (state/gets #(apply f % args) error-context))
 
-(defn put
-  "Returns the equivalent of (fn [state] [state, new-state])"
+(defn ^:deprecated put
+  "DEPRECATED. Use state-flow.core/reset-state instead"
   [new-state]
   (state/put new-state error-context))
 
-(defn modify
-  "Returns the equivalent of (fn [state] [state, (apply swap! state f args)])"
+(defn ^:deprecated modify
+  "DEPRECATED. Use state-flow.core/swap-state instead"
   [f & args]
   (state/swap #(apply f % args) error-context))
 
-(defn return
-  "Returns the equivalent of (fn [state] [v, state])"
+(defn ^:deprecated return
+  "DEPRECATED. Use state-flow.core/return instead"
   [v]
   (m/return error-context v))
 

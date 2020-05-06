@@ -6,9 +6,9 @@
             [state-flow.state :as state]
             [cats.monad.exception :as e]))
 
-(def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
+(def bogus (state-flow/get-state (fn [_] (throw (Exception. "My exception")))))
 
-(def add-two (state/modify update :value + 2))
+(def add-two (state-flow/swap-state update :value + 2))
 
 (def nested-flow
   (flow "root"
@@ -17,9 +17,9 @@
 
 (def flow-with-bindings
   (flow "root"
-    [original (state/gets :value)
+    [original (state-flow/get-state :value)
      :let [doubled (* 2 original)]]
-    (state/modify #(assoc % :value doubled))))
+    (state-flow/swap-state #(assoc % :value doubled))))
 
 (def bogus-flow
   (flow "root"
@@ -57,18 +57,18 @@
                      (.. e getCause getMessage))))))
 
   (testing "flow with a `(str ..)` expr for the description is fine"
-    (is (macroexpand `(flow (str "foo") [original (state/gets :value)
+    (is (macroexpand `(flow (str "foo") [original (state-flow/get-state :value)
                                          :let [doubled (* 2 original)]]
-                            (state/modify #(assoc % :value doubled))))))
+                            (state-flow/swap-state #(assoc % :value doubled))))))
 
   (testing "but flows with an expression that resolves to a string also aren't valid,
             due to resolution limitations at macro-expansion time"
     (is (re-find #"first argument .* must be .* description string"
                  (let [my-desc "trolololo"]
                    (try
-                     (macroexpand `(flow ~'my-desc [original (state/gets :value)
+                     (macroexpand `(flow ~'my-desc [original (state-flow/get-state :value)
                                                     :let [doubled (* 2 original)]]
-                                         (state/modify #(assoc % :value doubled))))
+                                         (state-flow/swap-state #(assoc % :value doubled))))
                      (catch clojure.lang.Compiler$CompilerException e
                        (.. e getCause getMessage)))))))
 
@@ -92,7 +92,7 @@
                                           :runner (fn [flow state]
                                                     (let [[l r] (state-flow/run flow state)]
                                                       {:l l :r r}))}
-                          (state/modify update :count inc))]
+                          (state-flow/swap-state update :count inc))]
       (is (= {:count 0} l))
       (is (= {:count 1} r))))
 
@@ -147,7 +147,7 @@
                           (test-helpers/run-flow bogus-flow {:value 0})))))
 
 (deftest as-step-fn
-  (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
+  (let [add-two-fn (state-flow/as-step-fn (state-flow/swap-state #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
 
 (defn consecutive?
@@ -257,7 +257,7 @@
                  (->> (state-flow/run
                        (flow "flow"
                          [x identity]
-                         (state/gets)))
+                         (state-flow/get-state)))
                       first
                       :failure
                       .getMessage)))))
@@ -265,3 +265,11 @@
 (deftest fmap
   (testing "works just like cats.core/fmap"
     (is (= 3 (state/eval (state-flow/fmap count (state/return [1 2 3])) {})))))
+
+(deftest state-operations
+  (testing "primitives returns correct values"
+    (is (= [2 2] (state/run (state-flow/get-state) 2)))
+    (is (= [3 2] (state/run (state-flow/get-state inc) 2)))
+    (is (= [2 3] (state/run (state-flow/swap-state inc) 2)))
+    (is (= [37 2] (state/run (state-flow/return 37) 2)))
+    (is (= [2 3] (state/run (state-flow/reset-state 3) 2)))))
