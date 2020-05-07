@@ -3,7 +3,6 @@
             [midje.sweet :refer [contains just]]
             [state-flow.core :as state-flow]
             [state-flow.midje :as midje]
-            [state-flow.state :as state]
             [state-flow.test-helpers :as test-helpers]))
 
 (deftest verify
@@ -28,7 +27,7 @@
   (testing "extended equality"
     (let [state {:a 2 :b 5}]
       (= state
-         (first (state/run (midje/verify-probe "contains with monadic left value"
-                                               (state/get) (contains {:a 2}) {}) state))
-         (first (state/run (midje/verify-probe "just with monadic left value"
-                                               (state/get) (just {:a 2 :b 5}) {}) state))))))
+         (first (state-flow/run (midje/verify-probe "contains with monadic left value"
+                                                    (state-flow/get-state) (contains {:a 2}) {}) state))
+         (first (state-flow/run (midje/verify-probe "just with monadic left value"
+                                                    (state-flow/get-state) (just {:a 2 :b 5}) {}) state))))))

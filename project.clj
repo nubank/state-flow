@@ -36,7 +36,8 @@
                                   [org.clojure/tools.namespace "0.3.1"]
                                   [midje "1.9.9"]
                                   [org.clojure/java.classpath "0.3.0"]
-                                  [rewrite-clj "0.6.1"]]}}
+                                  [rewrite-clj "0.6.1"]
+                                  [org.clojure/test.check "1.0.0"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]

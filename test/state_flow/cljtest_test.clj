@@ -1,6 +1,7 @@
 (ns state-flow.cljtest-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [matcher-combinators.test :refer [match?]]
+            [state-flow.core :as state-flow]
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.cljtest :refer [defflow]]
             [state-flow.state :as state]))
@@ -18,9 +19,9 @@
 (def flow-with-binding-and-match
   (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
                                                        :map {:a 1 :b 2}})}
-                    [value (state/gets :value)]
+                    [value (state-flow/get-state :value)]
                     (testing "1" (mc/match? 1 value))
-                    (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))))
+                    (testing "b is 2" (mc/match? {:b 2} (state-flow/get-state :map))))))
 
 (deftest test-defflow
   (testing "defines flow with default parameters"
@@ -46,17 +47,17 @@
                {:init (constantly {:map {:a 1 :b 2} :value 1})}
                (state-flow.core/flow
                 "my-flow"
-                 [value (state/gets :value)]
+                 [value (state-flow/get-state :value)]
                  (testing "1" (mc/match? 1 value))
-                 (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))))
+                 (testing "b is 2" (mc/match? {:b 2} (state-flow/get-state :map))))))
 
            flow-with-binding-and-match))))
 
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}
-  [value (state/gets :value)]
+  [value (state-flow/get-state :value)]
   (testing "1" (mc/match? 1 value))
-  (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))
+  (testing "b is 2" (mc/match? {:b 2} (state-flow/get-state :map))))
 
 (deftest run-a-flow
   (is (match? {:value 1

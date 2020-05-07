@@ -1,11 +1,11 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
   (:require [cats.core :as m]
+            [cats.monad.state :as monad.state]
             [cats.monad.exception :as e]
             [clojure.pprint :as pp]
             [clojure.string :as str]
-            [state-flow.state :as state]
-            [state-flow.impl :as impl]
+            [state-flow.context :as context]
             [taoensso.timbre :as log]))
 
 (declare get-state swap-state)
@@ -104,6 +104,12 @@
                 :caller-meta (meta &form)}
          flows))
 
+(def
+  ^{:doc "Returns true if obj is a flow."
+    :arglists '([obj])}
+  flow?
+  monad.state/state?)
+
 (defn top-level-description
   "Returns the description passed to the top level flow (or the
   stringified symbol passed to defflow)."
@@ -113,40 +119,39 @@
 (defn ^:deprecated as-step-fn
   "Transforms flow into a function of state."
   [flow]
-  (fn [s] (state/exec flow s)))
+  (fn [s] (monad.state/exec flow s)))
 
-(def
-  ^{:doc "Used to access the state inside a flow.
+(defn get-state
+  "Used to access the state inside a flow.
 
   Given no arguments, creates a flow that returns the value of state.
   Given f, creates a flow that returns the result of applying f to state
   with any additional args."
-    :arglists '([] [f & args])}
-  get-state
-  impl/get-state)
+  ([]
+   (get-state identity))
+  ([f & args]
+   (cats.monad.state/gets #(apply f % args) context/short-circuiting-context)))
 
-(def
-  ^{:doc "Creates a flow that resets the value of state to new-state"
-    :arglists '([new-state])}
-  reset-state
-  impl/reset-state)
+(defn reset-state
+  "Creates a flow that resets the value of state to new-state"
+  [new-state]
+  (cats.monad.state/put new-state context/short-circuiting-context))
 
-(def
-  ^{:doc "Creates a flow that performs a swap on the state with f and any additional args"
-    :arglists '([f & args])}
-  swap-state
-  impl/swap-state)
+(defn swap-state
+  "Creates a flow that performs a swap on the state with f and any additional args"
+  [f & args]
+  (cats.monad.state/swap #(apply f % args) context/short-circuiting-context))
 
-(def
-  ^{:doc "Creates a flow that returns v"
-    :arglists '([v])}
-  return
-  impl/return)
+(defn return
+  "Creates a flow that returns v"
+  [v]
+  (m/return context/short-circuiting-context v))
 
-(def ^{:arglists '([my-fn])
-       :doc "Creates a flow that wraps a (possibly side-effecting)"}
-  wrap-fn
-  impl/wrap-fn)
+(defn wrap-fn
+  "Creates a flow that wraps a (possibly side-effecting) function"
+  "Wraps a (possibly side-effecting) function to a state monad"
+  [my-fn]
+  (context/error-catching-state (fn [s] [(my-fn) s])))
 
 (defn fmap
   "Creates a flow which applies f to return of the provided flow."
@@ -179,9 +184,9 @@
   ([flow]
    (run flow {}))
   ([flow initial-state]
-   (assert (state/state? flow) "First argument must be a flow")
+   (assert (monad.state/state? flow) "First argument must be a flow")
    (assert (map? initial-state) "Initial state must be a map")
-   (clarify-illegal-arg (state/run flow initial-state))))
+   (clarify-illegal-arg (monad.state/run flow initial-state))))
 
 (defn run*
   "Runs a flow with specified parameters. Use `run` unless you need

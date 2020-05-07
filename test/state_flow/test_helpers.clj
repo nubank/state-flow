@@ -1,5 +1,5 @@
 (ns state-flow.test-helpers
-  (:require [state-flow.core]
+  (:require [state-flow.core :as state-flow]
             [state-flow.state :as state]))
 
 (defmacro this-line-number
@@ -9,16 +9,16 @@
     `(:line ~m)))
 
 (def get-value (comp deref :value))
-(def get-value-state (state/gets get-value))
+(def get-value-state (state-flow/get-state get-value))
 
 (def add-two
-  (state/gets (comp (partial + 2) :value)))
+  (state-flow/get-state (comp (partial + 2) :value)))
 
 (defn swap-later
-  "Returns a state/modify step which will (apply swap! (get state k) f args)
+  "Returns a state-flow/swap-state step which will (apply swap! (get state k) f args)
   in `delay-ms` milliseconds."
   [delay-ms k f & args]
-  (state/modify (fn [state]
+  (state-flow/swap-state (fn [state]
                   (future (do (Thread/sleep delay-ms)
                               (apply swap! (get state k) f args)))
                   state)))

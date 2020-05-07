@@ -1,15 +1,15 @@
 (ns state-flow.assertions.matcher-combinators-test
   (:require [clojure.test :as t :refer [deftest testing is]]
             [cats.core :as m]
+            [cats.monad.state :as state]
             [matcher-combinators.test]
             [matcher-combinators.matchers :as matchers]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
+            [state-flow.core :as state-flow :refer [flow]]
             [state-flow.assertions.matcher-combinators :as mc]
-            [state-flow.test-helpers :as test-helpers :refer [shhh!]]
-            [state-flow.state :as state]
-            [state-flow.core :as state-flow :refer [flow]]))
+            [state-flow.test-helpers :as test-helpers :refer [shhh!]]))
 
-(def get-value-state (state/gets (comp deref :value)))
+(def get-value-state (state-flow/get-state (comp deref :value)))
 
 (deftest test-match?-passing-cases
   (testing "with literals for expected and actual"
@@ -23,7 +23,7 @@
         (is (= {:initial :state} state)))))
 
   (testing "with step for actual"
-    (let [[ret state] (state/run (mc/match? 3 (state/return 3)) {})]
+    (let [[ret state] (state/run (mc/match? 3 (state-flow/return 3)) {})]
       (testing "returns match result"
         (is (match? {:match/result :match} ret)))
       (testing "doesn't change state"
@@ -41,7 +41,7 @@
           (state/run
             (flow "flow"
               (test-helpers/swap-later 100 :value + 2)
-              (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
+              (mc/match? 2 (state-flow/get-state (comp deref :value)) {:times-to-try 3
                                                              :sleep-time   110}))
             {:value (atom 0)})]
       (testing "returns match result with probe info"
@@ -61,7 +61,7 @@
           {:keys [flow-ret flow-state report-data]}
           (test-helpers/run-flow
            (mc/match? (matchers/equals {:n 1})
-                      (state/gets :value)
+                      (state-flow/get-state :value)
                       {:times-to-try 2})
            {:value {:n 2}})]
       (testing "returns match result"
@@ -87,7 +87,7 @@
            (flow "flow"
              (test-helpers/swap-later 200 :count + 2)
              (testing "2" (mc/match? 2
-                                     (state/gets (comp deref :count))
+                                     (state-flow/get-state (comp deref :count))
                                      {:times-to-try 2
                                       :sleep-time   75})))
            {:count (atom 0)})]

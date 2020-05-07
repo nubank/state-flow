@@ -1,11 +1,12 @@
 (ns state-flow.core-test
   (:require [clojure.test :as t :refer [deftest testing is]]
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as p]
             [matcher-combinators.test :refer [match?]]
+            [cats.monad.exception :as e]
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
-            [state-flow.core :as state-flow :refer [flow]]
-            [state-flow.state :as state]
-            [state-flow.impl :as impl]
-            [cats.monad.exception :as e]))
+            [state-flow.core :as state-flow :refer [flow]]))
 
 (def bogus (state-flow/get-state (fn [_] (throw (Exception. "My exception")))))
 
@@ -53,7 +54,7 @@
   (testing "flow without description fails at macro-expansion time"
     (is (re-find #"first argument .* must be .* description string"
                  (try
-                   (macroexpand `(flow (state/return {})))
+                   (macroexpand `(flow (state-flow/return {})))
                    (catch clojure.lang.Compiler$CompilerException e
                      (.. e getCause getMessage))))))
 
@@ -129,14 +130,14 @@
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
                           (state-flow/run* {:cleanup (fn [_] (throw (ex-info "Oops" {})))}
-                            (state/get)))))
+                            (state-flow/get-state)))))
 
   (testing "flow with exception in runner throws exception"
     ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
                           (state-flow/run* {:runner (constantly (throw (ex-info "Oops" {})))}
-                            (state/get))))))
+                            (state-flow/get-state))))))
 
 (deftest state-flow-run!
   (testing "default initial state is an empty map"
@@ -265,4 +266,90 @@
 
 (deftest fmap
   (testing "works just like cats.core/fmap"
-    (is (= 3 (state/eval (state-flow/fmap count (state/return [1 2 3])) {})))))
+    (is (= 3 (first (state-flow/run (state-flow/fmap count (state-flow/return [1 2 3])) {}))))))
+
+(deftest test-flow?-returns-true-for-state
+  (testing "returns true for a state monad"
+    (is (state-flow/flow? (state-flow/get-state)))))
+
+(defspec flow?-returns-false-for-anything-else
+  (p/for-all [v gen/any]
+             (not (state-flow/flow? v))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(deftest state-operations
+  (testing "all operation constructors return flows"
+    (is (state-flow/flow? (state-flow/get-state)))
+    (is (state-flow/flow? (state-flow/get-state inc)))
+    (is (state-flow/flow? (state-flow/swap-state inc)))
+    (is (state-flow/flow? (state-flow/return 37)))
+    (is (state-flow/flow? (state-flow/reset-state {:count 0})))
+    (is (state-flow/flow? (state-flow/wrap-fn (constantly "hello")))))
+
+  (testing "operations return correct values when run"
+    (is (= [2 2] (state/run (state-flow/get-state) 2)))
+    (is (= [3 2] (state/run (state-flow/get-state inc) 2)))
+    (is (= [2 3] (state/run (state-flow/swap-state inc) 2)))
+    (is (= [37 2] (state/run (state-flow/return 37) 2)))
+    (is (= [2 3] (state/run (state-flow/reset-state 3) 2)))
+    (is (= ["hello" 2] (state/run (state-flow/wrap-fn (constantly "hello")) 2)))))
+
+(deftest get-state
+  (testing "supports single function or varargs"
+    (is (= [{:count 1} {:count 0}]
+           (state-flow/run (state-flow/get-state #(update % :count inc)) {:count 0})
+           (state-flow/run (state-flow/get-state update :count inc) {:count 0})))))
+
+(deftest swap-state
+  (testing "supports single function or varargs"
+    (is (= [{:count 0} {:count 1}]
+           (state-flow/run (state-flow/swap-state #(update % :count inc)) {:count 0})
+           (state-flow/run (state-flow/swap-state update :count inc) {:count 0})))))
+
+(deftest get-and-reset-state
+  (let [increment-state (m/mlet [x (state-flow/get-state)
+                                 _ (state-flow/reset-state (inc x))]
+                                (m/return x))]
+    (testing "modify state with get and put"
+      (is (= [2 3]
+             (state/run increment-state 2))))))
+
+(deftest exception-handling
+  (let [double-state (state-flow/swap-state * 2)]
+    (testing "state with an exception returns a failure as the left value"
+      (let [[res state] (state/run (m/>> double-state
+                                         double-state
+                                         (state-flow/swap-state (fn [s] (throw (Exception. "My exception"))))
+                                         double-state) 2)]
+        (is (e/failure? res))
+        (is (= 8 state))))
+
+    (testing "also handles exceptions with fmap"
+      (let [[res state] (state/run
+                          (m/fmap inc (m/>> double-state
+                                            double-state
+                                            (state-flow/swap-state (fn [s] (throw (Exception. "My exception"))))
+                                            double-state)) 2)]
+        (is (e/failure? res))
+        (is (= 8 state)))
+
+      (let [[res state] (state/run
+                          (m/>> double-state
+                                double-state
+                                (state-flow/swap-state (fn [s] (throw (Exception. "My exception"))))
+                                double-state) 2)]
+        (is (e/failure? res))
+        (is (= 8 state)))
+
+      (let [[res state] (state/run
+                          (m/>> (m/fmap (fn [s] (throw (Exception. "My exception")))
+                                        (m/>> double-state
+                                              double-state))
+                                double-state) 2)]
+        (is (e/failure? res))
+        (is (= 8 state)))))
+
+  (testing "exceptions in primitives are returned as the result"
+    (is (e/failure? (first (state/run (state-flow/get-state #(/ 2 %)) 0))))
+    (is (e/failure? (first (state/run (state-flow/swap-state #(/ 2 %)) 0))))))
