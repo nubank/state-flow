@@ -4,6 +4,7 @@
             [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
+            [state-flow.impl :as impl]
             [cats.monad.exception :as e]))
 
 (def bogus (state-flow/get-state (fn [_] (throw (Exception. "My exception")))))
@@ -265,11 +266,3 @@
 (deftest fmap
   (testing "works just like cats.core/fmap"
     (is (= 3 (state/eval (state-flow/fmap count (state/return [1 2 3])) {})))))
-
-(deftest state-operations
-  (testing "primitives returns correct values"
-    (is (= [2 2] (state/run (state-flow/get-state) 2)))
-    (is (= [3 2] (state/run (state-flow/get-state inc) 2)))
-    (is (= [2 3] (state/run (state-flow/swap-state inc) 2)))
-    (is (= [37 2] (state/run (state-flow/return 37) 2)))
-    (is (= [2 3] (state/run (state-flow/reset-state 3) 2)))))

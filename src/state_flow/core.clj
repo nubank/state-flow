@@ -5,6 +5,7 @@
             [clojure.pprint :as pp]
             [clojure.string :as str]
             [state-flow.state :as state]
+            [state-flow.impl :as impl]
             [taoensso.timbre :as log]))
 
 (declare get-state swap-state)
@@ -110,35 +111,42 @@
   (-> s meta :top-level-description))
 
 (defn ^:deprecated as-step-fn
-  "Transform a flow step into a state transition function"
+  "Transforms flow into a function of state."
   [flow]
   (fn [s] (state/exec flow s)))
 
-(defn get-state
-  "Used to access the state inside a flow.
+(def
+  ^{:doc "Used to access the state inside a flow.
 
   Given no arguments, creates a flow that returns the value of state.
   Given f, creates a flow that returns the result of applying f to state
   with any additional args."
-  ([]
-   (get-state identity))
-  ([f & args]
-   (cats.monad.state/gets #(apply f % args) state/error-context)))
+    :arglists '([] [f & args])}
+  get-state
+  impl/get-state)
 
-(defn reset-state
-  "Creates a flow that resets the value of state to new-state"
-  [new-state]
-  (cats.monad.state/put new-state state/error-context))
+(def
+  ^{:doc "Creates a flow that resets the value of state to new-state"
+    :arglists '([new-state])}
+  reset-state
+  impl/reset-state)
 
-(defn swap-state
-  "Creates a flow that performs a swap on the state with f and any additional args"
-  [f & args]
-  (cats.monad.state/swap #(apply f % args) state/error-context))
+(def
+  ^{:doc "Creates a flow that performs a swap on the state with f and any additional args"
+    :arglists '([f & args])}
+  swap-state
+  impl/swap-state)
 
-(defn return
-  "Creates a flow that returns v"
-  [v]
-  (m/return state/error-context v))
+(def
+  ^{:doc "Creates a flow that returns v"
+    :arglists '([v])}
+  return
+  impl/return)
+
+(def ^{:arglists '([my-fn])
+       :doc "Creates a flow that wraps a (possibly side-effecting)"}
+  wrap-fn
+  impl/wrap-fn)
 
 (defn fmap
   "Creates a flow which applies f to return of the provided flow."
