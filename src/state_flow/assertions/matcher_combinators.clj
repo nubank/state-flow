@@ -6,7 +6,7 @@
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
 
-(defn ensure-step
+(defn ^:private ensure-step
   "Internal use only.
 
   Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
@@ -79,7 +79,7 @@
      ;; information from core/current-description.
      `(m/do-let
        [flow-desc# (core/current-description)
-        probe-res# (#'match-probe (ensure-step ~actual) ~expected ~params*)
+        probe-res# (#'match-probe (#'ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
                              :match/expected     ~expected
