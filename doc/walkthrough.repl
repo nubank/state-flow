@@ -55,7 +55,7 @@
 ;; can be a step or a flow. Whether it's a single step or a collection,
 ;; the interface is the same, so we talk about steps and flows somewhat
 ;; interchangeably. From the outside, a step is a flow, and a flow is
-;; a step.
+;; a step, and you can hand either to a runner.
 ;;
 ;; Here's an example of how we use state flow. Don't worry about the
 ;; details; we'll cover everything below.
@@ -80,12 +80,15 @@
 ;; response back to the state context.
 ;;
 ;; ----------------------------
-;; introduction the state monad
+;; flows and steps: introduction the state monad
 ;; ----------------------------
 ;;
-;; state-flow is implemented using a state monad. If you're already
-;; familiar with monads, great! If not, don't worry. We'll explain
-;; just enough about the state monad to understand state-flow.
+;; In state-flow, steps and flows are all instances of the same type:
+;; the state monad.
+;;
+;; If you're already familiar with monads, great! If not, don't
+;; worry. We'll explain just enough about the state monad to
+;; understand state-flow.
 ;;
 ;; - A monad is a wrapper around a function.
 ;; - The wrapped function will be invoked by a monad runner later.
@@ -95,19 +98,12 @@
 ;;   - The <left-value> is the return of the function.
 ;;   - The <right-value> is always the state _after_ the function is
 ;;     invoked. Note: not all functions modify the state.
-;;
-;; ----------------------------
-;; flows and steps
-;; ----------------------------
-;;
-;; In state-flow, steps and flows are all instances of the same type:
-;; the state monad. This can be a bit confusing
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state-flow/get-state
 ;;
-;; `state-flow/get-state` is a primitive step whose <left-value> is the state.
+;; `state-flow/get-state` is a primitive step whose <left-value> is the
+;; result of applying a function (default `identity`) to the state.
 
 ;; First, let's just see what it evaluates to by itself.
 (state-flow/get-state)
@@ -157,13 +153,10 @@
 (run (state-flow/get-state))
 ;; => [{} {}]
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; state-flow/get-state
-;;
-;; state-flow/get-state is a primitive step that returns the application of a
-;; function to the state, leaving the state intact.
+;; You can also use state-flow/get-state to apply a function to
+;; the value of the state before returning it.
 
-(run (state-flow/get-state (fn [s] (update s :count inc))) {:count 0})
+(run (state-flow/get-state update :count inc) {:count 0})
 ;;      return     state
 ;; => [{:count 1} {:count 0}]
 ;;
@@ -175,16 +168,6 @@
 ;; The `{count 0}` on the right, the <right-value> or <state>, is the
 ;; state _after_ invoking `state-flow/get-state`.  Since `state-flow/get-state` does not
 ;; modify the state, it's the same value we handed to `f`.
-;;
-;; `state-flow/get-state` also supports compositional function chaining by
-;; passing additional args to the function, like e.g. Clojure's
-;; `update` function
-
-(run (state-flow/get-state update :count inc) {:count 0})
-;; => [{:count 1} {:count 0}]
-
-(run (state-flow/get-state update :count + 2) {:count 0})
-;; => [{:count 2} {:count 0}]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state-flow/swap-state
@@ -192,7 +175,7 @@
 ;; `state-flow/swap-state` does the reverse of `state-flow/get-state`: it returns the
 ;; unmodified state and applies a function to the state:
 
-(run (state-flow/swap-state (fn [s] (update s :count inc))) {:count 0})
+(run (state-flow/swap-state update :count inc) {:count 0})
 ;; => [{:count 0} {:count 1}]
 ;;
 ;; The `{count 0}` on the left, the <left-value> or <return-value>, is
@@ -202,11 +185,6 @@
 ;; the result of applying the function we passed to `state-flow/swap-state` to
 ;; the state.  Since we passed `{count 0}` to `f`, that is passed to
 ;; `(fn [s] (update s :count + 1))`, which leaves the state `{count 1}`.
-;;
-;; And `state-flow/swap-state` also passes additional args to the function;
-
-(run (state-flow/swap-state update :count inc) {:count 0})
-;; => [{:count 0} {:count 1}]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state-flow/return
@@ -217,12 +195,12 @@
 ;; => [{:a 37} {:b 42}]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; state/put
+;; state-flow/reset-state
 ;;
-;; `state/put` replaces the state entirely, returning the state
+;; `state-flow/reset-state` replaces the state entirely, returning the state
 ;; as it was before the step.
 
-(run (state/put {:name "Jacob"}) {:count 0})
+(run (state-flow/reset-state {:name "Jacob"}) {:count 0})
 ;; => [{:count 0} {:name "Jacob"}]
 
 ;; ------------------------------------------------
@@ -332,12 +310,12 @@
 ;; To run a normal clojure expression in a flow, you can wrap it
 ;; in a function and pass it to `wrap-fn`:
 
-(run (state/wrap-fn #(+ 1 2)) {})
+(run (state-flow/wrap-fn #(+ 1 2)) {})
 ;; => [3 {}]
 
 (run
   (flow "get three"
-    [result (state/wrap-fn #(+ 1 2))]
+    [result (state-flow/wrap-fn #(+ 1 2))]
     (state-flow/return result))
   {})
 ;; [3 {}]
@@ -353,13 +331,16 @@
 
 ;; helper fns
 
+(defn with-db [f]
+  (state-flow/fmap f (state-flow/get-state :db)))
+
 (defn register-user-helper [user]
   (flow "register user"
-    (state-flow/get-state (fn [{:keys [db]}] (register-user db user)))))
+    (with-db #(register-user % user))))
 
 (defn fetch-users-helper []
   (flow "fetch users"
-    (state-flow/get-state (fn [{:keys [db]}] (fetch-users db)))))
+    (with-db fetch-users)))
 
 ;; flow
 
@@ -431,7 +412,7 @@
 (run
   (flow "fails"
     (match? 2 1)
-    (state/wrap-fn #(throw (ex-info "boom!" {})))
+    (state-flow/wrap-fn #(throw (ex-info "boom!" {})))
     (flow "is never run"
       (match? 4 3)))
   {})
@@ -441,7 +422,7 @@
   {:init (constantly {})}
   (flow "fails"
     (match? 2 1)
-    (state/wrap-fn #(throw (ex-info "boom!" {})))
+    (state-flow/wrap-fn #(throw (ex-info "boom!" {})))
     (flow "is never run"
       (match? 4 3))))
 
