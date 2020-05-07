@@ -1,15 +1,14 @@
 # Changelog
 
-## [DEV]
+## [4.0.0]
 
-* Throw when calling match? with times-to-try > 1 and a value for actual (should be a step) [#116](https://github.com/nubank/state-flow/pull/116)
 * [#117](https://github.com/nubank/state-flow/pull/117)
-
-* add `state-flow.core/fmap`
-* mv `state-flow.state/get` and `state-flow.state/gets` to `state-flow.core/get-state`
-* mv `state-flow.state/modify` to `state-flow.core/swap-state`
-* mv `state-flow.state/put` to `state-flow.core/reset-state`
-* mv `state-flow.state/return` to `state-flow.core/return`
+    * add `state-flow.core/fmap`
+    * mv `state-flow.state/get` and `state-flow.state/gets` to `state-flow.core/get-state`
+    * mv `state-flow.state/modify` to `state-flow.core/swap-state`
+    * mv `state-flow.state/put` to `state-flow.core/reset-state`
+    * mv `state-flow.state/return` to `state-flow.core/return`
+    * Throw when calling match? with times-to-try > 1 and a value for actual (should be a step) [#116](https://github.com/nubank/state-flow/pull/116)
 
 ## [3.0.0]
 
