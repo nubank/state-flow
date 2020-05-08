@@ -149,7 +149,6 @@
 
 (defn wrap-fn
   "Creates a flow that wraps a (possibly side-effecting) function"
-  "Wraps a (possibly side-effecting) function to a state monad"
   [my-fn]
   (context/error-catching-state (fn [s] [(my-fn) s])))
 

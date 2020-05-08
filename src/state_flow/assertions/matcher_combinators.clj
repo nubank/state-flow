@@ -2,23 +2,18 @@
   (:require [cats.core :as m]
             [matcher-combinators.standalone :as matcher-combinators]
             [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
-            [state-flow.core :as core]
-            [state-flow.probe :as probe]
-            [state-flow.state :as state]))
+            [state-flow.core :as state-flow]
+            [state-flow.probe :as probe]))
 
-(defn ^:private ensure-step
-  "Internal use only.
-
-  Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
+(defn ^:private ensure-flow
+  "Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
   [value]
-  (if (state/state? value)
+  (if (state-flow/flow? value)
     value
-    (core/return value)))
+    (state-flow/return value)))
 
 (defn ^:private match-probe
-  "Internal use only.
-
-  Returns the result of calling probe/probe with a function that
+  "Returns the result of calling probe/probe with a function that
   uses matcher-combinators to match the actual value.
 
   args:
@@ -67,19 +62,19 @@
                                  :sleep-time   probe/default-sleep-time}
                                 params)]
     (when (and ((fnil > 1) times-to-try 1)
-               (not (state/state? (eval actual))))
+               (not (state-flow/flow? (eval actual))))
       (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
                       {:times-to-try times-to-try
                        :actual (eval actual)})))
-    (core/flow*
+    (state-flow/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
-     ;; Nesting m/do-let inside a call the function core/flow* is
+     ;; Nesting m/do-let inside a call the function state-flow/flow* is
      ;; a bit ugly, but it supports getting the correct line number
-     ;; information from core/current-description.
+     ;; information from state-flow/current-description.
      `(m/do-let
-       [flow-desc# (core/current-description)
-        probe-res# (#'match-probe (#'ensure-step ~actual) ~expected ~params*)
+       [flow-desc# (state-flow/current-description)
+        probe-res# (#'match-probe (#'ensure-flow ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
                              :match/expected     ~expected
@@ -90,8 +85,8 @@
        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
-       (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
-       (state/return report#)))))
+       (state-flow/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+       (state-flow/return report#)))))
 
 (defn report->actual
   "Returns the actual value from the report returned by `match?`."
