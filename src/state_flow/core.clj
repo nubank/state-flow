@@ -80,7 +80,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
 
-(defn flow* [{:keys [description caller-meta]} & flows]
+(defn flow*
+  "For use in macros that create flows. Not private (appropriate for
+  helper libraries, for example), but not intended for use directly in
+  flows.
+
+  Creates a flow which is a composite of flows. The calling macro should
+  provide (meta &form) as `:caller-meta` in order to support accurate line
+  number reporting."
+  [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (let [flow-meta caller-meta
@@ -92,7 +100,7 @@
       (m/return ret#))))
 
 (defmacro flow
-  "Defines a flow"
+  "Creates a flow which is a composite of flows."
   {:style/indent :defn}
   [description & flows]
   (apply flow* {:description description
@@ -105,8 +113,35 @@
   [s]
   (-> s meta :top-level-description))
 
-(defn as-step-fn
-  "Transform a flow step into a state transition function"
+(defn return
+  "Creates a flow that returns v. Use this as the last
+  step in a flow that you want to reuse in other flows, in
+  order to clarify the return value, e.g.
+
+    (def increment-count
+      (flow \"increments :count and returns it\"
+        (state/modify update :count inc)
+        [new-count (state/gets :count)]
+        (state-flow/return new-count)))"
+  [v]
+  (m/return state/short-circuiting-context v))
+
+(def
+  ^{:doc "Creates a flow that returns the application of f to the return of flow"
+    :arglists '([f flow])}
+  fmap
+  m/fmap)
+
+(defn invoke
+  "Creates a flow that invokes a function of no arguments and returns the
+  result. Used to invoke side effects e.g.
+
+     (state-flow.core/invoke #(Thread/sleep 1000))"
+  [my-fn]
+  (state/error-catching-state (fn [s] [(my-fn) s])))
+
+(defn ^:deprecated as-step-fn
+  "DEPRECATED with no replacement."
   [flow]
   (fn [s] (state/exec flow s)))
 
