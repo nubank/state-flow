@@ -71,10 +71,12 @@
   (state/get short-circuiting-context))
 
 (defn gets
-  "Creates a flow that returns the result of applying f to state
-  with any additional args."
-  [f & args]
-  (state/gets #(apply f % args) short-circuiting-context))
+  "Creates a flow that returns the result of applying f (default identity)
+  to state with any additional args."
+  ([]
+   (gets identity))
+  ([f & args]
+   (state/gets #(apply f % args) short-circuiting-context)))
 
 (defn put
   "Creates a flow that replaces state with new-state. "
@@ -87,20 +89,42 @@
   [f & args]
   (state/swap #(apply f % args) short-circuiting-context))
 
-(defn ^:deprecated return
-  "DEPRECATED: use state-flow.core/return instead."
+(defn return
+  "Creates a flow that returns v. Use this as the last
+  step in a flow that you want to reuse in other flows, in
+  order to clarify the return value, e.g.
+
+    (def increment-count
+      (flow \"increments :count and returns it\"
+        (state/modify update :count inc)
+        [new-count (state/gets :count)]
+        (state-flow/return new-count)))"
   [v]
   (m/return short-circuiting-context v))
+
+(defn invoke
+  "Creates a flow that invokes a function of no arguments and returns the
+  result. Used to invoke side effects e.g.
+
+     (state-flow.core/invoke #(Thread/sleep 1000))"
+  [my-fn]
+  (error-catching-state (fn [s] [(my-fn) s])))
+
+(def
+  ^{:doc "Creates a flow that returns the application of f to the return of flow"
+    :arglists '([f flow])}
+  fmap
+  m/fmap)
 
 (defn ^:deprecated swap
   "DEPRECATED: use state-flow.state/modify instead."
   [f]
   (modify f))
 
-(defn ^:deprecated wrap-fn
-  "DEPRECATED: Use state-flow.core/invoke instead."
-  [my-fn]
-  (error-catching-state (fn [s] [(my-fn) s])))
+(def ^{:deprecated true
+       :doc "DEPRECATED: Use state-flow.state/invoke instead."}
+  wrap-fn
+  invoke)
 
 (def state? state/state?)
 (def run state/run)

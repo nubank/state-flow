@@ -113,33 +113,6 @@
   [s]
   (-> s meta :top-level-description))
 
-(defn return
-  "Creates a flow that returns v. Use this as the last
-  step in a flow that you want to reuse in other flows, in
-  order to clarify the return value, e.g.
-
-    (def increment-count
-      (flow \"increments :count and returns it\"
-        (state/modify update :count inc)
-        [new-count (state/gets :count)]
-        (state-flow/return new-count)))"
-  [v]
-  (m/return state/short-circuiting-context v))
-
-(def
-  ^{:doc "Creates a flow that returns the application of f to the return of flow"
-    :arglists '([f flow])}
-  fmap
-  m/fmap)
-
-(defn invoke
-  "Creates a flow that invokes a function of no arguments and returns the
-  result. Used to invoke side effects e.g.
-
-     (state-flow.core/invoke #(Thread/sleep 1000))"
-  [my-fn]
-  (state/error-catching-state (fn [s] [(my-fn) s])))
-
 (defn ^:deprecated as-step-fn
   "DEPRECATED with no replacement."
   [flow]
