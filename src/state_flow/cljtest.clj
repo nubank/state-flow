@@ -15,7 +15,8 @@
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
 (defmacro defflow
-  {:arglists '([name & flows]
+  {:doc "Creates a flow and binds it a Var named by name"
+   :arglists '([name & flows]
                [name parameters & flows])}
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
