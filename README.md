@@ -19,7 +19,7 @@ reference. Use the `flow` macro to define a flow:
 (flow <description> <step/bindings>*)
 ```
 
-Once defined, you can run it with `(state-flow.core/run* <options> (flow ...))`.
+Once defined, you can run it with `(state-flow.api/run* <options> (flow ...))`.
 
 You can think flows and the steps within them as functions of the state, e.g.
 
@@ -36,68 +36,70 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 (def a-flow (flow ...))
 
 (defn build-initial-state [] { ... })
-(state-flow.core/run* {:init build-initial-state} flow)
+(state-flow.api/run* {:init build-initial-state} flow)
 
-(state-flow.core/run* {:init (constantly {:service-system (atom nil))} flow)
+(state-flow.api/run* {:init (constantly {:service-system (atom nil))} flow)
 ```
 
 ### Primitive steps
 
 Primitive steps are the fundamental building blocks of flows.
 
-Below we list the main primitives and a model for the sort of function
-each represents. Their names are derived from [Haskell's State
-Monad](https://wiki.haskell.org/State_Monad), which you should read
-about if you want to understand StateFlow's internals, but you should
-not need in order to use StateFlow.
-
-* Return current state
+* Return the application of a function f to the state.
 
 ```clojure
-(state-flow.state/get)
-;=> (fn [s] [s s])
+(state-flow.api/get-state f)
 ```
 
-* Return the application of a function to the current state
+* Store the application of a function f to the state.
 
 ```clojure
-(state-flow.state/gets f)
-;=> (fn [s] [(f s) s])
+(state-flow.api/swap-state f)
 ```
 
-* Reset a new state
+* Transform a value returned by a step
 
-```clojure
-(state-flow.state/put new-s)
-;=> (fn [s] [s new-s])
+``` clojure
+(state-flow.api/fmap xform <step-or-flow>)
 ```
 
-* Update the state by applying a function
+* Return a value
 
 ```clojure
-(state-flow.state/modify f)
-;=> (fn [s] [s (f s)])
+(state-flow.api/return v)
 ```
 
-* Return an arbitrary value
+* Invoke a no-arg function and return its result
 
-```clojure
-(state-flow.state/return v)
-;=> (fn [s] [v s])
+``` clojure
+(state-flow.api/invoke no-arg-fn)
 ```
 
 ### Bindings
 
-Bindings bind return values of steps to symbols you can use in other steps, and have the following syntax:
+Bindings bind return values of steps to symbols you can use in other steps.
 
 `[(<symbol> <step>)+]`
 
-They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the step on the right.
-It's also possible to bind directly to values (i.e. Clojure's `let`) within the same vector using the `:let` keyword:
+They are like `let` bindings but the symbol on the left binds to the _return value_ of the step on the right.
 
 ```clojure
-[(<symbol> <step>)
- :let [<symbol> <non-step expression>]]
+[<symbol> <step-or-flow>]
+ ```
+
+You can also bind directly to values using the `:let` keyword:
+
+```clojure
+[:let [<symbol> <non-step expression>]]
+ ```
+
+You can bind any number of symbols in a single binding vector, e.g.
+
+```clojure
+[a     step-1
+ b     step-2
+ :let [c expression-1]
+ d     step-3]
  ```
 
 ### Flow Example
@@ -106,24 +108,25 @@ Suppose our system state is made out of a map with `{:value <value>}`. We can ma
 fetches the value bound to `:value`.
 
 ```clojure
-(def get-value (flow "get-value" (state/gets :value)))
-(state-flow/run* {:init (constantly {:value 4})} get-value)
+(require '[state-flow.api :as flow :refer [flow]])
+(def get-value (flow "get-value" (flow/get-state :value)))
+(flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
 Primitive steps have the same underlying structure as flows and can be passed directly to `run*`:
 
 ```clojure
-(def get-value (state/gets :value))
-(state-flow/run* {:init (constantly {:value 4})} get-value)
+(def get-value (flow/get-state :value))
+(flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
-We can use `state/modify` to modify the state. Here's a primitive that increments the value:
+We can use `state-flow.api/swap-state` to modify the state. Here's a primitive that increments the value:
 
 ```clojure
-(def inc-value (state/modify #(update % :value inc)))
-(state-flow/run* {:init (constantly {:value 4})} inc-value)
+(def inc-value (flow/swap-state update :value inc))
+(flow/run* {:init (constantly {:value 4})} inc-value)
 ; => [{:value 4} {:value 5}]
 ```
 
@@ -135,8 +138,8 @@ multiplied by two, we could do it like this:
 (def double-value
   (flow "get double value"
     [value get-value]
-    (state/return (* value 2))))
-(state-flow/run* {:init (constantly {:value 4})} double-value)
+    (flow/return (* value 2))))
+(flow/run* {:init (constantly {:value 4})} double-value)
 ; => [8 {:value 4}]
 ```
 
@@ -147,8 +150,8 @@ Or we could increment the value first and then return it doubled:
   (flow "increment and double value"
     inc-value
     [value get-value]
-    (state/return (* value 2))))
-(state-flow/run* {:init (constantly {:value 4})} inc-and-double-value)
+    (flow/return (* value 2))))
+(flow/run* {:init (constantly {:value 4})} inc-and-double-value)
 ; => [10 {:value 5}]
 ```
 
@@ -169,7 +172,7 @@ library for the actual check and failure messages. `match?` asks for:
 * the expected value, or a matcher-combinators matcher
   * if you supply a value, matcher-combintators will apply its defaults
 * the actual value, or a step which will produce it
-  * if you supply a value, `match?` will wrap it in `(state/return <value>)`
+  * if you supply a value, `match?` will wrap it in `(state-flow.api/return <value>)`
 * optional map of options with:
   * `:times-to-try` (default 1)
   * `:sleep-time`   (default 200)
@@ -202,10 +205,10 @@ Or with custom parameters:
 ```clojure
 (defflow my-flow {:init (constantly {:value 1
                                      :map {:a 1 :b 2}})}
-  [value (state/gets :value)]
+  [value (flow/get-state :value)]
   (match? 1 value)
   (flow "uses matcher-combinator embeds"
-    (match? {:b 2} (state/gets :map)))
+    (match? {:b 2} (flow/get-state :map)))
 ```
 
 ### `:times-to-try` and `:sleep-time`
@@ -276,7 +279,7 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
 
 ```clojure
 (:require
-  [state-flow.core :refer [flow]]
+  [state-flow.api :refer [flow]]
   [state-flow.midje :refer [verify]])
 
 (defn stores-data-in-db
@@ -293,9 +296,9 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
 
 Test helpers specific to your domain can make state-flow tests more
 readable and intention-revealing. When writing them, we recommend that
-you start with state-flow functions in the `state-flow.core` and
-`state-flow.state` namespaces.  If, for example, you're testing a
-webapp, you might want a `request` helper like this:
+you start with state-flow functions in the `state-flow.api` namespace.
+If, for example, you're testing a webapp, you might want a `request`
+helper like this:
 
 ``` clojure
 (defflow users
@@ -315,13 +318,12 @@ the `http-helpers/request` helper could be implemented something like this:
 ``` clojure
 (ns http-helpers
   (:require [my-app.http :as http]
-            [state-flow.core :refer [flow]]
-            [state-flow.state :as state]))
+            [state-flow.api :as flow :refer [flow]]))
 
 (defn request [req]
   (flow "make request"
-    [http (state/gets :http-component)]
-    (state/return (http/request http req)))
+    [http (flow/get-state :http-component)]
+    (flow/return (http/request http req)))
 ```
 
 This produces a step that can be used in a flow, as above.
@@ -338,21 +340,9 @@ let's say you want to execute a step `n` times. You could use the
 `cats.core/sequence` function directly
 
 ``` clojure
-(state-flow.core/run
+(state-flow.api/run
   (flow "x"
-      (cats.core/sequence (repeat 5 (state-flow.state/modify update :count inc))))
-  {:count 0})
-```
-
-Or wrap it in a helper:
-
-``` clojure
-(defn repeat-step [n step]
-    (cats.core/sequence (repeat n step)))
-
-(state-flow/run
-  (flow "x"
-      (repeat-step 5 (state/modify update :count inc)))
+      (cats.core/sequence (repeat 5 (state-flow.api/swap-state update :count inc))))
   {:count 0})
 ```
 
