@@ -110,6 +110,12 @@
   [flow]
   (fn [s] (state/exec flow s)))
 
+(defn runner
+  "Creates a flow that returns the runner (function). Useful for
+  helpers that need to access the runner."
+  []
+  (state/gets (comp :runner meta)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Error handlers
 
@@ -138,7 +144,8 @@
   ([flow initial-state]
    (assert (state/state? flow) "First argument must be a flow")
    (assert (map? initial-state) "Initial state must be a map")
-   (clarify-illegal-arg (state/run flow initial-state))))
+   (clarify-illegal-arg (state/run flow
+                          (vary-meta initial-state update :runner (fnil identity run))))))
 
 (defn run*
   "Runs a flow with specified parameters. Use `run` unless you need
@@ -159,7 +166,7 @@
     :as opts}
    flow]
   (let [initial-state (init)
-        pair          (runner flow initial-state)]
+        pair          (runner flow (vary-meta initial-state assoc :runner runner))]
     (try
       (cleanup (second pair))
       (clarify-illegal-arg pair)

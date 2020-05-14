@@ -1,7 +1,8 @@
 # Changelog
 
-## [DEV]
+## [3.1.0]
 
+* Add state-flow.core/runner to access runner within flows [#119](https://github.com/nubank/state-flow/pull/119)
 * Throw when calling match? with times-to-try > 1 and a value for actual (should be a step) [#116](https://github.com/nubank/state-flow/pull/116)
 
 ## [3.0.0]
