@@ -113,3 +113,9 @@
   (if (state? value)
     value
     (return value)))
+
+(defn runner
+  "Creates a flow that returns the runner (function). Useful for
+  helpers that need to access the runner."
+  []
+  (gets (comp :runner meta)))

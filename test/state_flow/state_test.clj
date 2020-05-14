@@ -2,6 +2,7 @@
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [clojure.test :as t :refer [deftest is testing]]
+            [state-flow.core :as state-flowo]
             [state-flow.state :as state]))
 
 (deftest primitives
@@ -79,3 +80,18 @@
     (is (= [{:count 1} {:count 0}]
            (state/run (state/gets #(update % :count inc)) {:count 0})
            (state/run (state/gets update :count inc) {:count 0})))))
+
+(defn custom-runner [flow state]
+  (state-flow/run flow state))
+
+(deftest runner
+  (testing "returns state-flow/run using state-flow/run"
+    (is (identical? state-flow/run
+                    (first (state-flow/run (state/runner))))))
+  (testing "defaults to state-flow/run using state-flow/run*"
+    (is (identical? state-flow/run
+                    (first (state-flow/run* {} (state/runner))))))
+  (testing "returns custom runner when providing custom runner to state-flow/run*"
+    (is (identical? custom-runner
+                    (first (state-flow/run* {:runner custom-runner}
+                             (state/runner)))))))
