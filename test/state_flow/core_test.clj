@@ -261,3 +261,18 @@
                       first
                       :failure
                       .getMessage)))))
+
+(defn custom-runner [flow state]
+  (state-flow/run flow state))
+
+(deftest runner
+  (testing "returns state-flow/run using state-flow/run"
+    (is (identical? state-flow/run
+                    (first (state-flow/run (state-flow/runner))))))
+  (testing "defaults to state-flow/run using state-flow/run*"
+    (is (identical? state-flow/run
+                    (first (state-flow/run* {} (state-flow/runner))))))
+  (testing "returns custom runner when providing custom runner to state-flow/run*"
+    (is (identical? custom-runner
+                    (first (state-flow/run* {:runner custom-runner}
+                             (state-flow/runner)))))))
