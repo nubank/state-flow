@@ -2,7 +2,7 @@
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [clojure.test :as t :refer [deftest is testing]]
-            [state-flow.core :as state-flowo]
+            [state-flow.core :as state-flow]
             [state-flow.state :as state]))
 
 (deftest primitives
