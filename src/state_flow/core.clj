@@ -110,6 +110,12 @@
   [flow]
   (fn [s] (state/exec flow s)))
 
+(defn runner
+  "Creates a flow that returns the runner (function). Useful for
+  helpers that need to access the runner."
+  []
+  (state/gets (comp :runner meta)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Error handlers
 
