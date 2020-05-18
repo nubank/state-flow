@@ -5,6 +5,22 @@
             [state-flow.cljtest]
             [state-flow.assertions.matcher-combinators]))
 
+;; TODO: (dchelimsky,2020-05-18) Intellij / Cursive doesn't recognize the
+;; vars imported below unless we declare them. If that is ever fixed, we
+;; should remove this.
+(declare flow
+         run
+         run*
+         log-and-throw-error!
+         ignore-error
+         invoke
+         return
+         fmap
+         defflow
+         match?
+         get-state
+         swap-state)
+
 (import-vars
  state-flow.core/flow
  state-flow.core/run
