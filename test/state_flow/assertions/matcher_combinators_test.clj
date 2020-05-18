@@ -101,11 +101,12 @@
   (testing "with times-to-try > 1 and a value instead of a step"
     (testing "throws"
       (is (re-find #"actual must be a step or a flow when :times-to-try > 1"
-                   (.. (try
-                         (eval `(mc/match? 3 (+ 30 7) {:times-to-try 2}))
-                         (catch Exception e e))
-                       getCause
-                       getMessage))))))
+                   (.getMessage
+                    (:failure
+                     (first
+                      (try
+                        (state/run (mc/match? 3 (+ 30 7) {:times-to-try 2}) {})
+                        (catch Exception e e))))))))))
 
 (deftest test-report->actual
   (is (= :actual

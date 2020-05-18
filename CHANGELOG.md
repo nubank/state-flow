@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.3]
+
+* `match?` throws `times-to-try` warning at runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
+
 ## [4.0.2]
 
 * Make sure Intellij can find the vars imported in api ns.
