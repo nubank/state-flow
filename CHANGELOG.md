@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.2]
+
+* Make sure Intellij can find the vars imported in api ns.
+
 ## [4.0.1]
 
 * Add `state-flow.api` namespace [#118](https://github.com/nubank/state-flow/pull/118)
