@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.0]
+
+* Add `state-flow.api` namespace [#118](https://github.com/nubank/state-flow/pull/118)
+  * New namespace which has everything you need™
+  * New `fmap` fn
+
 ## [3.1.0]
 
 * Add state-flow.core/runner to access runner within flows [#119](https://github.com/nubank/state-flow/pull/119)
