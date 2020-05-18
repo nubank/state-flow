@@ -276,21 +276,3 @@
     (is (identical? custom-runner
                     (first (state-flow/run* {:runner custom-runner}
                              (state-flow/runner)))))))
-
-(deftest fmap
-  (is (= 1
-         (first (state-flow/run
-                  (state-flow/fmap (comp inc :count) (state/get))
-                  {:count 0})))))
-
-(deftest return
-  (testing "creates a flow"
-    (is (state/state? (state-flow/return 37))))
-  (testing "returns the value"
-    (is (= [37 2] (state/run (state-flow/return 37) 2)))))
-
-(deftest invoke
-  (testing "creates a flow"
-    (is (state/state? (state-flow/invoke (constantly "hello")))))
-  (testing "invokes a no-arg fn and returns its value"
-    (is (= ["hello" 2] (state/run (state-flow/invoke (constantly "hello")) 2)))))

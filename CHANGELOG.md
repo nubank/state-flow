@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0]
+## [4.0.1]
 
 * Add `state-flow.api` namespace [#118](https://github.com/nubank/state-flow/pull/118)
   * New namespace which has everything you need™
