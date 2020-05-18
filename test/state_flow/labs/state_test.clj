@@ -4,8 +4,8 @@
             [state-flow.labs.state :as labs.state]))
 
 (defn- set-redefs-macro-feature-flag [v f]
-  (let [old-v labs.state/*with-redefs-macro-enabled*
-        _ (alter-var-root #'labs.state/*with-redefs-macro-enabled* (constantly v))
+  (let [old-v labs.state/*enable-with-redefs-macro*
+        _ (alter-var-root #'labs.state/*enable-with-redefs-macro* (constantly v))
         result (f)]
     result))
 
@@ -22,6 +22,6 @@
              (catch clojure.lang.Compiler$CompilerException ex
                (is (instance? java.lang.AssertionError (ex-cause ex)))
                (is (-> ex ex-cause ex-message
-                       (str/includes? "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*with-redefs-macro-enabled*` to true")))))))
+                       (str/includes? "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*enable-with-redefs-macro*` to true")))))))
   (testing "if enabled, macroexpansion works as expected"
     (is (seq? (with-redefs-macro-enabled #(macroexpand flow-form))))))

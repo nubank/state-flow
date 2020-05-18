@@ -4,12 +4,12 @@
             [state-flow.state :as state]
             [state-flow.core :as state-flow]))
 
-(def ^:dynamic *with-redefs-macro-enabled* nil)
+(def ^:dynamic *enable-with-redefs-macro* nil)
 
 (defmacro with-redefs
   [bindings flow]
-  (assert *with-redefs-macro-enabled*
-          "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*with-redefs-macro-enabled*` to true")
+  (assert *enable-with-redefs-macro*
+          "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*enable-with-redefs-macro*` to true")
   `(m/do-let
     [world#  (state/get)
      runner# (state-flow/runner)
