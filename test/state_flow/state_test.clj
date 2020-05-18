@@ -5,21 +5,21 @@
             [state-flow.state :as state]))
 
 (deftest primitives
+  (testing "all primitives are flows"
+    (is (state/state? (state/get)))
+    (is (state/state? (state/gets inc)))
+    (is (state/state? (state/modify inc)))
+    (is (state/state? (state/put {:count 0})))
+    (is (state/state? (state/return 37)))
+    (is (state/state? (state/invoke (constantly "hello")))))
+
   (testing "primitives returns correct values"
     (is (= [2 2] (state/run (state/get) 2)))
     (is (= [3 2] (state/run (state/gets inc) 2)))
     (is (= [2 3] (state/run (state/modify inc) 2)))
-    (is (= [37 2] (state/run (state/return 37) 2)))
     (is (= [2 3] (state/run (state/put 3) 2)))
-    (is (= ["hello" 2] (state/run (state/wrap-fn (constantly "hello")) 2))))
-
-  (testing "all primitives are states"
-    (is (state/state? (state/get)))
-    (is (state/state? (state/gets inc)))
-    (is (state/state? (state/modify inc)))
-    (is (state/state? (state/return 37)))
-    (is (state/state? (state/put {:count 0})))
-    (is (state/state? (state/wrap-fn (constantly "hello"))))))
+    (is (= [37 2] (state/run (state/return 37) 2)))
+    (is (= ["hello" 2] (state/run (state/invoke (constantly "hello")) 2)))))
 
 (deftest exception-handling
   (let [double-state (state/modify * 2)]
@@ -79,3 +79,9 @@
     (is (= [{:count 1} {:count 0}]
            (state/run (state/gets #(update % :count inc)) {:count 0})
            (state/run (state/gets update :count inc) {:count 0})))))
+
+(deftest fmap
+  (is (= 1
+         (first (state/run
+                  (state/fmap (comp inc :count) (state/get))
+                  {:count 0})))))
