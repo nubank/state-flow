@@ -57,11 +57,7 @@
                                  :times-to-try 1
                                  :sleep-time   probe/default-sleep-time}
                                 params)]
-    (when (and ((fnil > 1) times-to-try 1)
-               (not (state/state? (eval actual))))
-      (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
-                      {:times-to-try times-to-try
-                       :actual (eval actual)})))
+
     (core/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
@@ -69,6 +65,12 @@
      ;; a bit ugly, but it supports getting the correct line number
      ;; information from core/current-description.
      `(m/do-let
+       (state/invoke #(when (and (not (:called-from-deprecated-match? ~params*))
+                                 ((fnil > 1) ~times-to-try 1)
+                                 (not (state/state? ~actual)))
+                        (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
+                                        {:times-to-try ~times-to-try
+                                         :actual ~actual}))))
        [flow-desc# (core/current-description)
         probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
@@ -81,7 +83,7 @@
        ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
-       (state/wrap-fn #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+       (state/invoke #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
        (state/return report#)))))
 
 (defn report->actual
