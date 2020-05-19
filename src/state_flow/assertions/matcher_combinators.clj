@@ -65,7 +65,8 @@
      ;; a bit ugly, but it supports getting the correct line number
      ;; information from core/current-description.
      `(m/do-let
-       (state/invoke #(when (and ((fnil > 1) ~times-to-try 1)
+       (state/invoke #(when (and (not (:called-from-deprecated-match? ~params*))
+                                 ((fnil > 1) ~times-to-try 1)
                                  (not (state/state? ~actual)))
                         (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
                                         {:times-to-try ~times-to-try

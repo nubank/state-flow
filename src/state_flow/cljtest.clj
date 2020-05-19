@@ -10,7 +10,8 @@
   (let [params* (merge {:times-to-try probe/default-times-to-try
                         :sleep-time   probe/default-sleep-time
                         :caller-meta  (meta &form)
-                        :description  match-desc}
+                        :description  match-desc
+                        :called-from-deprecated-match? true}
                        params)]
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
