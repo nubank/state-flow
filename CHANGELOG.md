@@ -2,7 +2,8 @@
 
 ## [4.0.3]
 
-* `match?` throws `times-to-try` warning at runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
+* `state-flow.api/match?` throws `times-to-try` exception at runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
+  * The deprecated `state-flow.cljtest/match?` no longer throws that exception at all.
 
 ## [4.0.2]
 
