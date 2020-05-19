@@ -62,3 +62,13 @@
   (is (match? {:value 1
                :map   {:a 1 :b 2}}
               (second ((:test (meta #'my-flow)))))))
+
+(deftest test-deprecated-match?
+  (testing "with times-to-try > 1 and a value instead of a step"
+    (testing "does not throw (to preserve backward compatibility)"
+      (is (= :match
+             (:match/result
+              (state/eval (state-flow.cljtest/match? "description"
+                                                     3
+                                                     3
+                                                     {:times-to-try 2}) {})))))))
