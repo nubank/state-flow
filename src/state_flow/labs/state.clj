@@ -1,19 +1,25 @@
 (ns state-flow.labs.state
   (:refer-clojure :exclude [with-redefs])
   (:require [cats.core :as m]
-            [state-flow.state :as state]
-            [state-flow.core :as state-flow]))
+            state-flow.api
+            [state-flow.core :as state-flow]
+            [state-flow.state :as state]))
 
-(def ^:dynamic *enable-with-redefs-macro* nil)
-
-(defmacro with-redefs
-  [bindings flow]
-  (assert *enable-with-redefs-macro*
-          "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*enable-with-redefs-macro*` to true")
+(defmacro wrap-with
+  "WARNING: `wrap-with` usage is not recommended. Use only if you know what you're
+  doing and you are sure you can't achieve the same result without it."
+  [wrapper-fn flow]
   `(m/do-let
     [world#  (state/get)
      runner# (state-flow/runner)
-     :let [[ret# state#] (clojure.core/with-redefs ~bindings
-                           (runner# ~flow world#))]]
-    (state/put state#)
+     :let [[ret# state#] (~wrapper-fn (fn [] (runner# ~flow world#)))]]
+    (state-flow.api/swap-state (constantly state#))
     (state/return ret#)))
+
+(defmacro with-redefs
+  "WARNING: `with-redefs` usage is not recommended. Use only if you know what you're
+  doing and you are sure you can't achieve the same result without it."
+  [bindings flow]
+  `(wrap-with
+    (fn [f#] (clojure.core/with-redefs ~bindings (f#)))
+    ~flow))
