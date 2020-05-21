@@ -17,14 +17,14 @@
   (f))
 
 (deftest wrap-with-test
-  (testing "verify wrapper is called"
+  (testing "wrapper is called"
     (is (= "called it"
            (with-out-str
              (-> (labs.state/wrap-with
                   (fn [f] (print "called it") (f))
                   (state/modify put2))
                  (state-flow/run {}))))))
-  (testing "verify flow runs successfully"
+  (testing "flow runs successfully"
     (is (match? [{} {:value 2}]
                 (-> (labs.state/wrap-with
                   (fn [f] (f))
@@ -32,10 +32,8 @@
                  (state-flow/run {}))))))
 
 (deftest with-redefs-test
-  (testing ""
-    (is (match?
-         [{} {:value 3}]
-         (-> (labs.state/with-redefs [put2 put3]
-               (state/modify put2))
-             (state-flow/run {}))))))
-
+  (is (match?
+       [{} {:value 3}]
+       (-> (labs.state/with-redefs [put2 put3]
+             (state/modify put2))
+           (state-flow/run {})))))
