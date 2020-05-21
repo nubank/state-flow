@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.1.0]
+
+* add experimental `wrap-fn` and `with-redefs` helpers [#123](https://github.com/nubank/state-flow/pull/123)
+
 ## [4.0.3]
 
 * `state-flow.api/match?` throws `times-to-try` exception at runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
