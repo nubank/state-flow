@@ -1,27 +1,41 @@
 (ns state-flow.labs.state-test
-  (:require [clojure.string :as str]
-            [clojure.test :as t :refer [deftest is testing]]
-            [state-flow.labs.state :as labs.state]))
+  (:require [clojure.test :as t :refer [deftest is testing]]
+            [matcher-combinators.test :refer [match?]]
+            [state-flow.core :as state-flow]
+            [state-flow.labs.state :as labs.state]
+            [state-flow.state :as state]))
 
-(defn- set-redefs-macro-feature-flag [v f]
-  (let [old-v labs.state/*enable-with-redefs-macro*
-        _ (alter-var-root #'labs.state/*enable-with-redefs-macro* (constantly v))
-        result (f)]
-    result))
+(defn put2 [w] (assoc w :value 2))
+(defn put3 [w] (assoc w :value 3))
 
-(def with-redefs-macro-enabled (partial set-redefs-macro-feature-flag true))
-(def with-redefs-macro-disabled (partial set-redefs-macro-feature-flag false))
+(defn wrap-with-redefs [f]
+  (with-redefs [put2 put3]
+    (f)))
 
-(def flow-form `(labs.state/with-redefs [a 1, b 2] some-flow))
+(defn called-it-callback [f]
+  (print "called it")
+  (f))
 
-(deftest with-redefs-feature-flag-test
-  (testing "if disabled, macroexpansion throws assertion warning user and giving instructions"
-    (is (thrown? clojure.lang.Compiler$CompilerException
-                 (with-redefs-macro-disabled #(macroexpand flow-form))))
-    (is (try (with-redefs-macro-disabled #(macroexpand flow-form))
-             (catch clojure.lang.Compiler$CompilerException ex
-               (is (instance? java.lang.AssertionError (ex-cause ex)))
-               (is (-> ex ex-cause ex-message
-                       (str/includes? "`with-redefs` usage is not recommended. If you know what you're doing and really want to continue, set `*enable-with-redefs-macro*` to true")))))))
-  (testing "if enabled, macroexpansion works as expected"
-    (is (seq? (with-redefs-macro-enabled #(macroexpand flow-form))))))
+(deftest wrap-with-test
+  (testing "verify wrapper is called"
+    (is (= "called it"
+           (with-out-str
+             (-> (labs.state/wrap-with
+                  (fn [f] (print "called it") (f))
+                  (state/modify put2))
+                 (state-flow/run {}))))))
+  (testing "verify flow runs successfully"
+    (is (match? [{} {:value 2}]
+                (-> (labs.state/wrap-with
+                  (fn [f] (f))
+                  (state/modify put2))
+                 (state-flow/run {}))))))
+
+(deftest with-redefs-test
+  (testing ""
+    (is (match?
+         [{} {:value 3}]
+         (-> (labs.state/with-redefs [put2 put3]
+               (state/modify put2))
+             (state-flow/run {}))))))
+
