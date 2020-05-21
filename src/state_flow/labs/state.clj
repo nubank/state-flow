@@ -1,4 +1,5 @@
 (ns state-flow.labs.state
+  "WARNING: This API is experimental and subject to changes."
   (:refer-clojure :exclude [with-redefs])
   (:require [cats.core :as m]
             state-flow.api
@@ -7,7 +8,10 @@
 
 (defmacro wrap-with
   "WARNING: `wrap-with` usage is not recommended. Use only if you know what you're
-  doing and you are sure you can't achieve the same result without it."
+  doing and you are sure you can't achieve the same result without it.
+
+  Wraps the provided state-flow execution. `wrapper-fn` will be passed a
+  function that will run the flow when called."
   [wrapper-fn flow]
   `(m/do-let
     [world#  (state/get)
@@ -18,7 +22,10 @@
 
 (defmacro with-redefs
   "WARNING: `with-redefs` usage is not recommended. Use only if you know what you're
-  doing and you are sure you can't achieve the same result without it."
+  doing and you are sure you can't achieve the same result without it.
+
+  Wraps the provided state-flow execution with `clojure.core/with-redefs`
+  macro."
   [bindings flow]
   `(wrap-with
     (fn [f#] (clojure.core/with-redefs ~bindings (f#)))
