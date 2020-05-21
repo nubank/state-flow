@@ -25,7 +25,14 @@
   doing and you are sure you can't achieve the same result without it.
 
   Wraps the provided state-flow execution with `clojure.core/with-redefs`
-  macro."
+  macro, e.g.
+
+    (defn now [] (java.util.Date.))
+    (def flow-with-trapped-time
+      (labs.state/with-redefs
+        [now (constantly #inst \"2018-01-01\")]
+        (flow \"a flow in 2018\"
+              ...)))"
   [bindings flow]
   `(wrap-with
     (fn [f#] (clojure.core/with-redefs ~bindings (f#)))
