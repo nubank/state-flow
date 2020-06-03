@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.0]
+
+* upgrade to matcher-combinators-2.0.0
+
+*WARNING*: matcher-combinators-2.0.0 includes breaking changes for edge cases.
+See https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#200
+
 ## [4.1.0]
 
 * add experimental `wrap-fn` and `with-redefs` helpers [#123](https://github.com/nubank/state-flow/pull/123)
