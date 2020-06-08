@@ -91,6 +91,8 @@
   [{:keys [description caller-meta]} & flows]
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
+  (when (vector? (last flows))
+    (throw (ex-info "The last argument to flow must be a flow/step, not a binding vector." {})))
   (let [flow-meta caller-meta
         flows'    (or flows `[(m/return nil)])]
     `(m/do-let
