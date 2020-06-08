@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.1.0]
+
+* improve error message when last arg to flow is a vector [#128](https://github.com/nubank/state-flow/pull/128)
+
 ## [5.0.0]
 
 * upgrade to matcher-combinators-2.0.0
@@ -13,7 +17,7 @@ See https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#200
 
 ## [4.0.3]
 
-* `state-flow.api/match?` throws `times-to-try` exception at runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
+* `state-flow.api/match?` throws `times-to-try` exception a runtime instead of macro-expansion time [#125](https://github.com/nubank/state-flow/pull/125)
   * The deprecated `state-flow.cljtest/match?` no longer throws that exception at all.
 
 ## [4.0.2]
