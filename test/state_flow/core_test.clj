@@ -29,6 +29,21 @@
 (def empty-flow
   (flow "empty"))
 
+(deftest test-flow
+  (testing "flow without description fails at macro-expansion time"
+    (is (re-find #"first argument .* must be .* description string"
+                 (try
+                   (macroexpand `(flow (state/return {})))
+                   (catch clojure.lang.Compiler$CompilerException e
+                     (.. e getCause getMessage))))))
+
+  (testing "flow with vector as last argument fails at macro-expansion time"
+    (is (re-find #"last argument .* must be a flow/step"
+                 (try
+                   (macroexpand `(flow "" [x (state/get-state)]))
+                   (catch clojure.lang.Compiler$CompilerException e
+                     (.. e getCause getMessage)))))))
+
 (deftest run-flow
   (testing "default initial state is an empty map"
     (is (= {}
@@ -49,12 +64,7 @@
   (testing "empty flow runs without exception"
     (is (nil? (first (state-flow/run empty-flow {})))))
 
-  (testing "flow without description fails at macro-expansion time"
-    (is (re-find #"first argument .* must be .* description string"
-                 (try
-                   (macroexpand `(flow (state/return {})))
-                   (catch clojure.lang.Compiler$CompilerException e
-                     (.. e getCause getMessage))))))
+
 
   (testing "flow with a `(str ..)` expr for the description is fine"
     (is (macroexpand `(flow (str "foo") [original (state/gets :value)
