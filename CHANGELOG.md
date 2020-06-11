@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.2.0]
+
+* add stack-trace filtering [#129](https://github.com/nubank/state-flow/pull/129)
+
 ## [5.1.0]
 
 * improve error message when last arg to flow is a vector [#128](https://github.com/nubank/state-flow/pull/128)
