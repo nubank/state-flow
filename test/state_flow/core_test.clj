@@ -286,3 +286,23 @@
     (is (identical? custom-runner
                     (first (state-flow/run* {:runner custom-runner}
                              (state-flow/runner)))))))
+
+(deftest stack-trace-exclusions
+  (testing "exclude state_flow by default"
+    (is (empty? (->> (state-flow/run* {:on-error state-flow/ignore-error}
+                       (state-flow/flow "" (state/modify assoc :x (/ 1 0))))
+                     first
+                     :failure
+                     .getStackTrace
+                     (into [])
+                     (filter #(re-find #"state_flow" (.getClassName %)))))))
+
+  (testing "can be overridden via :state-trace-exclusions"
+    (is (seq (->> (state-flow/run* {:on-error state-flow/ignore-error
+                                    :stack-trace-exclusions []}
+                    (state-flow/flow "" (state/modify assoc :x (/ 1 0))))
+                  first
+                  :failure
+                  .getStackTrace
+                  (into [])
+                  (filter #(re-find #"state_flow" (.getClassName %))))))))

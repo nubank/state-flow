@@ -143,6 +143,33 @@
   [pair]
   pair)
 
+(def default-stack-trace-exclusions
+  (let [aviso-defaults [#"clojure.lang"
+                        #"sun\.reflect.*"
+                        #"java.lang.reflect"
+                        #"speclj\..*"
+                        #"clojure\.main/repl/read-eval-print.*"]]
+    (into aviso-defaults
+          [#"^clojure\.main"
+           #"^state_flow\."
+           #"^nrepl\."
+           #"^cats\.."
+           #"^io\.pedestal\..*"])))
+
+(defn filter-stack-trace* [filter throwable]
+  (let [lines     (into [] (.getStackTrace throwable))
+        filtered  (remove
+                  (fn [line] (some #(re-find % (.getClassName line)) filter))
+                  lines)]
+    (doto throwable (.setStackTrace (into-array filtered)))))
+
+(defn filter-stack-trace [filter pair]
+  (if-let [failure (some->> pair first :failure)]
+    [(#'cats.monad.exception/->Failure
+      (filter-stack-trace* filter failure))
+     (second pair)]
+    pair))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Runners
 
@@ -163,23 +190,28 @@
 
   Supported keys in the first argument are:
 
-    `init`     optional, default (constantly {}), function of no arguments that returns the initial state
-    `cleanup`  optional, default identity, function of the final state used to perform cleanup, if necessary
-    `runner`   optional, default `run`, function of a flow and an initial state which will execute the flow
-    `on-error` optional, default `log-and-throw-error!`, function of the final result pair to be invoked
-               when the first value in the pair represents an error"
-  [{:keys [init cleanup runner on-error]
-    :or   {init     (constantly {})
-           cleanup  identity
-           runner   run
-           on-error log-and-throw-error!}
-    :as opts}
+    `:init`                   optional, default (constantly {}), function of no arguments that returns the initial state
+    `:cleanup`                optional, default identity, function of the final state used to perform cleanup, if necessary
+    `:runner`                 optional, default `run`, function of a flow and an initial state which will execute the flow
+    `:on-error`               optional, default `log-and-throw-error!`, function of the final result pair to be invoked
+                              when the first value in the pair represents an error
+    `:stack-trace-exclusions` optional, default `default-stack-trace-exclussions`, sequence of regular expressions
+                              used to clean stack traces"
+  [{:keys [init cleanup runner on-error stack-trace-exclusions]
+    :or   {init                   (constantly {})
+           cleanup                identity
+           runner                 run
+           on-error               log-and-throw-error!
+           stack-trace-exclusions default-stack-trace-exclusions}
+    :as   opts}
    flow]
   (let [initial-state (init)
-        pair          (runner flow (vary-meta initial-state assoc :runner runner))]
+        pair          (->> (runner flow (vary-meta initial-state assoc :runner runner))
+                           clarify-illegal-arg
+                           (filter-stack-trace stack-trace-exclusions))]
     (try
       (cleanup (second pair))
-      (clarify-illegal-arg pair)
+      pair
       (finally
         (when (e/failure? (first pair))
           (on-error pair))))))
