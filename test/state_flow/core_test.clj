@@ -288,21 +288,27 @@
                              (state-flow/runner)))))))
 
 (deftest stack-trace-exclusions
-  (testing "exclude state_flow by default"
-    (is (empty? (->> (state-flow/run* {:on-error state-flow/ignore-error}
-                       (state-flow/flow "" (state/modify assoc :x (/ 1 0))))
-                     first
-                     :failure
-                     .getStackTrace
-                     (into [])
-                     (filter #(re-find #"state_flow" (.getClassName %)))))))
+  (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
+    (let [frames (->> (state-flow/run*
+                        {:on-error state-flow/ignore-error}
+                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                      first
+                      :failure
+                      .getStackTrace)]
+      (is (empty? (->> (rest frames)
+                       (map #(.getClassName %))
+                       (filter #(some (fn [ex] (re-find ex %))
+                                      state-flow/default-stack-trace-exclusions)))))))
 
-  (testing "can be overridden via :state-trace-exclusions"
-    (is (seq (->> (state-flow/run* {:on-error state-flow/ignore-error
-                                    :stack-trace-exclusions []}
-                    (state-flow/flow "" (state/modify assoc :x (/ 1 0))))
-                  first
-                  :failure
-                  .getStackTrace
-                  (into [])
-                  (filter #(re-find #"state_flow" (.getClassName %))))))))
+  (testing "preserves the first frame even if it matches exclusions"
+    (let [frames (->> (state-flow/run*
+                        {:on-error               state-flow/ignore-error
+                         :stack-trace-exclusions [#"clojure.lang"]}
+                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                      first
+                      :failure
+                      .getStackTrace)]
+      (is (= "clojure.lang.Numbers" (.getClassName (first frames))))
+      (is (empty? (->> (rest frames)
+                       (map #(.getClassName %))
+                       (filter #(re-find #"^clojure.lang" %))))))))
