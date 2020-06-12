@@ -144,29 +144,32 @@
   pair)
 
 (def default-stack-trace-exclusions
-  (let [aviso-defaults [#"clojure.lang"
-                        #"sun\.reflect.*"
-                        #"java.lang.reflect"
-                        #"speclj\..*"
-                        #"clojure\.main/repl/read-eval-print.*"]]
-    (into aviso-defaults
-          [#"^clojure\.main"
-           #"^state_flow\."
-           #"^nrepl\."
-           #"^cats\.."
-           #"^io\.pedestal\..*"])))
+  [#"^nrepl\."
+   #"^cats\."
+   #"^java\.lang\.reflect"
+   #"^java\.lang\.Thread"
+   #"^clojure\.main\$repl"
+   #"^clojure\.lang"])
 
-(defn filter-stack-trace* [filter throwable]
-  (let [lines     (into [] (.getStackTrace throwable))
-        filtered  (remove
-                  (fn [line] (some #(re-find % (.getClassName line)) filter))
-                  lines)]
-    (doto throwable (.setStackTrace (into-array filtered)))))
+(defn filter-stack-trace
+  "Given a seq of exclusions (regexen) and a StackTraceElement array,
+  returns a new StackTraceElement array which excludes all elements
+  whose class names match any of the exclusions."
+  [exclusions stack-trace]
+  (let [frames (into [] stack-trace)]
+    (->> (into [(first frames)]
+               (remove
+                (fn [frame]
+                  (some #(re-find % (.getClassName frame)) exclusions))
+                (rest frames)))
+         into-array)))
 
-(defn filter-stack-trace [filter pair]
+(defn with-filtered-stack-trace [exclusions pair]
   (if-let [failure (some->> pair first :failure)]
     [(#'cats.monad.exception/->Failure
-      (filter-stack-trace* filter failure))
+      (doto failure
+        (.setStackTrace
+         (filter-stack-trace exclusions (.getStackTrace failure)))))
      (second pair)]
     pair))
 
@@ -208,7 +211,7 @@
   (let [initial-state (init)
         pair          (->> (runner flow (vary-meta initial-state assoc :runner runner))
                            clarify-illegal-arg
-                           (filter-stack-trace stack-trace-exclusions))]
+                           (with-filtered-stack-trace stack-trace-exclusions))]
     (try
       (cleanup (second pair))
       pair
