@@ -129,19 +129,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Error handlers
 
-(defn log-and-throw-error!
-  "Error handler that logs the error and throws an exception to notify the flow
-  has failed."
+(defn ignore-error
+  "No-op error handler that ignores the error."
+  [pair]
+  pair)
+
+(defn log-error
+  "Error handler that logs error and returns pair."
   [pair]
   (let [description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
     (log/info (m/extract (first pair)) message)
+    pair))
+
+(defn throw-error!
+  "Error handler that throws the error."
+  [pair]
+  (let [description (state->current-description (second pair))
+        message     (str "Flow " "\"" description "\"" " failed with exception")]
     (throw (ex-info message {} (m/extract (first pair))))))
 
-(defn ignore-error
-  "No-op error handler that simply ignores the error."
+(defn ^:deprecated log-and-throw-error!
+  "DEPRECATED: Use (comp throw-error! log-error) instead. "
   [pair]
-  pair)
+  (-> pair log-error throw-error!))
 
 (def default-stack-trace-exclusions
   [#"^nrepl\."
@@ -151,7 +162,7 @@
    #"^clojure\.main\$repl"
    #"^clojure\.lang"])
 
-(defn filter-stack-trace
+(defn- filter-stack-trace*
   "Given a seq of exclusions (regexen) and a StackTraceElement array,
   returns a new StackTraceElement array which excludes all elements
   whose class names match any of the exclusions."
@@ -164,14 +175,21 @@
                 (rest frames)))
          into-array)))
 
-(defn with-filtered-stack-trace [exclusions pair]
-  (if-let [failure (some->> pair first :failure)]
-    [(#'cats.monad.exception/->Failure
-      (doto failure
-        (.setStackTrace
-         (filter-stack-trace exclusions (.getStackTrace failure)))))
-     (second pair)]
-    pair))
+(defn filter-stack-trace
+  "Returns an error handler which, if the first element in the pair is
+  a failure, returns the pair with the failure's stack-trace
+  filtered, else returns the pair as/is."
+  ([]
+   (filter-stack-trace default-stack-trace-exclusions))
+  ([exclusions]
+   (fn [pair]
+     (if-let [failure (some->> pair first :failure)]
+       [(#'cats.monad.exception/->Failure
+         (doto failure
+           (.setStackTrace
+            (filter-stack-trace* exclusions (.getStackTrace failure)))))
+        (second pair)]
+       pair))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Runners
@@ -193,25 +211,27 @@
 
   Supported keys in the first argument are:
 
-    `:init`                   optional, default (constantly {}), function of no arguments that returns the initial state
-    `:cleanup`                optional, default identity, function of the final state used to perform cleanup, if necessary
-    `:runner`                 optional, default `run`, function of a flow and an initial state which will execute the flow
-    `:on-error`               optional, default `log-and-throw-error!`, function of the final result pair to be invoked
-                              when the first value in the pair represents an error
-    `:stack-trace-exclusions` optional, default `default-stack-trace-exclussions`, sequence of regular expressions
-                              used to clean stack traces"
-  [{:keys [init cleanup runner on-error stack-trace-exclusions]
+    `:init`       optional, default (constantly {}), function of no arguments that returns the initial state
+    `:cleanup`    optional, default identity, function of the final state used to perform cleanup, if necessary
+    `:runner`     optional, default `run`, function of a flow and an initial state which will execute the flow
+    `:on-error`   optional, function of the final result pair to be invoked when the first value in the pair
+                  represents an error, default:
+
+                    `(comp throw-error!
+                           log-error
+                           (filter-stack-trace))`"
+  [{:keys [init cleanup runner on-error]
     :or   {init                   (constantly {})
            cleanup                identity
            runner                 run
-           on-error               log-and-throw-error!
-           stack-trace-exclusions default-stack-trace-exclusions}
+           on-error               (comp throw-error!
+                                        log-error
+                                        (filter-stack-trace default-stack-trace-exclusions))}
     :as   opts}
    flow]
   (let [initial-state (init)
-        pair          (->> (runner flow (vary-meta initial-state assoc :runner runner))
-                           clarify-illegal-arg
-                           (with-filtered-stack-trace stack-trace-exclusions))]
+        pair          (clarify-illegal-arg (runner flow
+                                             (vary-meta initial-state assoc :runner runner)))]
     (try
       (cleanup (second pair))
       pair
