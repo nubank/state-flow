@@ -144,7 +144,8 @@
     ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
-                          (state-flow/run* {:runner (constantly (throw (ex-info "Oops" {})))}
+                          (state-flow/run*
+                            {:runner (constantly (throw (ex-info "Oops" {})))}
                             (state/get))))))
 
 (deftest state-flow-run!
@@ -290,7 +291,8 @@
 (deftest stack-trace-exclusions
   (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
     (let [frames (->> (state-flow/run*
-                        {:on-error state-flow/ignore-error}
+                        {:on-error (state-flow/filter-stack-trace
+                                    state-flow/default-stack-trace-exclusions)}
                         (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
                       :failure
@@ -302,8 +304,7 @@
 
   (testing "preserves the first frame even if it matches exclusions"
     (let [frames (->> (state-flow/run*
-                        {:on-error               state-flow/ignore-error
-                         :stack-trace-exclusions [#"clojure.lang"]}
+                        {:on-error (state-flow/filter-stack-trace [#"clojure.lang"])}
                         (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
                       :failure
