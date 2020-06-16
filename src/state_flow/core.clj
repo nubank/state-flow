@@ -178,7 +178,11 @@
 (defn filter-stack-trace
   "Returns an error handler which, if the first element in the pair is
   a failure, returns the pair with the failure's stack-trace
-  filtered, else returns the pair as/is."
+  filtered, else returns the pair as/is.
+
+  exclusions (default default-stack-trace-exclusions) is a sequence of
+  regular expressions used to match class names in stack trace frames.
+  Matching frames are excluded."
   ([]
    (filter-stack-trace default-stack-trace-exclusions))
   ([exclusions]
