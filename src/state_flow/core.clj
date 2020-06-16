@@ -219,7 +219,7 @@
 
                     `(comp throw-error!
                            log-error
-                           (filter-stack-trace))`"
+                           (filter-stack-trace default-strack-trace-exclusions))`"
   [{:keys [init cleanup runner on-error]
     :or   {init                   (constantly {})
            cleanup                identity
