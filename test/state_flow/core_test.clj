@@ -144,7 +144,8 @@
     ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
-                          (state-flow/run* {:runner (constantly (throw (ex-info "Oops" {})))}
+                          (state-flow/run*
+                            {:runner (constantly (throw (ex-info "Oops" {})))}
                             (state/get))))))
 
 (deftest state-flow-run!
@@ -286,3 +287,29 @@
     (is (identical? custom-runner
                     (first (state-flow/run* {:runner custom-runner}
                              (state-flow/runner)))))))
+
+(deftest stack-trace-exclusions
+  (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
+    (let [frames (->> (state-flow/run*
+                        {:on-error (state-flow/filter-stack-trace
+                                    state-flow/default-stack-trace-exclusions)}
+                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                      first
+                      :failure
+                      .getStackTrace)]
+      (is (empty? (->> (rest frames)
+                       (map #(.getClassName %))
+                       (filter #(some (fn [ex] (re-find ex %))
+                                      state-flow/default-stack-trace-exclusions)))))))
+
+  (testing "preserves the first frame even if it matches exclusions"
+    (let [frames (->> (state-flow/run*
+                        {:on-error (state-flow/filter-stack-trace [#"clojure.lang"])}
+                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                      first
+                      :failure
+                      .getStackTrace)]
+      (is (= "clojure.lang.Numbers" (.getClassName (first frames))))
+      (is (empty? (->> (rest frames)
+                       (map #(.getClassName %))
+                       (filter #(re-find #"^clojure.lang" %))))))))
