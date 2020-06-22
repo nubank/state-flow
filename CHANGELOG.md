@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.3.0]
+
+* upgrade to [matcher-combinators-2.1.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#211)
+
 ## [5.2.0]
 
 * add stack-trace filtering [#129](https://github.com/nubank/state-flow/pull/129)
