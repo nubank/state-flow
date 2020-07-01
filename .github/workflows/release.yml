@@ -1,4 +1,4 @@
-name: Clojars
+name: Release
 
 on:
   push:
@@ -19,8 +19,8 @@ jobs:
     - name: Run tests
       run: lein test
 
-    - name: Publish
+    - name: Publish on Clojars
       run: lein deploy publish
       env:
-          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
-          CLOJARS_PASSWD: ${{ secrets.CLOJARS_PASSWD }}
+          CLOJARS_USERNAME: eng-prod-nubank
+          CLOJARS_PASSWD: ${{ secrets.CLOJARS_DEPLOY_TOKEN }}
