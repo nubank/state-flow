@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.4.0]
+
+* upgrade to [matcher-combinators-3.0.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#301)
+
 ## [5.3.0]
 
 * upgrade to [matcher-combinators-2.1.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#211)
