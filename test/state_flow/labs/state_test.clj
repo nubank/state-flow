@@ -1,9 +1,9 @@
 (ns state-flow.labs.state-test
   (:require [clojure.test :as t :refer [deftest is testing]]
-            [matcher-combinators.test :refer [match?]]
+            [matcher-combinators.test]
+            [state-flow.api :as flow]
             [state-flow.core :as state-flow]
-            [state-flow.labs.state :as labs.state]
-            [state-flow.state :as state]))
+            [state-flow.labs.state :as labs.state]))
 
 (defn put2 [w] (assoc w :value 2))
 (defn put3 [w] (assoc w :value 3))
@@ -20,20 +20,24 @@
   (testing "wrapper is called"
     (is (= "called it"
            (with-out-str
-             (-> (labs.state/wrap-with
-                  (fn [f] (print "called it") (f))
-                  (state/modify put2))
-                 (state-flow/run {}))))))
+             (state-flow/run
+               (labs.state/wrap-with
+                (fn [f] (print "called it") (f))
+                (flow/swap-state put2))
+               {})))))
   (testing "flow runs successfully"
     (is (match? [{} {:value 2}]
-                (-> (labs.state/wrap-with
-                  (fn [f] (f))
-                  (state/modify put2))
-                 (state-flow/run {}))))))
+                (flow/run
+                  (labs.state/wrap-with
+                   (fn [f] (f))
+                   (flow/swap-state put2))
+                  {})))))
 
 (deftest with-redefs-test
   (is (match?
-       [{} {:value 3}]
-       (-> (labs.state/with-redefs [put2 put3]
-             (state/modify put2))
-           (state-flow/run {})))))
+       [{} {:value 4}]
+       (state-flow/run
+         (labs.state/with-redefs [put2 put3]
+           (flow/swap-state put2)
+           (flow/swap-state update :value inc))
+         {}))))
