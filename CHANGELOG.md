@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.5.0]
+
+* support n flows passed to `state-flow.labs.state/with-redefs` [#133](https://github.com/nubank/state-flow/pull/133)
+
 ## [5.4.0]
 
 * upgrade to [matcher-combinators-3.0.1](https://github.com/nubank/matcher-combinators/blob/master/CHANGELOG.md#301)
