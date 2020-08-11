@@ -260,7 +260,7 @@ git pull
 
 # the rest is the same either way
 lein pom # needed for tools.deps to recognize this repo as a `:local/root` dependency
-bin/refactor-match --help
+./bin/refactor-match.sh --help
 ;; now follow the instructions
 ```
 
