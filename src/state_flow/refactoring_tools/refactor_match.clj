@@ -2,8 +2,8 @@
   "This ns contains tools to refactor from match? in the cljtest
   ns to the new version in the assertions.matcher-combinators ns."
   (:require [clojure.java.io :as io]
-            [rewrite-clj.zip :as z]
             [rewrite-clj.node :as n]
+            [rewrite-clj.zip :as z]
             [state-flow.probe :as probe]))
 
 (defn probe-params [orig]

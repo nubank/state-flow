@@ -1,5 +1,5 @@
 (ns state-flow.probe-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [state-flow.core :as state-flow]
             [state-flow.probe :as probe]
             [state-flow.test-helpers :as test-helpers]))
