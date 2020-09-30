@@ -1,9 +1,9 @@
 (ns state-flow.api
-  (:require [state-flow.vendor.potemkin :refer [import-vars import-fn]]
+  (:require [state-flow.assertions.matcher-combinators]
+            [state-flow.cljtest]
             [state-flow.core]
             [state-flow.state]
-            [state-flow.cljtest]
-            [state-flow.assertions.matcher-combinators]))
+            [state-flow.vendor.potemkin :refer [import-fn import-vars]]))
 
 ;; TODO: (dchelimsky,2020-05-18) Intellij / Cursive doesn't recognize the
 ;; vars imported below unless we declare them. If that is ever fixed, we

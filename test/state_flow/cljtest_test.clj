@@ -1,5 +1,5 @@
 (ns state-flow.cljtest-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.cljtest :refer [defflow]]

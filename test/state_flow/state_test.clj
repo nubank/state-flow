@@ -33,26 +33,26 @@
 
     (testing "also handles exceptions with fmap"
       (let [[res state] (state/run
-                          (m/fmap inc (m/>> double-state
-                                            double-state
-                                            (state/modify (fn [s] (throw (Exception. "My exception"))))
-                                            double-state)) 2)]
+                         (m/fmap inc (m/>> double-state
+                                           double-state
+                                           (state/modify (fn [s] (throw (Exception. "My exception"))))
+                                           double-state)) 2)]
         (is (e/failure? res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
-                          (m/>> double-state
-                                double-state
-                                (state/modify (fn [s] (throw (Exception. "My exception"))))
-                                double-state) 2)]
+                         (m/>> double-state
+                               double-state
+                               (state/modify (fn [s] (throw (Exception. "My exception"))))
+                               double-state) 2)]
         (is (e/failure? res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
-                          (m/>> (m/fmap (fn [s] (throw (Exception. "My exception")))
-                                        (m/>> double-state
-                                              double-state))
-                                double-state) 2)]
+                         (m/>> (m/fmap (fn [s] (throw (Exception. "My exception")))
+                                       (m/>> double-state
+                                             double-state))
+                               double-state) 2)]
         (is (e/failure? res))
         (is (= 8 state)))))
 
@@ -63,7 +63,7 @@
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
                                  _ (state/put (inc x))]
-                                (m/return x))]
+                          (m/return x))]
     (testing "modify state with get and put"
       (is (= [2 3]
              (state/run increment-state 2))))))
@@ -83,5 +83,5 @@
 (deftest fmap
   (is (= 1
          (first (state/run
-                  (state/fmap (comp inc :count) (state/get))
-                  {:count 0})))))
+                 (state/fmap (comp inc :count) (state/get))
+                 {:count 0})))))

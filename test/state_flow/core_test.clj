@@ -1,10 +1,10 @@
 (ns state-flow.core-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [cats.monad.exception :as e]
+            [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]
-            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
-            [cats.monad.exception :as e]))
+            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]))
 
 (def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
 
@@ -64,8 +64,6 @@
   (testing "empty flow runs without exception"
     (is (nil? (first (state-flow/run empty-flow {})))))
 
-
-
   (testing "flow with a `(str ..)` expr for the description is fine"
     (is (macroexpand `(flow (str "foo") [original (state/gets :value)
                                          :let [doubled (* 2 original)]]
@@ -102,7 +100,7 @@
                                           :runner (fn [flow state]
                                                     (let [[l r] (state-flow/run flow state)]
                                                       {:l l :r r}))}
-                          (state/modify update :count inc))]
+                                         (state/modify update :count inc))]
       (is (= {:count 0} l))
       (is (= {:count 1} r))))
 
@@ -122,14 +120,14 @@
       (is (state-flow/run* {:init     (constantly {:value 0})
                             :cleanup  (fn [& _] (swap! cleanup-runs inc))
                             :on-error (partial reset! on-error-input)}
-            bogus-flow))
+                           bogus-flow))
       (is (= "My exception" (-> @on-error-input first .failure .getMessage)))
       (is (= 1 @cleanup-runs))))
 
   (testing "flow with exception in which cleanup ignores error"
     (let [result (state-flow/run* {:init     (constantly {:value 0})
                                    :on-error state-flow/ignore-error}
-                   bogus-flow)]
+                                  bogus-flow)]
       (is (e/exception? (first result)))
       (is (match? {:value 2} (second result)))))
 
@@ -138,15 +136,15 @@
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
                           (state-flow/run* {:cleanup (fn [_] (throw (ex-info "Oops" {})))}
-                            (state/get)))))
+                                           (state/get)))))
 
   (testing "flow with exception in runner throws exception"
     ;; TODO:(dchelimsky,2020-03-02) consider whether we should catch this
     ;; instead of letting it bubble out.
     (is (thrown-with-msg? Exception #"Oops"
                           (state-flow/run*
-                            {:runner (constantly (throw (ex-info "Oops" {})))}
-                            (state/get))))))
+                           {:runner (constantly (throw (ex-info "Oops" {})))}
+                           (state/get))))))
 
 (deftest state-flow-run!
   (testing "default initial state is an empty map"
@@ -286,14 +284,14 @@
   (testing "returns custom runner when providing custom runner to state-flow/run*"
     (is (identical? custom-runner
                     (first (state-flow/run* {:runner custom-runner}
-                             (state-flow/runner)))))))
+                                            (state-flow/runner)))))))
 
 (deftest stack-trace-exclusions
   (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
     (let [frames (->> (state-flow/run*
-                        {:on-error (state-flow/filter-stack-trace
-                                    state-flow/default-stack-trace-exclusions)}
-                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                       {:on-error (state-flow/filter-stack-trace
+                                   state-flow/default-stack-trace-exclusions)}
+                       (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
                       :failure
                       .getStackTrace)]
@@ -304,8 +302,8 @@
 
   (testing "preserves the first frame even if it matches exclusions"
     (let [frames (->> (state-flow/run*
-                        {:on-error (state-flow/filter-stack-trace [#"clojure.lang"])}
-                        (state-flow/flow "" (state/invoke (/ 1 0))))
+                       {:on-error (state-flow/filter-stack-trace [#"clojure.lang"])}
+                       (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
                       :failure
                       .getStackTrace)]

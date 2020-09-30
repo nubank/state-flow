@@ -1,8 +1,8 @@
 (ns state-flow.cljtest
   (:require [clojure.test :as t]
+            [state-flow.assertions.matcher-combinators]
             [state-flow.core :as core]
-            [state-flow.probe :as probe]
-            [state-flow.assertions.matcher-combinators]))
+            [state-flow.probe :as probe]))
 
 (defmacro ^:deprecated match?
   "DEPRECATED. Use state-flow.assertions.matcher-combinators/match? instead. "
