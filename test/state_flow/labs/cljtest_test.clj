@@ -1,10 +1,10 @@
 (ns state-flow.labs.cljtest-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]
-            [state-flow.test-helpers :as test-helpers]
-            [state-flow.labs.cljtest :as labs.cljtest]
             [state-flow.core :as state-flow]
-            [state-flow.state :as state]))
+            [state-flow.labs.cljtest :as labs.cljtest]
+            [state-flow.state :as state]
+            [state-flow.test-helpers :as test-helpers]))
 
 (deftest testing-macro
   (testing "works for failure cases"

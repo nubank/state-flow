@@ -1,6 +1,6 @@
 (ns state-flow.refactoring-tools.refactor-match-test
-  (:require [clojure.test :as t :refer [deftest testing is are]]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
+            [clojure.test :as t :refer [are deftest is testing]]
             [rewrite-clj.zip :as z]
             [state-flow.probe :as probe]
             [state-flow.refactoring-tools.refactor-match :as refactor-match]))
@@ -27,8 +27,8 @@
              (zip '(before/match? "description" actual expected)))))))
   (testing "with force-probe-params option"
     (is (= `(~'flow "description" (~'after/match? ~'expected ~'actual
-                                   {:times-to-try ~probe/default-times-to-try
-                                    :sleep-time   ~probe/default-sleep-time}))
+                                                  {:times-to-try ~probe/default-times-to-try
+                                                   :sleep-time   ~probe/default-sleep-time}))
            (unzip
             (refactor-match/refactor-match-expr
              {:wrap-in-flow       true
@@ -36,8 +36,8 @@
               :sym-after          'after/match?}
              (zip '(before/match? "description" actual expected))))))
     (is (= `(~'flow "description" (~'after/match? ~'expected ~'actual
-                                   {:times-to-try 1
-                                    :sleep-time   ~probe/default-sleep-time}))
+                                                  {:times-to-try 1
+                                                   :sleep-time   ~probe/default-sleep-time}))
            (unzip
             (refactor-match/refactor-match-expr
              {:wrap-in-flow       true
@@ -45,8 +45,8 @@
               :sym-after          'after/match?}
              (zip '(before/match? "description" actual expected {:times-to-try 1}))))))
     (is (= `(~'flow "description" (~'after/match? ~'expected ~'actual
-                                   {:times-to-try ~probe/default-times-to-try
-                                    :sleep-time 250}))
+                                                  {:times-to-try ~probe/default-times-to-try
+                                                   :sleep-time 250}))
            (unzip
             (refactor-match/refactor-match-expr
              {:wrap-in-flow       true

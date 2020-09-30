@@ -21,23 +21,23 @@
     (is (= "called it"
            (with-out-str
              (state-flow/run
-               (labs.state/wrap-with
-                (fn [f] (print "called it") (f))
-                (flow/swap-state put2))
-               {})))))
+              (labs.state/wrap-with
+               (fn [f] (print "called it") (f))
+               (flow/swap-state put2))
+              {})))))
   (testing "flow runs successfully"
     (is (match? [{} {:value 2}]
                 (flow/run
-                  (labs.state/wrap-with
-                   (fn [f] (f))
-                   (flow/swap-state put2))
-                  {})))))
+                 (labs.state/wrap-with
+                  (fn [f] (f))
+                  (flow/swap-state put2))
+                 {})))))
 
 (deftest with-redefs-test
   (is (match?
        [{} {:value 4}]
        (state-flow/run
-         (labs.state/with-redefs [put2 put3]
-           (flow/swap-state put2)
-           (flow/swap-state update :value inc))
-         {}))))
+        (labs.state/with-redefs [put2 put3]
+          (flow/swap-state put2)
+          (flow/swap-state update :value inc))
+        {}))))

@@ -207,7 +207,7 @@
    (assert (state/state? flow) "First argument must be a flow")
    (assert (map? initial-state) "Initial state must be a map")
    (clarify-illegal-arg (state/run flow
-                          (vary-meta initial-state update :runner (fnil identity run))))))
+                                   (vary-meta initial-state update :runner (fnil identity run))))))
 
 (defn run*
   "Runs a flow with specified parameters. Use `run` unless you need
@@ -235,7 +235,7 @@
    flow]
   (let [initial-state (init)
         pair          (clarify-illegal-arg (runner flow
-                                             (vary-meta initial-state assoc :runner runner)))]
+                                                   (vary-meta initial-state assoc :runner runner)))]
     (try
       (cleanup (second pair))
       pair

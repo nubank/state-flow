@@ -4,8 +4,8 @@
             [midje.checking.core :refer [extended-=]]
             [midje.sweet :refer :all]
             [state-flow.core :as core]
-            [state-flow.state :as state]
-            [state-flow.probe :as probe]))
+            [state-flow.probe :as probe]
+            [state-flow.state :as state]))
 
 (defmacro add-desc-and-meta
   [[fname & rest] desc meta]

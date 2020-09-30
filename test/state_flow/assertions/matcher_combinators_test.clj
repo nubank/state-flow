@@ -1,13 +1,13 @@
 (ns state-flow.assertions.matcher-combinators-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
-            [cats.core :as m]
-            [matcher-combinators.test]
+  (:require [cats.core :as m]
+            [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.matchers :as matchers]
-            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
+            [matcher-combinators.test]
             [state-flow.assertions.matcher-combinators :as mc]
-            [state-flow.test-helpers :as test-helpers :refer [shhh!]]
+            [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
-            [state-flow.core :as state-flow :refer [flow]]))
+            [state-flow.test-helpers :as test-helpers :refer [this-line-number]]
+            [state-flow.test-helpers :as test-helpers :refer [shhh!]]))
 
 (def get-value-state (state/gets (comp deref :value)))
 
@@ -39,11 +39,11 @@
   (testing "forcing probe to try more than once"
     (let [[flow-ret flow-state]
           (state/run
-            (flow "flow"
-              (test-helpers/swap-later 100 :value + 2)
-              (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
-                                                             :sleep-time   110}))
-            {:value (atom 0)})]
+           (flow "flow"
+             (test-helpers/swap-later 100 :value + 2)
+             (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
+                                                            :sleep-time   110}))
+           {:value (atom 0)})]
       (testing "returns match result with probe info"
         (is (match? {:probe/sleep-time   110
                      :probe/times-to-try 3
@@ -111,5 +111,5 @@
 (deftest test-report->actual
   (is (= :actual
          (first (shhh! (state/run
-                         (m/fmap mc/report->actual (mc/match? :expected :actual))
-                         {}))))))
+                        (m/fmap mc/report->actual (mc/match? :expected :actual))
+                        {}))))))

@@ -1,7 +1,7 @@
 (ns state-flow.labs.cljtest
-  (:require [state-flow.core :as core]
-            [state-flow.state :as state]
-            [clojure.test :as ctest]))
+  (:require [clojure.test :as ctest]
+            [state-flow.core :as core]
+            [state-flow.state :as state]))
 
 (defmacro testing
   "state-flow's equivalent to clojure test's `testing`"
