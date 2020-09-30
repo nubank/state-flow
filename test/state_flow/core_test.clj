@@ -144,7 +144,20 @@
     (is (thrown-with-msg? Exception #"Oops"
                           (state-flow/run*
                            {:runner (constantly (throw (ex-info "Oops" {})))}
-                           (state/get))))))
+                           (state/get)))))
+
+  (testing "flow with fail-fast stops at first failing assertion"
+    (let [result (state-flow/run* {:init       (constantly {:value 0})
+                                   :fail-fast? true
+                                   :on-error   state-flow/ignore-error}
+                                  (flow "stop before boom"
+                                    (flow "mimic test failure manually"
+                                      (state/return {:match/result :mismatch}))
+                                    (flow "will explode" bogus)))]
+      (testing "state is left as is"
+        (is (match? {:value 0} (second result))))
+      (testing "the last step that explodes isn't run"
+        (is (not (e/exception? (first result))))))))
 
 (deftest state-flow-run!
   (testing "default initial state is an empty map"
