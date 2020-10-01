@@ -1,5 +1,6 @@
 (ns state-flow.assertions.matcher-combinators
   (:require [cats.core :as m]
+            [cats.monad.exception :as e]
             [matcher-combinators.standalone :as matcher-combinators]
             [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.core :as core]
@@ -71,8 +72,9 @@
                         (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
                                         {:times-to-try ~times-to-try
                                          :actual ~actual}))))
-       [flow-desc# (core/current-description)
-        probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
+       [flow-desc#  (core/current-description)
+        fail-fast?# core/fail-fast?
+        probe-res#  (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
                              :match/expected     ~expected
@@ -84,7 +86,9 @@
        ;; assertions from reporting in a future release. Remove this
        ;; next line when that happens.
        (state/invoke #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
-       (state/return report#)))))
+       (state/return (if (and fail-fast?# (= :mismatch (:match/result report#)))
+                       (e/failure report# "match? assertion was not satisfied")
+                       report#))))))
 
 (defn report->actual
   "Returns the actual value from the report returned by `match?`."

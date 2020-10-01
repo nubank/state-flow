@@ -4,12 +4,9 @@
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
-            [cats.util :as util]
-            [state-flow.assertions :as assertions]))
+            [cats.util :as util]))
 
 (declare short-circuiting-context)
-
-(def ^:dynamic *fail-fast?* false)
 
 (defn- result-or-err [f & args]
   (let [result ((e/wrap (partial apply f)) args)]
@@ -36,14 +33,9 @@
       (error-catching-state
        (fn [s]
          (let [[v s'] ((p/-extract fv) s)]
-           (cond (e/failure? v)
-                 [v s']
-
-                 (and *fail-fast?* (assertions/failure? v))
-                 [v s']
-
-                 :else
-                 [(result-or-err f v) s'])))))
+           (if (e/failure? v)
+             [v s']
+             [(result-or-err f v) s'])))))
 
     p/Monad
     (-mreturn [_ v]
@@ -53,14 +45,9 @@
       (error-catching-state
        (fn [s]
          (let [[v s'] ((p/-extract self) s)]
-           (cond (e/failure? v)
-                 [v s']
-
-                 (and *fail-fast?* (assertions/failure? v))
-                 [v s']
-
-                 :else
-                 ((p/-extract (f v)) s'))))))
+           (if (e/failure? v)
+             [v s']
+             ((p/-extract (f v)) s'))))))
 
     state/MonadState
     (-get-state [_]
