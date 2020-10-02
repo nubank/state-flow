@@ -70,6 +70,12 @@
   []
   (state/gets state->current-description))
 
+(def fail-fast?
+  "Should the flow stop after the first failing assertion?
+
+  For internal use. Subject to change."
+  (state/gets (comp :fail-fast? meta)))
+
 (defn- clarify-illegal-arg [pair]
   (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
     [(#'cats.monad.exception/->Failure
@@ -195,6 +201,15 @@
         (second pair)]
        pair))))
 
+(defn- unwrap-assertion-failure-value [pair]
+  (let [assertion-result? (comp not nil? :probe/sleep-time)
+        exception-data    (and (vector? pair)
+                               (-> pair first e/exception?)
+                               (-> pair first m/extract ex-data))]
+    (if (assertion-result? exception-data)
+      [exception-data (second pair)]
+      pair)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Runners
 
@@ -215,6 +230,7 @@
 
   Supported keys in the first argument are:
 
+    `:fail-fast?` optional, default `false`, when set to `true`, the flow stops running after the first failing assertion
     `:init`       optional, default (constantly {}), function of no arguments that returns the initial state
     `:cleanup`    optional, default identity, function of the final state used to perform cleanup, if necessary
     `:runner`     optional, default `run`, function of a flow and an initial state which will execute the flow
@@ -224,18 +240,24 @@
                     `(comp throw-error!
                            log-error
                            (filter-stack-trace default-strack-trace-exclusions))`"
-  [{:keys [init cleanup runner on-error]
+  [{:keys [init cleanup runner on-error fail-fast?]
     :or   {init                   (constantly {})
            cleanup                identity
            runner                 run
+           fail-fast?             false
            on-error               (comp throw-error!
                                         log-error
                                         (filter-stack-trace default-stack-trace-exclusions))}
     :as   opts}
    flow]
-  (let [initial-state (init)
-        pair          (clarify-illegal-arg (runner flow
-                                                   (vary-meta initial-state assoc :runner runner)))]
+  (let [init-state+meta (vary-meta (init)
+                                   assoc
+                                   :runner runner
+                                   :fail-fast? fail-fast?)
+        pair            (-> flow
+                            (runner init-state+meta)
+                            clarify-illegal-arg
+                            unwrap-assertion-failure-value)]
     (try
       (cleanup (second pair))
       pair

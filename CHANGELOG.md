@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.6.0]
+
+* create the `:fail-fast?` options for `run*`. When set the flow will failing fast on the first assertion instead of continuing to run
+
 ## [5.5.0]
 
 * support n flows passed to `state-flow.labs.state/with-redefs` [#133](https://github.com/nubank/state-flow/pull/133)
