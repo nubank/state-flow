@@ -29,18 +29,6 @@ You can think flows and the steps within them as functions of the state, e.g.
 
 Each step is executed in sequence, passing the state to the next step. The return value from running the flow is the return value of the last step that was run.
 
-If you are using StateFlow for integration testing, the initial state is usually a representation of your service components,
-a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states, e.g.
-
-```clojure
-(def a-flow (flow ...))
-
-(defn build-initial-state [] { ... })
-(state-flow.api/run* {:init build-initial-state} flow)
-
-(state-flow.api/run* {:init (constantly {:service-system (atom nil))} flow)
-```
-
 ### Primitive steps
 
 Primitive steps are the fundamental building blocks of flows.
@@ -101,6 +89,33 @@ You can bind any number of symbols in a single binding vector, e.g.
  :let [c expression-1]
  d     step-3]
  ```
+
+### Running Flows
+
+If you are using StateFlow for integration testing, the initial state is usually a representation of your service components,
+a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states, e.g.
+
+```clojure
+(def a-flow (flow ...))
+
+(defn build-initial-state [] { ... })
+(state-flow.api/run* {:init build-initial-state} flow)
+
+(state-flow.api/run* {:init (constantly {:service-system (atom nil))} flow)
+```
+
+#### Failing Fast
+
+By default, a flow continues to be evaluated even if an assertion fails. The `:fail-fast?` option to `state-flow.api/run*` can be used if you would like to stop evaluation after the first assertion failure.
+
+```clojure
+(state-flow.api/run* {:fail-fast? true}
+  (flow "evaluation stops after `failing-flow-b`"
+    flow-a
+    failing-flow-b
+    flow-c))
+```
+
 
 ### Flow Example
 
