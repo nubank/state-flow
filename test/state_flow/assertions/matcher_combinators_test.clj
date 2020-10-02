@@ -1,5 +1,6 @@
 (ns state-flow.assertions.matcher-combinators-test
   (:require [cats.core :as m]
+            [cats.monad.exception :as e]
             [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.matchers :as matchers]
             [matcher-combinators.test]
@@ -113,3 +114,19 @@
          (first (shhh! (state/run
                         (m/fmap mc/report->actual (mc/match? :expected :actual))
                         {}))))))
+
+(def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
+
+(deftest short-circuiting
+  (testing "flow with fail-fast stops at first failing assertion"
+    (let [[just-match-ret _] (shhh! (state/run (mc/match? 1 2) {:initial :state}))
+          result             (shhh! (state-flow/run* {:init       (constantly {:value 0})
+                                                      :fail-fast? true
+                                                      :on-error   state-flow/ignore-error}
+                                                     (flow "stop before boom"
+                                                       (mc/match? 1 2)
+                                                       (flow "will explode" bogus))))]
+      (testing "state is left as is"
+        (is (match? {:value 0} (second result))))
+      (testing "the return value is the same as a failing match?"
+        (is (= just-match-ret (first result)))))))
