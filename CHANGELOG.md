@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.6.1]
+
+* downgrade timbre logging library major version bump that was done in `5.6.0` because it is causing transient issues.
+
 ## [5.6.0]
 
 * create the `:fail-fast?` options for `run*`. When set the flow will failing fast on the first assertion instead of continuing to run
