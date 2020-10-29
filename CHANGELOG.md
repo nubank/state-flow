@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.7.0]
+
+* add `state-flow.api/for` macro [#142](https://github.com/nubank/state-flow/pull/142)
+
 ## [5.6.1]
 
 * downgrade timbre logging library major version bump that was done in `5.6.0` because it is causing transient issues.
