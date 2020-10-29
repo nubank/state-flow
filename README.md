@@ -104,6 +104,28 @@ a system using [Stuart Sierra's Component](https://github.com/stuartsierra/compo
 (state-flow.api/run* {:init (constantly {:service-system (atom nil))} flow)
 ```
 
+### Composing Flows
+
+Flows follow the Composite Pattern: a single flow has the same
+interface as a collection of flows.
+
+You can compose flows by nesting them in other flows:
+
+``` clojure
+(flow "do many things"
+  (flow "do one thing" ,,,)
+  (flow "do another thing" ,,,))
+```
+
+Use `state-flow.api/for` when you have a flow that you'd like to apply
+to different inputs with the same outcome, e.g.
+
+``` clojure
+(flow "even? returns true for even numbers"
+  (flow/for [x (filter even? (range 10))]
+    (match? even? x)))
+```
+
 #### Failing Fast
 
 By default, a flow continues to be evaluated even if an assertion fails. The `:fail-fast?` option to `state-flow.api/run*` can be used if you would like to stop evaluation after the first assertion failure.
@@ -115,7 +137,6 @@ By default, a flow continues to be evaluated even if an assertion fails. The `:f
     failing-flow-b
     flow-c))
 ```
-
 
 ### Flow Example
 
@@ -350,16 +371,7 @@ monads in Clojure. `state-flow` exposes some, but not all, `cats`
 functions as its own API. As mentioned above, we recommend that you
 stick with `state-flow` functions as much as possible, however, if the
 available functions do not suit your need for a helper, you can always
-drop down to functions directly in the `cats` library. For example,
-let's say you want to execute a step `n` times. You could use the
-`cats.core/sequence` function directly
-
-``` clojure
-(state-flow.api/run
-  (flow "x"
-      (cats.core/sequence (repeat 5 (state-flow.api/swap-state update :count inc))))
-  {:count 0})
-```
+drop down to functions directly in the `cats` library.
 
 ## Tooling
 
