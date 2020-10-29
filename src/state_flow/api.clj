@@ -1,5 +1,7 @@
 (ns state-flow.api
-  (:require [state-flow.assertions.matcher-combinators]
+  (:refer-clojure :exclude [for])
+  (:require [cats.core :as m]
+            [state-flow.assertions.matcher-combinators]
             [state-flow.cljtest]
             [state-flow.core]
             [state-flow.state]
@@ -38,3 +40,22 @@
 
 (import-fn state-flow.state/gets   get-state)
 (import-fn state-flow.state/modify swap-state)
+
+(defmacro for
+  "Like clojure.core/for, but returns a flow which wraps a sequence of flows e.g.
+
+     (flow \"even? returns true for even numbers\"
+       (flow/for [x (filter even? (range 10))]
+         (match? even? x)))
+
+     ;; same as
+
+   (flow \"even? returns true for even numbers\"
+     (match? even? 0)
+     (match? even? 2)
+     (match? even? 4)
+     (match? even? 6)
+     (match? even? 8)) "
+  [seq-exprs flow]
+  `(m/sequence
+    (clojure.core/for ~seq-exprs ~flow)))
