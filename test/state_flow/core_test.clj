@@ -311,3 +311,13 @@
       (is (empty? (->> (rest frames)
                        (map #(.getClassName %))
                        (filter #(re-find #"^clojure.lang" %))))))))
+
+(deftest before-flow-hook
+  (testing "add a custom before-flow-hook that gets a description and changes the state with a modified version of it"
+    (let [result (->> (state-flow/run*
+                       {:before-flow-hook (fn [s] (assoc s :my-thing (str (first (clojure.string/split (#'state-flow/state->current-description s)
+                                                                                                       #" "))
+                                                                          " world!")))}
+                       (state-flow/flow "hello" (state/gets :my-thing)))
+                      first)]
+      (is (= result "hello world!")))))
