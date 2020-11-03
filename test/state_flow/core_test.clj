@@ -311,3 +311,13 @@
       (is (empty? (->> (rest frames)
                        (map #(.getClassName %))
                        (filter #(re-find #"^clojure.lang" %))))))))
+
+(deftest before-flow-hook
+  (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
+    (let [result (->> (state-flow/run*
+                        {:before-flow-hook (fn [s] (assoc s :my-thing (str (first (clojure.string/split (#'state-flow/state->current-description s)
+                                                                                         #" "))
+                                                                           " world!")))}
+                        (state-flow/flow "hello" (state/gets :my-thing)))
+                      first)]
+      (is (= result "hello world!")))))
