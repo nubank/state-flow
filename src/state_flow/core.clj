@@ -83,6 +83,12 @@
      (second pair)]
     pair))
 
+(defn apply-before-flow-hook
+  []
+  (m/do-let
+   [hook (state/gets (comp :before-flow-hook meta))]
+   (state/modify (or hook identity))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
 
@@ -103,6 +109,7 @@
         flows'    (or flows `[(m/return nil)])]
     `(m/do-let
       (push-meta ~description ~flow-meta)
+      (apply-before-flow-hook)
       [ret# (m/do-let ~@flows')]
       (pop-meta)
       (m/return ret#))))
@@ -230,21 +237,21 @@
 
   Supported keys in the first argument are:
 
-    `:fail-fast?` optional, default `false`, when set to `true`, the flow stops running after the first failing assertion
-    `:init`       optional, default (constantly {}), function of no arguments that returns the initial state
-    `:cleanup`    optional, default identity, function of the final state used to perform cleanup, if necessary
-    `:runner`     optional, default `run`, function of a flow and an initial state which will execute the flow
-    `:on-error`   optional, function of the final result pair to be invoked when the first value in the pair
-                  represents an error, default:
-
-                    `(comp throw-error!
-                           log-error
-                           (filter-stack-trace default-strack-trace-exclusions))`"
-  [{:keys [init cleanup runner on-error fail-fast?]
+    `:fail-fast?`       optional, default `false`, when set to `true`, the flow stops running after the first failing assertion
+    `:init`             optional, default (constantly {}), function of no arguments that returns the initial state
+    `:cleanup`          optional, default `identity`, function of the final state used to perform cleanup, if necessary
+    `:runner`           optional, default `run`, function of a flow and an initial state which will execute the flow
+    `:before-flow-hook` optional, default `identity`, function from state to new-state that is applied before excuting a flow, after flow description is updated.
+    `:on-error`         optional, function of the final result pair to be invoked when the first value in the pair represents an error, default:
+                        `(comp throw-error!
+                              log-error
+                              (filter-stack-trace default-strack-trace-exclusions))`"
+  [{:keys [init cleanup runner on-error fail-fast? before-flow-hook]
     :or   {init                   (constantly {})
            cleanup                identity
            runner                 run
            fail-fast?             false
+           before-flow-hook       identity
            on-error               (comp throw-error!
                                         log-error
                                         (filter-stack-trace default-stack-trace-exclusions))}
@@ -253,6 +260,7 @@
   (let [init-state+meta (vary-meta (init)
                                    assoc
                                    :runner runner
+                                   :before-flow-hook before-flow-hook
                                    :fail-fast? fail-fast?)
         pair            (-> flow
                             (runner init-state+meta)
