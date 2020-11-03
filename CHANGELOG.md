@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.8.0]
+
+* enables the user to add a hook that is executed before flow execution and after description is updated, via the `before-flow-hook` option
+
 ## [5.7.0]
 
 * add `state-flow.api/for` macro [#142](https://github.com/nubank/state-flow/pull/142)
