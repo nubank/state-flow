@@ -313,7 +313,7 @@
                        (filter #(re-find #"^clojure.lang" %))))))))
 
 (deftest before-flow-hook
-  (testing "default: uses default-stack-trace-exceptions (on all but first frame)"
+  (testing "add a custom before-flow-hook that gets a description and changes the state with a modified version of it"
     (let [result (->> (state-flow/run*
                        {:before-flow-hook (fn [s] (assoc s :my-thing (str (first (clojure.string/split (#'state-flow/state->current-description s)
                                                                                                        #" "))
