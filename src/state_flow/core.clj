@@ -86,7 +86,7 @@
 (defn apply-before-flow-hook
   []
   (m/do-let
-   [hook (state/gets #(-> % meta :before-flow-hook))]
+   [hook (state/gets (comp :before-flow-hook meta))]
    (state/modify (or hook identity))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
