@@ -52,11 +52,13 @@
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
-  (let [caller-meta      (meta &form)
-        params*          (merge {:description  "match?"
-                                 :caller-meta  caller-meta
-                                 :times-to-try 1
-                                 :sleep-time   probe/default-sleep-time}
+  (let [f           *file*
+        a-ns        (str *ns*)
+        caller-meta (assoc (meta &form) :file f :ns a-ns)
+        params*     (merge {:description  "match?"
+                            :caller-meta  caller-meta
+                            :times-to-try 1
+                            :sleep-time   probe/default-sleep-time}
                                 params)]
 
     (core/flow*
@@ -71,7 +73,7 @@
                                  (not (state/state? ~actual)))
                         (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
                                         {:times-to-try ~times-to-try
-                                         :actual ~actual}))))
+                                         :actual       ~actual}))))
        [flow-desc#  (core/current-description)
         fail-fast?# core/fail-fast?
         probe-res#  (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
