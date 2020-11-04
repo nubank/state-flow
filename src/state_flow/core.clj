@@ -31,14 +31,16 @@
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  [description {:keys [line]}]
+  [description {:keys [line ns file]}]
   (modify-meta
    (fn [m] (-> m
                (update :top-level-description #(or % description))
                (update :description-stack (fnil conj [])
                        ;; TODO: Add filename as well
-                       (merge {:description description}
-                              (when line {:line line})))))))
+                       (merge {:description description
+                               :ns          ns}
+                              (when line {:line line})
+                              (when file {:file file})))))))
 
 (defn pop-meta
   "Returns a flow that will modify the state metadata.
@@ -48,10 +50,11 @@
   (modify-meta update :description-stack pop))
 
 (defn ^:private format-single-description
-  [{:keys [line description]}]
-  (str description
-       (when line
-         (format " (line %s)" line))))
+  [{:keys [line description file] :as m}]
+  (let [filename (when file (last (str/split file #"/")))]
+    (str description
+         (when line
+           (format " (%s:%s)" filename line)))))
 
 (defn ^:private format-description
   [strs]
@@ -127,9 +130,13 @@
   "Creates a flow which is a composite of flows."
   {:style/indent :defn}
   [description & flows]
-  (apply flow* {:description description
-                :caller-meta (meta &form)}
-         flows))
+  (let [f    *file*
+        a-ns (str *ns*)]
+    (apply flow* {:description description
+                  :caller-meta (assoc (meta &form)
+                                      :file f
+                                      :ns a-ns)}
+           flows)))
 
 (defn top-level-description
   "Returns the description passed to the top level flow (or the
