@@ -152,7 +152,7 @@
            (second (state-flow/run! (flow "just return initial state"))))))
 
   (testing "run! throws exception"
-    (is (thrown-with-msg? Exception #"root \(line \d+\) -> child2 \(line \d+\)"
+    (is (thrown-with-msg? Exception #"root \(core_test.clj:\d+\) -> child2 \(core_test.clj:\d+\)"
                           (test-helpers/run-flow bogus-flow {:value 0})))))
 
 (deftest as-step-fn
@@ -170,11 +170,11 @@
 
 (deftest current-description
   (testing "top level flow"
-    (is (re-matches #"level 1 \(line \d+\)"
+    (is (re-matches #"level 1 \(core_test.clj:\d+\)"
                     (first (state-flow/run (flow "level 1" (state-flow/current-description)))))))
 
   (testing "nested flows"
-    (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\)"
+    (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\)"
                     (first (state-flow/run (flow "level 1"
                                              (flow "level 2"
                                                (state-flow/current-description)))))))
@@ -187,13 +187,13 @@
                                    (flow "level 2"
                                      (flow "level 3"
                                        (state-flow/current-description)))))]
-      (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\) -> level 3 \(line \d+\)" desc))
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\)" desc))
       (testing "line numbers are correct"
         (let [[level-1-line
                level-2-line
                level-3-line]
               (->> desc
-                   (re-find #"level 1 \(line (\d+)\) -> level 2 \(line (\d+)\) -> level 3 \(line (\d+)\)")
+                   (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
           (is (consecutive? line-number-before-flow-invocation
@@ -207,14 +207,14 @@
           level-2  (flow "level 2" level-3)
           level-1  (flow "level 1" level-2)
           [desc _] (state-flow/run level-1)]
-      (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\) -> level 3 \(line \d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\)"
                       desc))
       (testing "line numbers are correct, even when composed"
         (let [[level-1-line
                level-2-line
                level-3-line]
               (->> desc
-                   (re-find #"level 1 \(line (\d+)\) -> level 2 \(line (\d+)\) -> level 3 \(line (\d+)\)")
+                   (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
           (is (consecutive? line-number-before-flow-invocation
@@ -224,16 +224,16 @@
 
   (testing "after nested flows complete"
     (testing "within nested flows "
-      (is (re-matches #"level 1 \(line \d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2")
                                                (state-flow/current-description))))))
-      (is (re-matches #"level 1 \(line \d+\) -> level 2 \(line \d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2"
                                                  (flow "level 3")
                                                  (state-flow/current-description)))))))
-      (is (re-matches #"level 1 \(line \d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2"
                                                  (flow "level 3"))

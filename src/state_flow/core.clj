@@ -31,13 +31,15 @@
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  [description {:keys [line]}]
+  [description {:keys [line ns file]}]
   (modify-meta
    (fn [m] (-> m
                (update :top-level-description #(or % description))
-               (update :description-stack (fnil conj []) (str description
-                                                              (when line
-                                                                (format " (line %s)" line))))))))
+               (update :description-stack (fnil conj [])
+                       (cond-> {:description description
+                                :ns ns}
+                         line (assoc :line line)
+                         file (assoc :file file)))))))
 
 (defn pop-meta
   "Returns a flow that will modify the state metadata.
@@ -46,9 +48,18 @@
   []
   (modify-meta update :description-stack pop))
 
+(defn ^:private format-single-description
+  [{:keys [line description file] :as m}]
+  (let [filename (when file (last (str/split file #"/")))]
+    (str description
+         (when line
+           (format " (%s:%s)" filename line)))))
+
 (defn ^:private format-description
   [strs]
-  (str/join " -> " strs))
+  (->> strs
+       (map format-single-description)
+       (str/join " -> ")))
 
 (defn ^:private description-stack [s]
   (-> s meta :description-stack))
@@ -119,7 +130,9 @@
   {:style/indent :defn}
   [description & flows]
   (apply flow* {:description description
-                :caller-meta (meta &form)}
+                :caller-meta (assoc (meta &form)
+                                    :file *file*
+                                    :ns (str *ns*))}
          flows))
 
 (defn top-level-description
