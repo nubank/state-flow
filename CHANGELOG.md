@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.8.1]
+
+* upgrade to cats 2.4.1
+
 ## [5.8.0]
 
 * enables the user to add a hook that is executed before flow execution and after description is updated, via the `before-flow-hook` option
