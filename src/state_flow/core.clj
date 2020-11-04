@@ -36,7 +36,6 @@
    (fn [m] (-> m
                (update :top-level-description #(or % description))
                (update :description-stack (fnil conj [])
-                       ;; TODO: Add filename as well
                        (merge {:description description
                                :ns          ns}
                               (when line {:line line})

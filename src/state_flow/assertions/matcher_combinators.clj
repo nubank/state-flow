@@ -59,7 +59,7 @@
                             :caller-meta  caller-meta
                             :times-to-try 1
                             :sleep-time   probe/default-sleep-time}
-                                params)]
+                           params)]
 
     (core/flow*
      {:description (:description params*)
