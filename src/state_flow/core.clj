@@ -36,10 +36,10 @@
    (fn [m] (-> m
                (update :top-level-description #(or % description))
                (update :description-stack (fnil conj [])
-                       (merge {:description description
-                               :ns          ns}
-                              (when line {:line line})
-                              (when file {:file file})))))))
+                       (cond-> {:description description
+                                :ns ns}
+                         line (assoc :line line)
+                         file (assoc :file file)))))))
 
 (defn pop-meta
   "Returns a flow that will modify the state metadata.
@@ -129,13 +129,11 @@
   "Creates a flow which is a composite of flows."
   {:style/indent :defn}
   [description & flows]
-  (let [f    *file*
-        a-ns (str *ns*)]
-    (apply flow* {:description description
-                  :caller-meta (assoc (meta &form)
-                                      :file f
-                                      :ns a-ns)}
-           flows)))
+  (apply flow* {:description description
+                :caller-meta (assoc (meta &form)
+                                    :file *file*
+                                    :ns (str *ns*))}
+         flows))
 
 (defn top-level-description
   "Returns the description passed to the top level flow (or the

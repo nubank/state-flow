@@ -52,9 +52,7 @@
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
-  (let [f           *file*
-        a-ns        (str *ns*)
-        caller-meta (assoc (meta &form) :file f :ns a-ns)
+  (let [caller-meta (assoc (meta &form) :file *file* :ns (str *ns*))
         params*     (merge {:description  "match?"
                             :caller-meta  caller-meta
                             :times-to-try 1
