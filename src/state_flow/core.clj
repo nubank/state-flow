@@ -35,9 +35,10 @@
   (modify-meta
    (fn [m] (-> m
                (update :top-level-description #(or % description))
-               (update :description-stack (fnil conj []) (str description
-                                                              (when line
-                                                                (format " (line %s)" line))))))))
+               (update :description-stack (fnil conj [])
+                       ;; TODO: Add filename as well
+                       (merge {:description description}
+                              (when line {:line line})))))))
 
 (defn pop-meta
   "Returns a flow that will modify the state metadata.
@@ -46,9 +47,17 @@
   []
   (modify-meta update :description-stack pop))
 
+(defn ^:private format-single-description
+  [{:keys [line description]}]
+  (str description
+       (when line
+         (format " (line %s)" line))))
+
 (defn ^:private format-description
   [strs]
-  (str/join " -> " strs))
+  (->> strs
+       (map format-single-description)
+       (str/join " -> ")))
 
 (defn ^:private description-stack [s]
   (-> s meta :description-stack))
