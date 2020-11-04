@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.9.0]
+
+* add filename to flow descriptions. Use the following format: `<description> (<file>:<line>)`
+
 ## [5.8.0]
 
 * enables the user to add a hook that is executed before flow execution and after description is updated, via the `before-flow-hook` option
