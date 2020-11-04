@@ -41,6 +41,8 @@
 (import-fn state-flow.state/gets   get-state)
 (import-fn state-flow.state/modify swap-state)
 
+;; NOTE: this could be imported directly from cats.core, but we're defining
+;; it here to keep the documentation in terms of state-flow rather than cats.
 (defmacro for
   "Like clojure.core/for, but returns a flow which wraps a sequence of flows e.g.
 
@@ -57,5 +59,4 @@
      (match? even? 6)
      (match? even? 8)) "
   [seq-exprs flow]
-  `(m/sequence
-    (clojure.core/for ~seq-exprs ~flow)))
+  `(m/for ~seq-exprs ~flow))
