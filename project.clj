@@ -1,4 +1,5 @@
 (defproject nubank/state-flow "5.9.0"
+(defproject nubank/state-flow "5.8.1"
   :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -20,7 +21,7 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.taoensso/timbre "4.10.0"]
-                 [funcool/cats "2.3.6"]
+                 [funcool/cats "2.4.1"]
                  [nubank/matcher-combinators "3.1.3"]]
 
   :exclusions   [log4j]
