@@ -4,20 +4,22 @@
 
 StateFlow is a testing framework designed to support the composition and reuse of individual test steps.
 
+## Definitions
+
+* A [*flow*](#flows) is a sequence of steps or bindings.
+* A [*step*](#primitive-steps) is a primitive step or flow.
+* A [*binding*](#bindings) is a vector of pairs of symbols and steps (or a :let with a vector of regular let-bindings)
+
 ## Flows
 
-A flow is a sequence of steps to be executed with some state as a
-reference. Each step can be any of a primitive ([described below](#primitives)), a
-vector of bindings ([described below](#bindings)), or a nested flow. Flows can be
-`def`'d to vars, and nested arbitrarily deeply.
-
-We define a flow with the `flow` macro:
+A flow is a sequence of steps or bindings to be executed with some state as a
+reference. Use the `flow` macro to define a flow:
 
 ```clojure
-(flow <description> <flow/bindings/primitive>*)
+(flow <description> <step/bindings>*)
 ```
 
-Once defined, you can run it with `(state-flow.core/run! (flow ...) <initial-state>)`.
+Once defined, you can run it with `(state-flow.api/run* <options> (flow ...))`.
 
 You can think flows and the steps within them as functions of the state, e.g.
 
@@ -27,76 +29,114 @@ You can think flows and the steps within them as functions of the state, e.g.
 
 Each step is executed in sequence, passing the state to the next step. The return value from running the flow is the return value of the last step that was run.
 
+### Primitive steps
+
+Primitive steps are the fundamental building blocks of flows.
+
+* Return the application of a function f to the state.
+
+```clojure
+(state-flow.api/get-state f)
+```
+
+* Store the application of a function f to the state.
+
+```clojure
+(state-flow.api/swap-state f)
+```
+
+* Transform a value returned by a step
+
+``` clojure
+(state-flow.api/fmap xform <step-or-flow>)
+```
+
+* Return a value
+
+```clojure
+(state-flow.api/return v)
+```
+
+* Invoke a no-arg function and return its result
+
+``` clojure
+(state-flow.api/invoke no-arg-fn)
+```
+
+### Bindings
+
+Bindings bind return values of steps to symbols you can use in other steps.
+
+`[(<symbol> <step>)+]`
+
+They are like `let` bindings but the symbol on the left binds to the _return value_ of the step on the right.
+
+```clojure
+[<symbol> <step-or-flow>]
+ ```
+
+You can also bind directly to values using the `:let` keyword:
+
+```clojure
+[:let [<symbol> <non-step expression>]]
+ ```
+
+You can bind any number of symbols in a single binding vector, e.g.
+
+```clojure
+[a     step-1
+ b     step-2
+ :let [c expression-1]
+ d     step-3]
+ ```
+
+### Running Flows
+
 If you are using StateFlow for integration testing, the initial state is usually a representation of your service components,
 a system using [Stuart Sierra's Component](https://github.com/stuartsierra/component) library or other similar facility. You can also run the same flow with different initial states, e.g.
 
 ```clojure
 (def a-flow (flow ...))
 
-(state-flow.core/run! flow <one-initial-state>)
-(state-flow.core/run! flow <another-initial-state>)
+(defn build-initial-state [] { ... })
+(state-flow.api/run* {:init build-initial-state} flow)
+
+(state-flow.api/run* {:init (constantly {:service-system (atom nil))} flow)
 ```
 
-### Primitives
+### Composing Flows
 
-Primitives are the fundamental building blocks of flows. Each one is
-a function (wrapped in a Record in order to support internals, but you
-can just think of them as functions) of state.
+Flows follow the Composite Pattern: a single flow has the same
+interface as a collection of flows.
 
-Below we list the main primitives and a model for the sort of function
-each represents. Their names are derived from [Haskell's State
-Monad](https://wiki.haskell.org/State_Monad), which you should read
-about if you want to understand StateFlow's internals, but you should
-not need in order to use StateFlow.
+You can compose flows by nesting them in other flows:
 
-* Return current state
-
-```clojure
-(state-flow.state/get)
-;=> (fn [s] [s s])
+``` clojure
+(flow "do many things"
+  (flow "do one thing" ,,,)
+  (flow "do another thing" ,,,))
 ```
 
-* Return the application of a function to the current state
+Use `state-flow.api/for` when you have a flow that you'd like to apply
+to different inputs with the same outcome, e.g.
 
-```clojure
-(state-flow.state/gets f)
-;=> (fn [s] [(f s) s])
+``` clojure
+(flow "even? returns true for even numbers"
+  (flow/for [x (filter even? (range 10))]
+    (match? even? x)))
 ```
 
-* Reset a new state
+#### Failing Fast
+
+By default, a flow continues to be evaluated even if an assertion fails. The `:fail-fast?` option to `state-flow.api/run*` can be used if you would like to stop evaluation after the first assertion failure.
 
 ```clojure
-(state-flow.state/put new-s)
-;=> (fn [s] [s new-s])
+(state-flow.api/run* {:fail-fast? true}
+  (flow "evaluation stops after `failing-flow-b`"
+    flow-a
+    failing-flow-b
+    flow-c))
 ```
-
-* Update the state by applying a function
-
-```clojure
-(state-flow.state/modify f)
-;=> (fn [s] [s (f s)])
-```
-
-* Return an arbitrary value
-
-```clojure
-(state-flow.state/return v)
-;=> (fn [s] [v s])
-```
-
-### Bindings
-
-Bindings let you take advantage of the return values of flows to compose other flows and have the following syntax:
-
-`[(<symbol> <flow/primitive>)+]`
-
-They work pretty much like `let` bindings but the left symbol binds to the _return value_ of the flow on the right.
-It's also possible to bind directly to values (i.e. Clojure's `let`) within the same vector using the `:let` keyword:
-
-```clojure
-[(<symbol> <flow/primitive>)
- :let [<symbol> <non-flow expression>]]
- ```
 
 ### Flow Example
 
@@ -104,24 +144,25 @@ Suppose our system state is made out of a map with `{:value <value>}`. We can ma
 fetches the value bound to `:value`.
 
 ```clojure
-(def get-value (flow "get-value" (state/gets :value)))
-(state-flow/run! get-value {:value 4})
+(require '[state-flow.api :as flow :refer [flow]])
+(def get-value (flow "get-value" (flow/get-state :value)))
+(flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
-Primitives have the same underlying structure as flows and can be passed directly to `run!`:
+Primitive steps have the same underlying structure as flows and can be passed directly to `run*`:
 
 ```clojure
-(def get-value (state/gets :value))
-(state-flow/run! get-value {:value 4})
+(def get-value (flow/get-state :value))
+(flow/run* {:init (constantly {:value 4})} get-value)
 ; => [4 {:value 4}]
 ```
 
-We can use `state/modify` to modify the state. Here's a primitive that increments the value:
+We can use `state-flow.api/swap-state` to modify the state. Here's a primitive that increments the value:
 
 ```clojure
-(def inc-value (state/modify #(update % :value inc)))
-(state-flow/run! inc-value {:value 4})
+(def inc-value (flow/swap-state update :value inc))
+(flow/run* {:init (constantly {:value 4})} inc-value)
 ; => [{:value 4} {:value 5}]
 ```
 
@@ -133,8 +174,8 @@ multiplied by two, we could do it like this:
 (def double-value
   (flow "get double value"
     [value get-value]
-    (state/return (* value 2))))
-(state-flow/run! double-value {:value 4})
+    (flow/return (* value 2))))
+(flow/run* {:init (constantly {:value 4})} double-value)
 ; => [8 {:value 4}]
 ```
 
@@ -145,44 +186,121 @@ Or we could increment the value first and then return it doubled:
   (flow "increment and double value"
     inc-value
     [value get-value]
-    (state/return (* value 2))))
-(state-flow/run! inc-and-double-value {:value 4})
+    (flow/return (* value 2))))
+(flow/run* {:init (constantly {:value 4})} inc-and-double-value)
 ; => [10 {:value 5}]
 ```
 
-## Clojure.test Support
+## clojure.test and matcher-combinators
 
 We use the `defflow` and `match?` macros to build `clojure.test` tests
 out of flows.
 
-`defflow` defines a test (using `deftest`) that when
-run, will execute the flow with the parameters that we set.
+`state-flow.cljtest.defflow` defines a test (using `deftest`) that
+will execute the flow with the parameters that we set.
 
-`match?` is a flow that will make a `clojure.test` assertion and the [`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/) library
-for the actual checking and failure messages. `match?` asks for a string description, a value (or a flow returning a value) and a matcher-combinators matcher (or value to be checked against). Not passing a matcher defaults to `matchers/embeds` behaviour.
+`state-flow.assertions.matcher-combinators/match?` produces a flow that will make an assertion, which
+will be reported via clojure.test when used within a `defflow`. It
+uses the
+[`nubank/matcher-combinators`](https://github.com/nubank/matcher-combinators/)
+library for the actual check and failure messages. `match?` asks for:
+
+* the expected value, or a matcher-combinators matcher
+  * if you supply a value, matcher-combintators will apply its defaults
+* the actual value, or a step which will produce it
+  * if you supply a value, `match?` will wrap it in `(state-flow.api/return <value>)`
+* optional map of options with:
+  * `:times-to-try` (default 1)
+  * `:sleep-time`   (default 200)
 
 Here are some very simple examples of tests defined using `defflow`:
 
 ```clojure
 (defflow my-flow
-  (match? "simple test" 1 1)
-  (match? "embeds" {:a 1 :b 2} {:a 1}))
+  (match? 1 1)
+  (match? {:a 1} {:a 1 :b 2}))
 ```
+
+Wrap them in `flow`s to get descriptions when the expected and actual
+values need some explanation:
+
+```clojure
+(deftest fruits-and-veggies
+  (flow "surprise! Tomatoes are fruits!"
+    (match? #{:tomato} (fruits #{:tomato :potato}))))
+```
+
 Or with custom parameters:
 
 ```clojure
-(defflow my-flow {:init aux.init! :runner (comp run! s/with-fn-validation)}
-  (match? "simple test" 1 1)
-  (match? "simple test 2" 2 2))
+(defflow my-flow {:init aux.init! :runner (comp run* s/with-fn-validation)}
+  (match? 1 1))
+
 ```
 
 ```clojure
 (defflow my-flow {:init (constantly {:value 1
                                      :map {:a 1 :b 2}})}
-  [value (state/gets :value)]
-  (match? "value is correct" value 1)
-  (match? "embeds" (state/gets :map) {:b 2}))
+  [value (flow/get-state :value)]
+  (match? 1 value)
+  (flow "uses matcher-combinator embeds"
+    (match? {:b 2} (flow/get-state :map)))
 ```
+
+### `:times-to-try` and `:sleep-time`
+
+By default, `match?` will evaluate `actual` only once. For tests with
+asynchrony/concurrency concerns, you can direct `match?` to try up to
+`:times-to-try` times, waiting `:sleep-time` between each try. It will
+keep trying until it produces a value that matches the `expected`
+expression, up to `:times-to-try`.
+
+``` clojure
+(defflow add-data
+  (flow "try up to 5 times with 250 ms between each try (total 1000ms)"
+    (produce-message-that-causes-database-update)
+    (match? expected-data-in-database
+            (fetch-data)
+            {:times-to-try 5
+             :sleep-time 250})))
+```
+
+### NOTE: about upgrading to state-flow-2.2.4
+
+We introduced `state-flow.assertions.matcher-combinators/match?` in state-flow-2.2.4, and
+deprecated `state-flow.cljtest.match?` in that release. The signature
+for the old version was `(match? <description> <actual> <expected>)`.
+We removed the description because it was quite common for the description
+to add no context that wasn't already made clear by the expected and
+actual values.
+
+We also reversed the order of expected and actual in order to align
+with the `match?` function in the matcher-combinators library and with
+clojure.test's `(is (= expected actual))`.
+
+We also added a script to help refactor this for you. Here's how
+you use it:
+
+``` shell
+# if you don't already have the state-flow repo cloned
+git clone https://github.com/nubank/state-flow.git
+;; or
+git clone git@github.com:nubank/state-flow.git
+;; then
+cd state-flow
+
+# if you already have the state-flow repo cloned
+cd state-flow
+git co master
+git pull
+
+# the rest is the same either way
+lein pom # needed for tools.deps to recognize this repo as a `:local/root` dependency
+./bin/refactor-match.sh --help
+;; now follow the instructions
+```
+
+Note that if you have a `defflow` defined in a different namespace, and it depends on `state-flow.cljtest`, you may need to require it in that namespace.
 
 ## Midje Support
 
@@ -197,7 +315,7 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
 
 ```clojure
 (:require
-  [state-flow.core :refer [flow]]
+  [state-flow.api :refer [flow]]
   [state-flow.midje :refer [verify]])
 
 (defn stores-data-in-db
@@ -209,3 +327,57 @@ and we also have a step that fetches this data from db (`fetch-data`). We want t
       saved-data
       expected-data)))
 ```
+
+## Writing Helpers
+
+Test helpers specific to your domain can make state-flow tests more
+readable and intention-revealing. When writing them, we recommend that
+you start with state-flow functions in the `state-flow.api` namespace.
+If, for example, you're testing a webapp, you might want a `request`
+helper like this:
+
+``` clojure
+(defflow users
+  (flow "fetch registered users"
+    (http-helpers/request {:method :post
+                           :uri "/users"
+                           :body {:user/first-name "David"}})
+    [users (http-helpers/request {:method :get
+                                  :uri "/users"})]
+    (match? ["David"]
+            (map :user/first-name users)))
+```
+
+Presuming that you have an `:http-component` key in the initial state,
+the `http-helpers/request` helper could be implemented something like this:
+
+``` clojure
+(ns http-helpers
+  (:require [my-app.http :as http]
+            [state-flow.api :as flow :refer [flow]]))
+
+(defn request [req]
+  (flow "make request"
+    [http (flow/get-state :http-component)]
+    (flow/return (http/request http req)))
+```
+
+This produces a step that can be used in a flow, as above.
+
+### funcool.cats
+
+`state-flow` is built on the `funcool.cats` library, which supports
+monads in Clojure. `state-flow` exposes some, but not all, `cats`
+functions as its own API. As mentioned above, we recommend that you
+stick with `state-flow` functions as much as possible, however, if the
+available functions do not suit your need for a helper, you can always
+drop down to functions directly in the `cats` library.
+
+## Tooling
+
+### Emacs + cider
+
+Add `"defflow"` to the list defined by `cider-test-defining-forms` to
+enable commands like `cider-test-run-test` for flows defined with `defflow`.
+
+See [https://docs.cider.mx/cider/testing/running_tests.html#_configuration](https://docs.cider.mx/cider/testing/running_tests.html#_configuration)

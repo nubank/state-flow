@@ -1,5 +1,5 @@
 (ns state-flow.midje-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [midje.sweet :refer [contains just]]
             [state-flow.core :as state-flow]
             [state-flow.midje :as midje]

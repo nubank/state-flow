@@ -1,0 +1,65 @@
+name: Clojure CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-using-java-8:
+    name: 'Test using Java 8'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 8
+
+    - name: Print java version
+      run: java -version
+
+    - name: Install dependencies
+      run: lein deps
+
+    - name: Run clj tests
+      run: lein test
+
+    - name: Run midje tests
+      run: lein midje
+
+  test-using-java-11:
+    name: 'Test using Java 11'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - name: Print java version
+      run: java -version
+
+    - name: Install dependencies
+      run: lein deps
+
+    - name: Run clj tests
+      run: lein test
+
+    - name: Run midje tests
+      run: lein midje
+
+  lint:
+    name: 'Lint'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - name: Lint check
+      run: lein lint

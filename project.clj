@@ -1,9 +1,15 @@
-(defproject nubank/state-flow "2.1.5"
-  :description "Postman-like integration testing with composable flows"
+(defproject nubank/state-flow "5.9.0"
+  :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
 
-  :plugins [[lein-midje "3.2.1"]
+  :repositories [["publish" {:url "https://clojars.org/repo"
+                             :username :env/clojars_username
+                             :password :env/clojars_passwd
+                             :sign-releases false}]]
+
+  :plugins [[lein-project-version "0.1.0"]
+            [lein-midje "3.2.1"]
             [lein-cloverage "1.0.10"]
             [lein-vanity "0.2.0"]
             [s3-wagon-private "1.3.1"]
@@ -14,8 +20,8 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.taoensso/timbre "4.10.0"]
-                 [funcool/cats "2.3.3"]
-                 [nubank/matcher-combinators "1.2.7"]]
+                 [funcool/cats "2.4.1"]
+                 [nubank/matcher-combinators "3.1.3"]]
 
   :exclusions   [log4j]
 
@@ -27,9 +33,10 @@
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["dev"]
                    :dependencies [[ns-tracker "0.4.0"]
-                                  [org.clojure/tools.namespace "0.3.1"]
+                                  [org.clojure/tools.namespace "1.0.0"]
                                   [midje "1.9.9"]
-                                  [org.clojure/java.classpath "0.3.0"]]}}
+                                  [org.clojure/java.classpath "1.0.0"]
+                                  [rewrite-clj "0.6.1"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
