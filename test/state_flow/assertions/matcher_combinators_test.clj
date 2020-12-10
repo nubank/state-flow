@@ -80,7 +80,18 @@
           (= (+ three-lines-before-call-to-match 3) (:line report-data)))
         (is (match? {:matcher-combinators.result/type  :mismatch
                      :matcher-combinators.result/value {:n {:expected 1 :actual 2}}}
-                    (-> report-data :actual :match-result))))))
+                    (-> report-data :actual :match-result))))
+      (testing "saves assertion report to state with current description stack"
+        (is (match? {:flow/description-stack [{:description "match?"}]
+                     :match/result       :mismatch
+                     :mismatch/detail    {:n {:expected 1 :actual 2}}
+                     :probe/results      [{:check-result false :value {:n 2}}
+                                          {:check-result false :value {:n 2}}]
+                     :probe/sleep-time   200
+                     :probe/times-to-try 2
+                     :match/expected     {:expected {:n 1}}
+                     :match/actual       {:n 2}}
+                    (first (get-in (meta flow-state) [:test-report :assertions])))))))
 
   (testing "with probe result that only changes after timeout"
     (let [{:keys [flow-ret flow-state report-data]}

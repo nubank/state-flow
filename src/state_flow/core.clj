@@ -55,13 +55,13 @@
          (when line
            (format " (%s:%s)" filename line)))))
 
-(defn ^:private format-description
+(defn format-description
   [strs]
   (->> strs
        (map format-single-description)
        (str/join " -> ")))
 
-(defn ^:private description-stack [s]
+(defn description-stack [s]
   (-> s meta :description-stack))
 
 (defn ^:private string-expr? [x]
