@@ -61,9 +61,11 @@
     (let [three-lines-before-call-to-match (this-line-number)
           {:keys [flow-ret flow-state report-data]}
           (test-helpers/run-flow
-           (mc/match? (matchers/equals {:n 1})
-                      (state/gets :value)
-                      {:times-to-try 2})
+           (flow "flow wrapper"
+             (#'state-flow.cljtest/assert-with-clojure-test)
+             (mc/match? (matchers/equals {:n 1})
+                        (state/gets :value)
+                        {:times-to-try 2}))
            {:value {:n 2}})]
       (testing "returns match result"
         (is (match? {:match/result       :mismatch
@@ -82,7 +84,8 @@
                      :matcher-combinators.result/value {:n {:expected 1 :actual 2}}}
                     (-> report-data :actual :match-result))))
       (testing "saves assertion report to state with current description stack"
-        (is (match? {:flow/description-stack [{:description "match?"}]
+        (is (match? {:flow/description-stack [{:description "flow wrapper"}
+                                              {:description "match?"}]
                      :match/result       :mismatch
                      :mismatch/detail    {:n {:expected 1 :actual 2}}
                      :probe/results      [{:check-result false :value {:n 2}}
@@ -97,6 +100,7 @@
     (let [{:keys [flow-ret flow-state report-data]}
           (test-helpers/run-flow
            (flow "flow"
+             (#'state-flow.cljtest/assert-with-clojure-test)
              (test-helpers/swap-later 200 :count + 2)
              (testing "2" (mc/match? 2
                                      (state/gets (comp deref :count))

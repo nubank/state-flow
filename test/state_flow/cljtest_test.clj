@@ -27,31 +27,33 @@
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-               {:assert-with-clojure-test? true}
-               (state-flow.core/flow "my-flow" (testing "equals" (mc/match? 1 1)))))
+                {}
+                (state-flow.core/flow "my-flow"
+                  (#'state-flow.cljtest/assert-with-clojure-test)
+                  (testing "equals" (mc/match? 1 1)))))
            flow-with-defaults)))
 
   (testing "defines flow with optional parameters"
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-               {:init (constantly {:value 1})
-                :assert-with-clojure-test? true}
-               (state-flow.core/flow "my-flow" (testing "equals" (mc/match? 1 1)))))
+               {:init (constantly {:value 1})}
+                (state-flow.core/flow "my-flow"
+                  (#'state-flow.cljtest/assert-with-clojure-test)
+                  (testing "equals" (mc/match? 1 1)))))
            flow-with-optional-args)))
 
   (testing "defines flow with binding and flow inside match?"
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-               {:init (constantly {:map {:a 1 :b 2} :value 1})
-                :assert-with-clojure-test? true}
+               {:init (constantly {:map {:a 1 :b 2} :value 1})}
                (state-flow.core/flow
-                "my-flow"
+                 "my-flow"
+                 (#'state-flow.cljtest/assert-with-clojure-test)
                  [value (state/gets :value)]
                  (testing "1" (mc/match? 1 value))
                  (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))))
-
            flow-with-binding-and-match))))
 
 (defflow my-flow {:init (constantly {:value 1

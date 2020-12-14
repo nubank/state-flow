@@ -75,7 +75,7 @@
                                          :actual       ~actual}))))
        [flow-desc#  (core/current-description)
         fail-fast?# core/fail-fast?
-        assert-with-clojure-test?# core/assert-with-clojure-test?
+        assert-with-clojure-test?# (state/gets (comp :assert-with-clojure-test?) meta)
         probe-res#  (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
