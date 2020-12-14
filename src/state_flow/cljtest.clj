@@ -1,7 +1,6 @@
 (ns state-flow.cljtest
   (:require [clojure.test :as t]
             [state-flow.assertions.matcher-combinators]
-            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.core :as core]
             [state-flow.probe :as probe]))
 
