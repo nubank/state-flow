@@ -88,7 +88,7 @@
   (state/gets (comp :fail-fast? meta)))
 
 (def assert-with-clojure-test?
-  "Should the flow stop after the first failing assertion?
+  "Flow that returns value of assert-with-clojure-test? config option
 
   For internal use. Subject to change."
   (state/gets (comp :assert-with-clojure-test? meta)))
