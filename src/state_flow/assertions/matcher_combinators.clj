@@ -75,6 +75,7 @@
                                          :actual       ~actual}))))
        [flow-desc#  (core/current-description)
         fail-fast?# core/fail-fast?
+        assert-with-clojure-test?# core/assert-with-clojure-test?
         probe-res#  (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
@@ -84,10 +85,11 @@
                              :probe/sleep-time   ~(:sleep-time params*)
                              :probe/times-to-try ~(:times-to-try params*))]]
 
-       ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
-       ;; assertions from reporting in a future release. Remove this
-       ;; next line when that happens.
-       (state/invoke #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+       (if assert-with-clojure-test?#
+         ;; We only make the clojure.test assertion if the option is enabled
+         ;; The assertion needs to be done here for proper line number information
+         (state/invoke #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+         (state/return nil))
 
        (report/push report#)
        (state/return (if (and fail-fast?# (= :mismatch (:match/result report#)))

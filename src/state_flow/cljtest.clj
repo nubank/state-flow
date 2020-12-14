@@ -16,13 +16,6 @@
                        params)]
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
-(defn report->assertion
-  [assertion-report]
-  (let [description (core/format-description (:flow/description-stack assertion-report))
-        expected (:match/expected assertion-report)
-        actual (:match/actual assertion-report)]
-    (t/testing description (t/is (match? expected actual)))))
-
 (defmacro defflow
   {:doc "Creates a flow and binds it a Var named by name"
    :arglists '([name & flows]
@@ -30,10 +23,7 @@
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
                                forms
-                               (cons {} forms))]
+                               (cons {} forms))
+        parameters' (assoc parameters :assert-with-clojure-test? true)]
     `(t/deftest ~name
-       (let [[ret# final-state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
-             test-report# (get (meta final-state#) :test-report)]
-         (doseq [assertion# (:assertions test-report#)]
-           (report->assertion assertion#))
-         [ret# final-state#]))))
+       (core/run* ~parameters' (core/flow ~(str name) ~@flows)))))
