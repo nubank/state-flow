@@ -35,8 +35,8 @@
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-                {:init (constantly {:value 1})
-                 :assert-with-clojure-test? true}
+               {:init (constantly {:value 1})
+                :assert-with-clojure-test? true}
                (state-flow.core/flow "my-flow" (testing "equals" (mc/match? 1 1)))))
            flow-with-optional-args)))
 
@@ -44,8 +44,8 @@
     (is (= '(clojure.test/deftest
               my-flow
               (state-flow.core/run*
-                {:init (constantly {:map {:a 1 :b 2} :value 1})
-                 :assert-with-clojure-test? true}
+               {:init (constantly {:map {:a 1 :b 2} :value 1})
+                :assert-with-clojure-test? true}
                (state-flow.core/flow
                 "my-flow"
                  [value (state/gets :value)]

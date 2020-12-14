@@ -1,8 +1,8 @@
 (ns state-flow.assertions.report
   (:require
-    [state-flow.core :as core]
-    [state-flow.state :as state]
-    [cats.core :as m]))
+   [cats.core :as m]
+   [state-flow.core :as core]
+   [state-flow.state :as state]))
 
 (defn push
   [assertion-report]

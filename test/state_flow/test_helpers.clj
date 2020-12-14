@@ -45,9 +45,9 @@
          res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
                         (binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
                           (state-flow.core/run*
-                            {:assert-with-clojure-test? true
-                             :init (constantly ~(or state {}))}
-                            ~flow)))]
+                           {:assert-with-clojure-test? true
+                            :init (constantly ~(or state {}))}
+                           ~flow)))]
      {:report-data (->> (deref report-data#)
                         ;; NOTE: :matcher-combinators.result/value is a Mismatch object, which is
                         ;; a defrecord, so equality on a map won't pass, hence pouring it into a map
