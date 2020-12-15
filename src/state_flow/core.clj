@@ -273,8 +273,7 @@
            before-flow-hook       identity
            on-error               (comp throw-error!
                                         log-error
-                                        (filter-stack-trace default-stack-trace-exclusions))
-           assert-with-clojure-test? false}}
+                                        (filter-stack-trace default-stack-trace-exclusions))}}
    flow]
   (let [init-state+meta (vary-meta (init)
                                    assoc
