@@ -33,34 +33,3 @@
   `(with-redefs [clojure.test/do-report identity]
      (binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
        ~@body)))
-
-(defmacro run-flow
-  "Wrapper for `state-flow.core/run!`, but captures clojure.test's report data
-  instead of printing it to *out*. Returns a map of:
-
-    :report-data - the data that _would_ be reported via clojure.test
-    :flow-ret    - the return value of the flow
-    :flow-state  - the end-state of the flow "
-  [flow & [state]]
-  `(let [report-data# (atom nil)
-         res#         (with-redefs [clojure.test/do-report (fn [data#] (reset! report-data# data#))]
-                        (binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
-                          (state-flow.core/run*
-                           {:assert-with-clojure-test? true
-                            :init (constantly ~(or state {}))}
-                           ~flow)))]
-     {:report-data (->> (deref report-data#)
-                        ;; NOTE: :matcher-combinators.result/value is a Mismatch object, which is
-                        ;; a defrecord, so equality on a map won't pass, hence pouring it into a map
-                        ;; to facilitate equality checks.
-                        (clojure.walk/postwalk (fn [node#]
-                                                 (if (instance? matcher_combinators.model.Mismatch node#)
-                                                   (into {} node#)
-                                                   node#))))
-      :flow-ret    (first res#)
-      :flow-state  (second res#)}))
-
-(defmacro defflow+report
-  [forms]
-  `(binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
-     (cljtest/defflow ~@forms)))
