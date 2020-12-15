@@ -101,12 +101,6 @@
   For internal use. Subject to change."
   (state/gets (comp :fail-fast? meta)))
 
-(def assert-with-clojure-test?
-  "Flow that returns value of assert-with-clojure-test? config option
-
-  For internal use. Subject to change."
-  (state/gets (comp :assert-with-clojure-test? meta)))
-
 (defn- clarify-illegal-arg [pair]
   (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
     [(#'cats.monad.exception/->Failure
