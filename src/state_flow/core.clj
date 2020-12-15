@@ -48,9 +48,17 @@
   []
   (modify-meta update :description-stack pop))
 
+;;
+;; Begin description utils
+;;
+
+(defn description->file
+  [{:keys [file]}]
+  (when file (last (str/split file #"/"))))
+
 (defn ^:private format-single-description
   [{:keys [line description file] :as m}]
-  (let [filename (when file (last (str/split file #"/")))]
+  (let [filename (description->file m)]
     (str description
          (when line
            (format " (%s:%s)" filename line)))))
@@ -63,6 +71,7 @@
 
 (defn description-stack [s]
   (-> s meta :description-stack))
+
 
 (defn ^:private string-expr? [x]
   (or (string? x)
@@ -80,6 +89,10 @@
   For internal use. Subject to change."
   []
   (state/gets state->current-description))
+
+;;
+;; End description utils
+;;
 
 (def fail-fast?
   "Should the flow stop after the first failing assertion?

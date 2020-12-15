@@ -1,5 +1,6 @@
 (ns state-flow.test-helpers
   (:require [state-flow.core]
+            [state-flow.cljtest :as cljtest]
             [state-flow.state :as state]))
 
 (defmacro this-line-number
@@ -58,3 +59,8 @@
                                                    node#))))
       :flow-ret    (first res#)
       :flow-state  (second res#)}))
+
+(defmacro defflow+report
+  [forms]
+  `(binding [*out* (clojure.java.io/writer (java.io.File/createTempFile "test" "log"))]
+     (cljtest/defflow ~@forms)))

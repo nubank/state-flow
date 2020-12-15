@@ -2,7 +2,7 @@
   (:require [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]
             [state-flow.assertions.matcher-combinators :as mc]
-            [state-flow.cljtest :refer [defflow]]
+            [state-flow.cljtest :refer [defflow] :as cljtest]
             [state-flow.state :as state]))
 
 (defflow my-flow {:init (constantly {:value 1
@@ -11,7 +11,24 @@
   (testing "1" (mc/match? 1 value))
   (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))
 
+(deftest test-clojure-test-report
+  (testing "we adapt state-flow assertion report into clojure-test report format"
+    (is (match? {:type :fail
+                 :message "my test (my-test-file.clj:23)"
+                 :expected 1
+                 :actual 2
+                 :file "my-test-file.clj"
+                 :line 23}
+         (cljtest/clojure-test-report {:match/expected 1
+                                       :match/actual 2
+                                       :match/result :mismatch
+                                       :flow/description-stack [{:description "my test"
+                                                                 :file "my-test-file.clj"
+                                                                 :line 23}]})))))
+
 (deftest run-a-flow
+  ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests
+  ;; It doesn't work when called independently as (run-a-flow) because t/*report-counters* is not initialized then
   (let [report-counters-before (deref t/*report-counters*)
         [ret state]            ((:test (meta #'my-flow)))
         report-counters-after  (deref t/*report-counters*)]

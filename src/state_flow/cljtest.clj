@@ -17,6 +17,7 @@
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
 (defn clojure-test-report
+  "Internal use only, subject to change"
   [{:match/keys [result expected actual]
     :flow/keys [description-stack]
     :as assertion-report}]
@@ -25,8 +26,8 @@
      :message message
      :expected expected
      :actual actual
-     :file (-> assertion-report :flow/description-stack last :file)
-     :line (-> assertion-report :flow/description-stack last :line)}))
+     :file (-> description-stack last core/description->file)
+     :line (-> description-stack last :line)}))
 
 (defmacro defflow
   {:doc "Creates a flow and binds it a Var named by name"

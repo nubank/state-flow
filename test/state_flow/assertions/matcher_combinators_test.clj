@@ -59,12 +59,12 @@
 (deftest test-match?-failing-cases
   (testing "with probe result that never changes"
     (let [three-lines-before-call-to-match (this-line-number)
-          {:keys [flow-ret flow-state report-data]}
-          (test-helpers/run-flow
-           (mc/match? (matchers/equals {:n 1})
-                      (state/gets :value)
-                      {:times-to-try 2})
-           {:value {:n 2}})]
+          [flow-ret flow-state]
+          (state-flow/run
+            (mc/match? (matchers/equals {:n 1})
+                       (state/gets :value)
+                       {:times-to-try 2})
+            {:value {:n 2}})]
       (testing "returns match result"
         (is (match? {:match/result       :mismatch
                      :mismatch/detail    {:n {:expected 1 :actual 2}}
@@ -88,15 +88,15 @@
                     (first (get-in (meta flow-state) [:test-report :assertions])))))))
 
   (testing "with probe result that only changes after timeout"
-    (let [{:keys [flow-ret flow-state report-data]}
-          (test-helpers/run-flow
-           (flow "flow"
-             (test-helpers/swap-later 200 :count + 2)
-             (testing "2" (mc/match? 2
-                                     (state/gets (comp deref :count))
-                                     {:times-to-try 2
-                                      :sleep-time   75})))
-           {:count (atom 0)})]
+    (let [[flow-ret flow-state]
+          (state-flow/run
+            (flow "flow"
+              (test-helpers/swap-later 200 :count + 2)
+              (testing "2" (mc/match? 2
+                                      (state/gets (comp deref :count))
+                                      {:times-to-try 2
+                                       :sleep-time   75})))
+            {:count (atom 0)})]
       (testing "returns match result"
         (is (match? {:match/result :mismatch} flow-ret)))
       (testing "pushes test report to metadata"
