@@ -1,5 +1,6 @@
 (ns state-flow.cljtest
   (:require [clojure.test :as t]
+            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.assertions.matcher-combinators]
             [state-flow.core :as core]
             [state-flow.probe :as probe]))
@@ -15,6 +16,18 @@
                        params)]
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
+(defn clojure-test-report
+  [{:match/keys [result expected actual]
+    :flow/keys [description-stack]
+    :as assertion-report}]
+  (let [message (core/format-description description-stack)]
+    {:type (case result :match :pass :mismatch :fail)
+     :message message
+     :expected expected
+     :actual actual
+     :file (-> assertion-report :flow/description-stack last :file)
+     :line (-> assertion-report :flow/description-stack last :line)}))
+
 (defmacro defflow
   {:doc "Creates a flow and binds it a Var named by name"
    :arglists '([name & flows]
@@ -22,7 +35,10 @@
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
                                forms
-                               (cons {} forms))
-        parameters' (assoc parameters :assert-with-clojure-test? true)]
+                               (cons {} forms))]
     `(t/deftest ~name
-       (core/run* ~parameters' (core/flow ~(str name) ~@flows)))))
+       (let [[ret# state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
+             test-report# (get (meta state#) :test-report)]
+         (doseq [assertion-data# (:assertions test-report#)]
+           (t/report (clojure-test-report assertion-data#)))
+         [ret# state#]))))

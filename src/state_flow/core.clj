@@ -56,8 +56,8 @@
            (format " (%s:%s)" filename line)))))
 
 (defn format-description
-  [strs]
-  (->> strs
+  [stack]
+  (->> stack
        (map format-single-description)
        (str/join " -> ")))
 
@@ -265,7 +265,7 @@
                         `(comp throw-error!
                               log-error
                               (filter-stack-trace default-strack-trace-exclusions))`"
-  [{:keys [init cleanup runner on-error fail-fast? before-flow-hook assert-with-clojure-test?]
+  [{:keys [init cleanup runner on-error fail-fast? before-flow-hook]
     :or   {init                   (constantly {})
            cleanup                identity
            runner                 run
@@ -280,8 +280,7 @@
                                    assoc
                                    :runner runner
                                    :before-flow-hook before-flow-hook
-                                   :fail-fast? fail-fast?
-                                   :assert-with-clojure-test? assert-with-clojure-test?)
+                                   :fail-fast? fail-fast?)
         pair            (-> flow
                             (runner init-state+meta)
                             clarify-illegal-arg

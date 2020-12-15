@@ -5,55 +5,6 @@
             [state-flow.cljtest :refer [defflow]]
             [state-flow.state :as state]))
 
-;; TODO:(dchelimsky,2019-12-27) I do not understand why, but inlining these expansions
-;; in the deftest below causes test failures. I think it has to do with calling macroexpand
-;; within a macro body.
-(def flow-with-defaults
-  (macroexpand-1 '(defflow my-flow
-                    (testing "equals" (mc/match? 1 1)))))
-(def flow-with-optional-args
-  (macroexpand-1 '(defflow my-flow
-                    {:init (constantly {:value 1})}
-                    (testing "equals" (mc/match? 1 1)))))
-(def flow-with-binding-and-match
-  (macroexpand-1 '(defflow my-flow {:init (constantly {:value 1
-                                                       :map {:a 1 :b 2}})}
-                    [value (state/gets :value)]
-                    (testing "1" (mc/match? 1 value))
-                    (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))))
-
-(deftest test-defflow
-  (testing "defines flow with default parameters"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-               {:assert-with-clojure-test? true}
-               (state-flow.core/flow "my-flow" (testing "equals" (mc/match? 1 1)))))
-           flow-with-defaults)))
-
-  (testing "defines flow with optional parameters"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-               {:init (constantly {:value 1})
-                :assert-with-clojure-test? true}
-               (state-flow.core/flow "my-flow" (testing "equals" (mc/match? 1 1)))))
-           flow-with-optional-args)))
-
-  (testing "defines flow with binding and flow inside match?"
-    (is (= '(clojure.test/deftest
-              my-flow
-              (state-flow.core/run*
-               {:init (constantly {:map {:a 1 :b 2} :value 1})
-                :assert-with-clojure-test? true}
-               (state-flow.core/flow
-                "my-flow"
-                 [value (state/gets :value)]
-                 (testing "1" (mc/match? 1 value))
-                 (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))))
-
-           flow-with-binding-and-match))))
-
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}
   [value (state/gets :value)]
@@ -61,9 +12,26 @@
   (testing "b is 2" (mc/match? {:b 2} (state/gets :map))))
 
 (deftest run-a-flow
-  (is (match? {:value 1
-               :map   {:a 1 :b 2}}
-              (second ((:test (meta #'my-flow)))))))
+  (let [report-counters-before (deref t/*report-counters*)
+        [ret state]            ((:test (meta #'my-flow)))
+        report-counters-after  (deref t/*report-counters*)]
+    (testing "flow returns a match report state remains as set"
+      (is (match? [{:match/result :match
+                    :match/actual {:a 1 :b 2}}
+                   {:value 1
+                    :map   {:a 1 :b 2}}]
+                  [ret state])))
+    (testing "meta of state contains the test report"
+      (is (match? {:test-report {:assertions [{:match/result :match
+                                               :match/expected 1
+                                               :match/actual 1}
+                                              {:match/result :match
+                                               :match/expected {:b 2}
+                                               :match/actual {:a 1 :b 2}}]}}
+                  (meta state))))
+    (testing "we have reported the assertions"
+      (is (match? {:test 0 :pass 2 :fail 0 :error 0}
+                  (merge-with - report-counters-after report-counters-before))))))
 
 (deftest test-deprecated-match?
   (testing "with times-to-try > 1 and a value instead of a step"
