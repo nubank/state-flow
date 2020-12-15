@@ -2,7 +2,6 @@
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [matcher-combinators.standalone :as matcher-combinators]
-            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.assertions.report :as report]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
