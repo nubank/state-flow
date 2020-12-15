@@ -103,7 +103,7 @@
         (is (match? {:match/result  :mismatch
                      :match/expected 2
                      :match/actual 0}
-                    (-> (meta flow-state) :test-report :assertions first))))))
+                    (first (get-in (meta flow-state) [:test-report :assertions])))))))
 
   (testing "with times-to-try > 1 and a value instead of a step"
     (testing "throws"

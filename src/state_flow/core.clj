@@ -69,7 +69,9 @@
        (map format-single-description)
        (str/join " -> ")))
 
-(defn description-stack [s]
+(defn description-stack
+  "For internal use. Subject to change"
+  [s]
   (-> s meta :description-stack))
 
 (defn ^:private string-expr? [x]

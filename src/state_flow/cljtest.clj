@@ -39,7 +39,7 @@
                                (cons {} forms))]
     `(t/deftest ~name
        (let [[ret# state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
-             test-report# (get (meta state#) :test-report)]
-         (doseq [assertion-data# (:assertions test-report#)]
+             assertions# (get-in (meta state#) [:test-report :assertions])]
+         (doseq [assertion-data# assertions#]
            (t/report (clojure-test-report assertion-data#)))
          [ret# state#]))))
