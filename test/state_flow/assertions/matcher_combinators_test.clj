@@ -61,10 +61,10 @@
     (let [three-lines-before-call-to-match (this-line-number)
           [flow-ret flow-state]
           (state-flow/run
-            (mc/match? (matchers/equals {:n 1})
-                       (state/gets :value)
-                       {:times-to-try 2})
-            {:value {:n 2}})]
+           (mc/match? (matchers/equals {:n 1})
+                      (state/gets :value)
+                      {:times-to-try 2})
+           {:value {:n 2}})]
       (testing "returns match result"
         (is (match? {:match/result       :mismatch
                      :mismatch/detail    {:n {:expected 1 :actual 2}}
@@ -90,13 +90,13 @@
   (testing "with probe result that only changes after timeout"
     (let [[flow-ret flow-state]
           (state-flow/run
-            (flow "flow"
-              (test-helpers/swap-later 200 :count + 2)
-              (testing "2" (mc/match? 2
-                                      (state/gets (comp deref :count))
-                                      {:times-to-try 2
-                                       :sleep-time   75})))
-            {:count (atom 0)})]
+           (flow "flow"
+             (test-helpers/swap-later 200 :count + 2)
+             (testing "2" (mc/match? 2
+                                     (state/gets (comp deref :count))
+                                     {:times-to-try 2
+                                      :sleep-time   75})))
+           {:count (atom 0)})]
       (testing "returns match result"
         (is (match? {:match/result :mismatch} flow-ret)))
       (testing "pushes test report to metadata"

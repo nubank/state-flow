@@ -72,7 +72,6 @@
 (defn description-stack [s]
   (-> s meta :description-stack))
 
-
 (defn ^:private string-expr? [x]
   (or (string? x)
       (and (sequential? x)

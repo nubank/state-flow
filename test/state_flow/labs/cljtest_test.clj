@@ -13,7 +13,7 @@
                                                 [v (state/gets :value)]
                                                 (labs.cljtest/testing "contains with monadic left value"
                                                   (is (= {:a 1 :b 5} v))))
-                                {:value {:a 2 :b 5}}))]
+                                              {:value {:a 2 :b 5}}))]
       (is (false? flow-ret))
       (is (match? {:value {:a 2 :b 5}}
                   flow-state)))))

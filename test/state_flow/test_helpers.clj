@@ -1,6 +1,6 @@
 (ns state-flow.test-helpers
-  (:require [state-flow.core]
-            [state-flow.cljtest :as cljtest]
+  (:require [state-flow.cljtest :as cljtest]
+            [state-flow.core]
             [state-flow.state :as state]))
 
 (defmacro this-line-number

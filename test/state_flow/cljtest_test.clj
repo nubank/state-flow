@@ -19,12 +19,12 @@
                  :actual 2
                  :file "my-test-file.clj"
                  :line 23}
-         (cljtest/clojure-test-report {:match/expected 1
-                                       :match/actual 2
-                                       :match/result :mismatch
-                                       :flow/description-stack [{:description "my test"
-                                                                 :file "my-test-file.clj"
-                                                                 :line 23}]})))))
+                (cljtest/clojure-test-report {:match/expected 1
+                                              :match/actual 2
+                                              :match/result :mismatch
+                                              :flow/description-stack [{:description "my test"
+                                                                        :file "my-test-file.clj"
+                                                                        :line 23}]})))))
 
 (deftest run-a-flow
   ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests
