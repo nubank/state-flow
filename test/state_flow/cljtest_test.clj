@@ -30,7 +30,7 @@
                   (#'cljtest/clojure-test-report report))))
     (testing "we save pretty printing metadata"
       (is (match? {:type :state-flow.cljtest/mismatch}
-           (meta (:actual (#'cljtest/clojure-test-report match-report))))))))
+                  (meta (:actual (#'cljtest/clojure-test-report match-report))))))))
 
 (deftest run-a-flow
   ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests

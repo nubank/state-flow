@@ -1,10 +1,10 @@
 (ns state-flow.cljtest
   (:require [clojure.test :as t]
-            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
+            [matcher-combinators.printer :as matcher-combinators.printer] ;; to register clojure.test assert-expr for `match?`
+            [matcher-combinators.test]
             [state-flow.assertions.matcher-combinators]
             [state-flow.core :as core]
-            [state-flow.probe :as probe]
-            [matcher-combinators.printer :as matcher-combinators.printer]))
+            [state-flow.probe :as probe]))
 
 (defmacro ^:deprecated match?
   "DEPRECATED. Use state-flow.assertions.matcher-combinators/match? instead. "
