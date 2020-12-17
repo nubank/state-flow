@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.10.0]
+
+* add filename to flow descriptions. Use the following format: `<description> (<file>:<line>)`
+
 ## [5.9.0]
 
 * add filename to flow descriptions. Use the following format: `<description> (<file>:<line>)`
