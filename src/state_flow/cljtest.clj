@@ -3,7 +3,8 @@
             [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
             [state-flow.assertions.matcher-combinators]
             [state-flow.core :as core]
-            [state-flow.probe :as probe]))
+            [state-flow.probe :as probe]
+            [matcher-combinators.printer :as matcher-combinators.printer]))
 
 (defmacro ^:deprecated match?
   "DEPRECATED. Use state-flow.assertions.matcher-combinators/match? instead. "
@@ -16,8 +17,16 @@
                        params)]
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
-(defn clojure-test-report
-  "Internal use only, subject to change"
+(defn- tag-for-pretty-printing [actual-summary result]
+  (with-meta {:summary      actual-summary
+              :match-result result}
+    {:type ::mismatch}))
+
+(defmethod clojure.core/print-method ::mismatch [{:keys [match-result]} out]
+  (binding [*out* out]
+    (matcher-combinators.printer/pretty-print match-result)))
+
+(defn- clojure-test-report
   [{:match/keys [result expected actual]
     :flow/keys [description-stack]
     :as assertion-report}]
@@ -25,7 +34,11 @@
     {:type (case result :match :pass :mismatch :fail)
      :message message
      :expected expected
-     :actual actual
+     :actual (if (:mismatch/detail assertion-report)
+               (tag-for-pretty-printing
+                (list '~'not (list 'match? expected actual))
+                (:mismatch/detail assertion-report))
+               actual)
      :file (-> description-stack last core/description->file)
      :line (-> description-stack last :line)}))
 
@@ -41,5 +54,5 @@
        (let [[ret# state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
              assertions# (get-in (meta state#) [:test-report :assertions])]
          (doseq [assertion-data# assertions#]
-           (t/report (clojure-test-report assertion-data#)))
+           (t/report (#'clojure-test-report assertion-data#)))
          [ret# state#]))))
