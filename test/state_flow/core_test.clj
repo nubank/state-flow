@@ -153,7 +153,7 @@
 
   (testing "run! throws exception"
     (is (thrown-with-msg? Exception #"root \(core_test.clj:\d+\) -> child2 \(core_test.clj:\d+\)"
-                          (test-helpers/run-flow bogus-flow {:value 0})))))
+                          (test-helpers/shhh! (state-flow/run! bogus-flow {:value 0}))))))
 
 (deftest as-step-fn
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]

@@ -59,8 +59,8 @@
 (deftest test-match?-failing-cases
   (testing "with probe result that never changes"
     (let [three-lines-before-call-to-match (this-line-number)
-          {:keys [flow-ret flow-state report-data]}
-          (test-helpers/run-flow
+          [flow-ret flow-state]
+          (state-flow/run
            (mc/match? (matchers/equals {:n 1})
                       (state/gets :value)
                       {:times-to-try 2})
@@ -75,16 +75,21 @@
                      :match/expected     {:expected {:n 1}}
                      :match/actual       {:n 2}}
                     flow-ret)))
-      (testing "reports match-results to clojure.test"
-        (testing "including the line number where match? was called"
-          (= (+ three-lines-before-call-to-match 3) (:line report-data)))
-        (is (match? {:matcher-combinators.result/type  :mismatch
-                     :matcher-combinators.result/value {:n {:expected 1 :actual 2}}}
-                    (-> report-data :actual :match-result))))))
+      (testing "saves assertion report to state with current description stack"
+        (is (match? {:flow/description-stack [{:description "match?"}]
+                     :match/result       :mismatch
+                     :mismatch/detail    {:n {:expected 1 :actual 2}}
+                     :probe/results      [{:check-result false :value {:n 2}}
+                                          {:check-result false :value {:n 2}}]
+                     :probe/sleep-time   200
+                     :probe/times-to-try 2
+                     :match/expected     {:expected {:n 1}}
+                     :match/actual       {:n 2}}
+                    (first (get-in (meta flow-state) [:test-report :assertions])))))))
 
   (testing "with probe result that only changes after timeout"
-    (let [{:keys [flow-ret flow-state report-data]}
-          (test-helpers/run-flow
+    (let [[flow-ret flow-state]
+          (state-flow/run
            (flow "flow"
              (test-helpers/swap-later 200 :count + 2)
              (testing "2" (mc/match? 2
@@ -94,10 +99,11 @@
            {:count (atom 0)})]
       (testing "returns match result"
         (is (match? {:match/result :mismatch} flow-ret)))
-      (testing "reports match-results to clojure.test"
-        (is (match? {:matcher-combinators.result/type  :mismatch
-                     :matcher-combinators.result/value {:expected 2 :actual 0}}
-                    (-> report-data :actual :match-result))))))
+      (testing "pushes test report to metadata"
+        (is (match? {:match/result  :mismatch
+                     :match/expected 2
+                     :match/actual 0}
+                    (first (get-in (meta flow-state) [:test-report :assertions])))))))
 
   (testing "with times-to-try > 1 and a value instead of a step"
     (testing "throws"

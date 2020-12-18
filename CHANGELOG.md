@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.10.0]
+
+* Pushed test report to state metadata everytime an assertion is done with match?
+* Removed clojure.test assertion from match?
+* Clojure.test assertions are made on defflow macro, after flow is run, by calling clojure.test/report directly
+
 ## [5.9.0]
 
 * add filename to flow descriptions. Use the following format: `<description> (<file>:<line>)`
