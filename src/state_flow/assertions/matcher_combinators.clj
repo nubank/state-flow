@@ -2,7 +2,7 @@
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [matcher-combinators.standalone :as matcher-combinators]
-            [matcher-combinators.test] ;; to register clojure.test assert-expr for `match?`
+            [state-flow.assertions.report :as report]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
             [state-flow.state :as state]))
@@ -82,10 +82,8 @@
                              :probe/results      probe-res#
                              :probe/sleep-time   ~(:sleep-time params*)
                              :probe/times-to-try ~(:times-to-try params*))]]
-       ;; TODO: (dchelimsky, 2020-02-11) we plan to decouple
-       ;; assertions from reporting in a future release. Remove this
-       ;; next line when that happens.
-       (state/invoke #(~'clojure.test/testing flow-desc# (~'clojure.test/is (~'match? ~expected actual#))))
+
+       (report/push report#)
        (state/return (if (and fail-fast?# (= :mismatch (:match/result report#)))
                        (e/failure report# "match? assertion was not satisfied")
                        report#))))))

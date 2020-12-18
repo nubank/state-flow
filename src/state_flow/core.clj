@@ -48,20 +48,30 @@
   []
   (modify-meta update :description-stack pop))
 
+;;
+;; Begin description utils
+;;
+
+(defn description->file
+  [{:keys [file]}]
+  (when file (last (str/split file #"/"))))
+
 (defn ^:private format-single-description
   [{:keys [line description file] :as m}]
-  (let [filename (when file (last (str/split file #"/")))]
+  (let [filename (description->file m)]
     (str description
          (when line
            (format " (%s:%s)" filename line)))))
 
-(defn ^:private format-description
-  [strs]
-  (->> strs
+(defn format-description
+  [stack]
+  (->> stack
        (map format-single-description)
        (str/join " -> ")))
 
-(defn ^:private description-stack [s]
+(defn description-stack
+  "For internal use. Subject to change"
+  [s]
   (-> s meta :description-stack))
 
 (defn ^:private string-expr? [x]
@@ -80,6 +90,10 @@
   For internal use. Subject to change."
   []
   (state/gets state->current-description))
+
+;;
+;; End description utils
+;;
 
 (def fail-fast?
   "Should the flow stop after the first failing assertion?
@@ -267,8 +281,7 @@
            before-flow-hook       identity
            on-error               (comp throw-error!
                                         log-error
-                                        (filter-stack-trace default-stack-trace-exclusions))}
-    :as   opts}
+                                        (filter-stack-trace default-stack-trace-exclusions))}}
    flow]
   (let [init-state+meta (vary-meta (init)
                                    assoc
