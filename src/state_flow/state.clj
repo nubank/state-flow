@@ -110,6 +110,13 @@
   [my-fn]
   (error-catching-state (fn [s] [(my-fn) s])))
 
+(defn when
+  "Given an expression `e` and a flow, if the expression is logical true, return the flow. Otherwise, return nil in a monadic context."
+  [e flow]
+  (if e
+    flow
+    (return nil)))
+
 (def
   ^{:doc "Creates a flow that returns the application of f to the return of flow"
     :arglists '([f flow])}
