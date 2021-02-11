@@ -21,7 +21,8 @@
          defflow
          match?
          get-state
-         swap-state)
+         swap-state
+         when)
 
 (import-vars
  state-flow.core/flow
@@ -33,6 +34,7 @@
  state-flow.state/invoke
  state-flow.state/return
  state-flow.state/fmap
+ state-flow.state/when
 
  state-flow.cljtest/defflow
 
