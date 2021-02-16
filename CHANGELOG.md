@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.11.0]
+* add `when` to `state-flow.api`
+
 ## [5.10.0]
 
 * Pushed test report to state metadata everytime an assertion is done with match?
