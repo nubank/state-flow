@@ -1,5 +1,5 @@
 (ns state-flow.api
-  (:refer-clojure :exclude [for])
+  (:refer-clojure :exclude [for when])
   (:require [cats.core :as m]
             [state-flow.assertions.matcher-combinators]
             [state-flow.cljtest]
