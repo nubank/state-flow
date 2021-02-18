@@ -1,5 +1,5 @@
 (ns state-flow.state
-  (:refer-clojure :exclude [eval get])
+  (:refer-clojure :exclude [eval get when])
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
