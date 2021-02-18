@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.11.1]
+* fix `when` shadow warning
+
 ## [5.11.0]
 * add `when` to `state-flow.api`
 
