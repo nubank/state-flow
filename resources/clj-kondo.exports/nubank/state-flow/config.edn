@@ -1,1 +1,2 @@
-{:hooks {:analyze-call {state-flow.cljtest/defflow hooks.state-flow/defflow}}}
+{:hooks {:analyze-call {state-flow.cljtest/defflow nubank.state-flow/defflow
+                        state-flow.core/flow       nubank.state-flow/flow}}}

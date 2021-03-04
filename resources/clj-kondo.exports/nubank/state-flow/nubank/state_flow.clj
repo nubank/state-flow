@@ -1,26 +1,34 @@
-(ns nubank.state-flow
-  (:require [clj-kondo.hooks-api :as api]))
+(ns hooks.state-flow
+  (:require [clj-kondo.hooks-api :as hooks]))
 
-(defn ^:private defflow-bindings [nodes]
-  (->> nodes
-       (filter api/vector-node?)
-       (map (fn [node]
-              (let [[sym val] (:children node)]
-                [sym val])))
-       flatten
-       vec))
+(defn- normalize-mlet-binds
+  [node]
+  (vec
+   (reduce
+    (fn [acc [b v]]
+      (if (and (= :let (hooks/sexpr b)) (hooks/vector-node? v))
+        (concat acc (:children v))
+        (concat acc [b v])))
+    []
+    (partition 2 (:children node)))))
 
-(defn ^:private defflow-flows [nodes]
-  (filter (complement api/vector-node?) nodes))
+(defn- do-let [forms]
+  (let [new-bindings (vec (reduce (fn [acc i]
+                                    (if (hooks/vector-node? i)
+                                      (concat acc (normalize-mlet-binds i))
+                                      (concat acc [(hooks/token-node '_) i]))) [] forms))]
+    (hooks/list-node
+     [(hooks/token-node 'let)
+      (hooks/vector-node new-bindings)])))
 
-(defn defflow [{:keys [:node]}]
-  (let [[name & flows] (rest (:children node))
-        new-node (api/list-node
-                  (list
-                   (with-meta (api/token-node 'defn) (meta name))
-                   (with-meta (api/token-node (api/sexpr name)) (meta name))
-                   (api/vector-node [])
-                   (api/list-node (list* (api/token-node 'let)
-                                         (api/vector-node (defflow-bindings flows))
-                                         (defflow-flows flows)))))]
-    {:node new-node}))
+(defn flow [{:keys [node]}]
+  (let [forms (rest (:children node))]
+    {:node (with-meta (do-let forms) (meta node))}))
+
+(defn defflow [{:keys [node]}]
+  (let [[test-name & body]     (rest (:children node))
+        new-node (hooks/list-node
+                  [(hooks/token-node 'def)
+                   test-name
+                   (do-let body)])]
+    {:node (with-meta new-node (meta node))}))
