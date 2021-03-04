@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.11.2]
+* Add clj-kondo hooks for `defflow` and `flow` to the classpath.
+
 ## [5.11.1]
 * fix `when` shadow warning
 
