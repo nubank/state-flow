@@ -1,4 +1,4 @@
-(ns hooks.state-flow
+(ns nubank.state-flow
   (:require [clj-kondo.hooks-api :as hooks]))
 
 (defn- normalize-mlet-binds
