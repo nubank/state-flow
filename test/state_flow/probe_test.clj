@@ -2,6 +2,7 @@
   (:require [clojure.test :as t :refer [deftest is testing]]
             [state-flow.core :as state-flow]
             [state-flow.probe :as probe]
+            [state-flow.state :as state]
             [state-flow.test-helpers :as test-helpers]))
 
 (deftest test-probe
@@ -27,4 +28,19 @@
              (first (state-flow/run (probe/probe test-helpers/get-value-state #(= 2 %)
                                                  {:sleep-time   250
                                                   :times-to-try 5})
-                                    state)))))))
+                                    state))))))
+  (testing "exceptions get retried(?)"
+    (let [state      {:value (atom 0)}
+          probe-flow (probe/probe (state-flow/flow "boom twice then don't boom"
+                                                   (state/gets (fn [{:keys [value]}]
+                                                                 (swap! value inc)
+                                                                 (when (< @value 2)
+                                                                   (throw (ex-info "boom booM" {})))))
+                                                   test-helpers/get-value-state)
+                                  #(= 2 %)
+                                  {:times-to-try 5})]
+
+      (is (= 2 (->> (state-flow/run probe-flow state)
+                    last
+                    :value
+                    deref))))))
