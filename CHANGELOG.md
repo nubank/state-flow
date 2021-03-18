@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.11.3]
+* Add `:defined-by` in `defflow` clj-kondo hook used by latest clj-kondo. This should fix clojure-lsp warnings about `unused-public-var` linter.
+
 ## [5.11.2]
 * Add clj-kondo hooks for `defflow` and `flow` to the classpath.
 
