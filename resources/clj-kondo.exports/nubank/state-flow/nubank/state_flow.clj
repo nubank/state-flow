@@ -31,4 +31,5 @@
                   [(hooks/token-node 'def)
                    test-name
                    (do-let body)])]
-    {:node (with-meta new-node (meta node))}))
+    {:node (with-meta new-node (meta node))
+     :defined-by 'state-flow.cljtest/defflow}))
