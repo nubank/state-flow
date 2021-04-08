@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.12.0]
+* Label `state-flow.core/description-stack` as public (was only for internal usage).
+
 ## [5.11.3]
 * Add `:defined-by` in `defflow` clj-kondo hook used by latest clj-kondo. This should fix clojure-lsp warnings about `unused-public-var` linter.
 

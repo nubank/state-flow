@@ -70,7 +70,14 @@
        (str/join " -> ")))
 
 (defn description-stack
-  "For internal use. Subject to change"
+  "Returns the list of descriptions in the current stack.
+
+  Example:
+  (description-stack s)
+  ;; =>
+  [{:description \"my test\"
+    :file \"my-test-file.clj\"
+    :line 42}]"
   [s]
   (-> s meta :description-stack))
 
