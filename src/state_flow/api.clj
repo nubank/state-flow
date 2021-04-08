@@ -22,7 +22,8 @@
          match?
          get-state
          swap-state
-         when)
+         when
+         description-stack)
 
 (import-vars
  state-flow.core/flow
@@ -30,6 +31,7 @@
  state-flow.core/run*
  state-flow.core/log-and-throw-error!
  state-flow.core/ignore-error
+ state-flow.core/description-stack
 
  state-flow.state/invoke
  state-flow.state/return
