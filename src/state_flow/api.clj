@@ -25,13 +25,14 @@
          when
          description-stack)
 
+;; The vars below represent the user API, that is,
+;; the set of public functions that one can use for writing flows.
 (import-vars
  state-flow.core/flow
  state-flow.core/run
  state-flow.core/run*
  state-flow.core/log-and-throw-error!
  state-flow.core/ignore-error
- state-flow.core/description-stack
 
  state-flow.state/invoke
  state-flow.state/return
