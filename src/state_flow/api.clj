@@ -1,4 +1,5 @@
 (ns state-flow.api
+  "This namespace provides the user API, that is, the set of public functions that one can use for writing flows."
   (:refer-clojure :exclude [for when])
   (:require [cats.core :as m]
             [state-flow.assertions.matcher-combinators]
@@ -25,8 +26,6 @@
          when
          description-stack)
 
-;; The vars below represent the user API, that is,
-;; the set of public functions that one can use for writing flows.
 (import-vars
  state-flow.core/flow
  state-flow.core/run
