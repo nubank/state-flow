@@ -196,7 +196,7 @@ Or we could increment the value first and then return it doubled:
 We use the `defflow` and `match?` macros to build `clojure.test` tests
 out of flows.
 
-`state-flow.cljtest.defflow` defines a test (using `deftest`) that
+`state-flow.api/defflow` defines a test (using `deftest`) that
 will execute the flow with the parameters that we set.
 
 `state-flow.assertions.matcher-combinators/match?` produces a flow that will make an assertion, which
@@ -267,8 +267,8 @@ expression, up to `:times-to-try`.
 
 ### NOTE: about upgrading to state-flow-2.2.4
 
-We introduced `state-flow.assertions.matcher-combinators/match?` in state-flow-2.2.4, and
-deprecated `state-flow.cljtest.match?` in that release. The signature
+We introduced `state-flow.api/match?` in state-flow-2.2.4, and
+deprecated `state-flow.cljtest/match?` in that release. The signature
 for the old version was `(match? <description> <actual> <expected>)`.
 We removed the description because it was quite common for the description
 to add no context that wasn't already made clear by the expected and
@@ -300,7 +300,7 @@ lein pom # needed for tools.deps to recognize this repo as a `:local/root` depen
 ;; now follow the instructions
 ```
 
-Note that if you have a `defflow` defined in a different namespace, and it depends on `state-flow.cljtest`, you may need to require it in that namespace.
+Note that if you have a `defflow` defined in a different namespace, and it depends on `state-flow.api/defflow`, you may need to require it in that namespace.
 
 ## Midje Support
 
