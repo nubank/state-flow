@@ -23,8 +23,7 @@
          match?
          get-state
          swap-state
-         when
-         description-stack)
+         when)
 
 (import-vars
  state-flow.core/flow
