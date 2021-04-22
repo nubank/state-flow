@@ -19,7 +19,7 @@
             [changelog-check "0.1.0"]]
 
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [com.taoensso/timbre "4.10.0"]
+                 [com.taoensso/timbre "5.1.2"]
                  [funcool/cats "2.4.1"]
                  [nubank/matcher-combinators "3.1.4"]]
 
