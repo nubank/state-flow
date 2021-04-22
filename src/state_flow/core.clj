@@ -193,8 +193,11 @@
   "Error handler that throws the error."
   [pair]
   (let [description (state->current-description (second pair))
-        message     (str "Flow " "\"" description "\"" " failed with exception")]
-    (throw (ex-info message {} (m/extract (first pair))))))
+        message     (str "Flow " "\"" description "\"" " failed with exception")
+        exception   (ex-info message {} (m/extract (first pair)))]
+    (doto exception
+      (.setStackTrace (into-array (take 3 (into [] (.getStackTrace exception))))))
+    (throw exception)))
 
 (defn ^:deprecated log-and-throw-error!
   "DEPRECATED: Use (comp throw-error! log-error) instead. "
