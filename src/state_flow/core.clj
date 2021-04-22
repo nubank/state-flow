@@ -282,7 +282,7 @@
     `:on-error`         optional, function of the final result pair to be invoked when the first value in the pair represents an error, default:
                         `(comp throw-error!
                               log-error
-                              (filter-stack-trace default-strack-trace-exclusions))`"
+                              (filter-stack-trace default-stack-trace-exclusions))`"
   [{:keys [init cleanup runner on-error fail-fast? before-flow-hook]
     :or   {init                   (constantly {})
            cleanup                identity
