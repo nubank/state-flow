@@ -225,6 +225,13 @@
                 (rest frames)))
          into-array)))
 
+(defn deep-stack-trace-filter! [ex exclusions]
+  (doto ex
+    (.setStackTrace
+      (filter-stack-trace* exclusions (.getStackTrace ex))))
+  (when-let [cause (.getCause ex)]
+    (recur cause exclusions)))
+
 (defn filter-stack-trace
   "Returns an error handler which, if the first element in the pair is
   a failure, returns the pair with the failure's stack-trace
@@ -238,11 +245,9 @@
   ([exclusions]
    (fn [pair]
      (if-let [failure (some->> pair first :failure)]
-       [(#'cats.monad.exception/->Failure
-         (doto failure
-           (.setStackTrace
-            (filter-stack-trace* exclusions (.getStackTrace failure)))))
-        (second pair)]
+       (do (deep-stack-trace-filter! failure exclusions)
+         [(#'cats.monad.exception/->Failure failure)
+          (second pair)])
        pair))))
 
 (defn- unwrap-assertion-failure-value [pair]
