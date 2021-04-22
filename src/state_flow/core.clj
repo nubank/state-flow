@@ -228,7 +228,7 @@
 (defn deep-stack-trace-filter! [ex exclusions]
   (doto ex
     (.setStackTrace
-      (filter-stack-trace* exclusions (.getStackTrace ex))))
+     (filter-stack-trace* exclusions (.getStackTrace ex))))
   (when-let [cause (.getCause ex)]
     (recur cause exclusions)))
 
@@ -246,8 +246,8 @@
    (fn [pair]
      (if-let [failure (some->> pair first :failure)]
        (do (deep-stack-trace-filter! failure exclusions)
-         [(#'cats.monad.exception/->Failure failure)
-          (second pair)])
+           [(#'cats.monad.exception/->Failure failure)
+            (second pair)])
        pair))))
 
 (defn- unwrap-assertion-failure-value [pair]
