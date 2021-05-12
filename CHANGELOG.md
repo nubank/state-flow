@@ -1,5 +1,9 @@
 # Changelog
 
+## [5.13.0]
+* Recursively apply stack-trace filtering to exception causes
+* Shorten stack-trace raised by throw-error! to not include so much state-flow internals
+
 ## [5.12.0]
 * Label `state-flow.core/description-stack` as public (was only for internal usage).
 
