@@ -193,8 +193,11 @@
   "Error handler that throws the error."
   [pair]
   (let [description (state->current-description (second pair))
-        message     (str "Flow " "\"" description "\"" " failed with exception")]
-    (throw (ex-info message {} (m/extract (first pair))))))
+        message     (str "Flow " "\"" description "\"" " failed with exception")
+        exception   (ex-info message {} (m/extract (first pair)))]
+    (doto exception
+      (.setStackTrace (into-array (take 3 (into [] (.getStackTrace exception))))))
+    (throw exception)))
 
 (defn ^:deprecated log-and-throw-error!
   "DEPRECATED: Use (comp throw-error! log-error) instead. "
@@ -222,6 +225,13 @@
                 (rest frames)))
          into-array)))
 
+(defn deep-stack-trace-filter! [ex exclusions]
+  (doto ex
+    (.setStackTrace
+     (filter-stack-trace* exclusions (.getStackTrace ex))))
+  (when-let [cause (.getCause ex)]
+    (recur cause exclusions)))
+
 (defn filter-stack-trace
   "Returns an error handler which, if the first element in the pair is
   a failure, returns the pair with the failure's stack-trace
@@ -235,11 +245,9 @@
   ([exclusions]
    (fn [pair]
      (if-let [failure (some->> pair first :failure)]
-       [(#'cats.monad.exception/->Failure
-         (doto failure
-           (.setStackTrace
-            (filter-stack-trace* exclusions (.getStackTrace failure)))))
-        (second pair)]
+       (do (deep-stack-trace-filter! failure exclusions)
+           [(#'cats.monad.exception/->Failure failure)
+            (second pair)])
        pair))))
 
 (defn- unwrap-assertion-failure-value [pair]
@@ -279,7 +287,7 @@
     `:on-error`         optional, function of the final result pair to be invoked when the first value in the pair represents an error, default:
                         `(comp throw-error!
                               log-error
-                              (filter-stack-trace default-strack-trace-exclusions))`"
+                              (filter-stack-trace default-stack-trace-exclusions))`"
   [{:keys [init cleanup runner on-error fail-fast? before-flow-hook]
     :or   {init                   (constantly {})
            cleanup                identity
