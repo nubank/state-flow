@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.13.1]
+* unbump major version bump of `timbre` done in `5.13.0`
+
 ## [5.13.0]
 * Recursively apply stack-trace filtering to exception causes
 * Shorten stack-trace raised by throw-error! to not include so much state-flow internals
