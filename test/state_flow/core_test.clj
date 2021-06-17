@@ -159,15 +159,6 @@
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
 
-(defn consecutive?
-  "Returns true iff ns (minimum of 2) all increase by 1"
-  [& ns]
-  (and (>= (count ns) 2)
-       (let [a (first ns)
-             z (inc (last ns))]
-         (and (< a z)
-              (= (range a z) ns)))))
-
 (deftest current-description
   (testing "top level flow"
     (is (re-matches #"level 1 \(core_test.clj:\d+\)"
@@ -196,10 +187,10 @@
                    (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
-          (is (consecutive? line-number-before-flow-invocation
-                            level-1-line
-                            level-2-line
-                            level-3-line))))))
+          (is (<= line-number-before-flow-invocation
+                  level-1-line
+                  level-2-line
+                  level-3-line))))))
 
   (testing "composition"
     (let [line-number-before-flow-invocation (this-line-number)
@@ -217,10 +208,10 @@
                    (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
-          (is (consecutive? line-number-before-flow-invocation
-                            level-3-line
-                            level-2-line
-                            level-1-line))))))
+          (is (<= line-number-before-flow-invocation
+                  level-3-line
+                  level-2-line
+                  level-1-line))))))
 
   (testing "after nested flows complete"
     (testing "within nested flows "

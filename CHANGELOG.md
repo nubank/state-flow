@@ -174,7 +174,6 @@ Changes were reintroduced in `2.2.4`, so use that.
 
 - Remove delay from the first try of `probe`
 - Refactor probe and change return value to include the probed value and check result of each try
->>>>>>> master
 
 ## [2.1.5]
 
