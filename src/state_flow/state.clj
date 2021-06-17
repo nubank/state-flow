@@ -1,101 +1,148 @@
 (ns state-flow.state
-  (:refer-clojure :exclude [eval get])
-  (:require [cats.context :as ctx :refer [*context*]]
-            [cats.core :as m]
-            [cats.data :as d]
+  (:refer-clojure :exclude [eval get when])
+  (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
             [cats.util :as util]))
 
-(declare error-context)
+(declare short-circuiting-context)
 
-(def error-context
+(defn- result-or-err [f & args]
+  (let [result ((e/wrap (partial apply f)) args)]
+    (if (e/failure? result)
+      result
+      @result)))
+
+(defn error-catching-state [mfn]
+  (state/state
+   (fn [s]
+     (let [new-pair ((e/wrap mfn) s)]
+       (if (e/failure? new-pair)
+         [new-pair s]
+         @new-pair)))
+   short-circuiting-context))
+
+(def short-circuiting-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
     p/Context
 
-    p/Extract
-    (-extract [mv] (p/-extract mv))
-
     p/Functor
     (-fmap [_ f fv]
-      (state/state (fn [s]
-                     (let [[v ns]  ((p/-extract fv) s)]
-                       (d/pair (f v) ns)))
-                   error-context))
+      (error-catching-state
+       (fn [s]
+         (let [[v s'] ((p/-extract fv) s)]
+           (if (e/failure? v)
+             [v s']
+             [(result-or-err f v) s'])))))
 
     p/Monad
     (-mreturn [_ v]
-      (state/state (partial d/pair v) error-context))
+      (error-catching-state #(vector v %)))
 
     (-mbind [_ self f]
-      (state/state (fn [s]
-                     (let [mp ((e/wrap (p/-extract self)) s)]
-                       (if (e/failure? mp)
-                         (d/pair mp s)
-                         (if (e/failure? (.-fst @mp))
-                           @mp
-                           (let [new-pair ((e/wrap (p/-extract (f (.-fst @mp)))) (.-snd @mp))]
-                             (if (e/success? new-pair)
-                               @new-pair
-                               (d/pair new-pair (.-snd @mp))))))))
-                   error-context))
+      (error-catching-state
+       (fn [s]
+         (let [[v s'] ((p/-extract self) s)]
+           (if (e/failure? v)
+             [v s']
+             ((p/-extract (f v)) s'))))))
 
     state/MonadState
     (-get-state [_]
-      (state/state #(d/pair %1 %1) error-context))
+      (error-catching-state #(vector %1 %1)))
 
     (-put-state [_ newstate]
-      (state/state #(d/pair % newstate) error-context))
+      (error-catching-state #(vector % newstate)))
 
     (-swap-state [_ f]
-      (state/state #(d/pair %1 (f %1)) error-context))
+      (error-catching-state #(vector %1 (f %1))))
 
     p/Printable
     (-repr [_]
       "#<State-E>")))
 
-(util/make-printable (type error-context))
+(util/make-printable (type short-circuiting-context))
 
 (defn get
-  "Returns the equivalent of (fn [state] [state, state])"
+  "Creates a flow that returns the value of state. "
   []
-  (state/get error-context))
+  (state/get short-circuiting-context))
 
 (defn gets
-  [f]
-  "Returns the equivalent of (fn [state] [state, (f state)])"
-  (state/gets f))
+  "Creates a flow that returns the result of applying f (default identity)
+  to state with any additional args."
+  ([]
+   (gets identity))
+  ([f & args]
+   (state/gets #(apply f % args) short-circuiting-context)))
 
 (defn put
-  "Returns the equivalent of (fn [state] [state, new-state])"
+  "Creates a flow that replaces state with new-state. "
   [new-state]
-  (state/put new-state error-context))
+  (state/put new-state short-circuiting-context))
 
 (defn modify
-  "Returns the equivalent of (fn [state] [state, (swap! state f)])"
-  [f]
-  (state/swap f error-context))
+  "Creates a flow that replaces state with the result of applying f to
+  state with any additional args."
+  [f & args]
+  (state/swap #(apply f % args) short-circuiting-context))
 
 (defn return
-  "Returns the equivalent of (fn [state] [v, state])"
+  "Creates a flow that returns v. Use this as the last
+  step in a flow that you want to reuse in other flows, in
+  order to clarify the return value, e.g.
+
+    (def increment-count
+      (flow \"increments :count and returns it\"
+        (state/modify update :count inc)
+        [new-count (state/gets :count)]
+        (state-flow/return new-count)))"
   [v]
-  (m/return error-context v))
+  (m/return short-circuiting-context v))
+
+(defn invoke
+  "Creates a flow that invokes a function of no arguments and returns the
+  result. Used to invoke side effects e.g.
+
+     (state-flow.core/invoke #(Thread/sleep 1000))"
+  [my-fn]
+  (error-catching-state (fn [s] [(my-fn) s])))
+
+(defn when
+  "Given an expression `e` and a flow, if the expression is logical true, return the flow. Otherwise, return nil in a monadic context."
+  [e flow]
+  (if e
+    flow
+    (return nil)))
+
+(def
+  ^{:doc "Creates a flow that returns the application of f to the return of flow"
+    :arglists '([f flow])}
+  fmap
+  m/fmap)
 
 (defn ^:deprecated swap
-  "DEPRECATED: use modify"
+  "DEPRECATED: use state-flow.state/modify instead."
   [f]
   (modify f))
 
-(defn wrap-fn
-  "Wraps a (possibly side-effecting) function to a state monad"
-  [my-fn]
-  (state/state (fn [s]
-                 (d/pair (my-fn) s))
-               error-context))
+(def ^{:deprecated true
+       :doc "DEPRECATED: Use state-flow.state/invoke instead."}
+  wrap-fn
+  invoke)
 
 (def state? state/state?)
 (def run state/run)
 (def eval state/eval)
 (def exec state/exec)
+
+(defn ensure-step
+  "Internal use only.
+
+  Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
+  [value]
+  (if (state? value)
+    value
+    (return value)))
