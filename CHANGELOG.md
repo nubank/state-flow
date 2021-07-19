@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.13.2]
+- Include line information when reporting flows that raise exceptions
+
 ## [5.13.1]
 * unbump major version bump of `timbre` done in `5.13.0`
 
