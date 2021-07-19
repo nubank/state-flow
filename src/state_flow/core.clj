@@ -154,7 +154,7 @@
        (or (= 'flow (first expr))
            (= `flow (first expr)))))
 
-(defn annote-with-line-meta [flows]
+(defn annotate-with-line-meta [flows]
   (let [annotated-flows (reduce (fn [acc flow]
                                   (if (flow-expr? flow)
                                     (conj acc flow) ;; `flow`s push their own meta data
@@ -183,7 +183,7 @@
   (when (vector? (last flows))
     (throw (ex-info "The last argument to flow must be a flow/step, not a binding vector." {})))
   (let [flow-meta       caller-meta
-        annotated-flows (annote-with-line-meta
+        annotated-flows (annotate-with-line-meta
                          (or flows `[(m/return nil)]))
         pop-line-meta   (if (flow-expr? (last annotated-flows))
                           '()
