@@ -230,7 +230,12 @@
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2"
                                                  (flow "level 3"))
-                                               (state-flow/current-description)))))))))
+                                               (state-flow/current-description))))))))
+  (testing "description in presence of exceptions"
+    (is (re-matches #"will boom \(core_test.clj:\d+\) -> root \(core_test.clj:\d+\) -> child2 \(core_test.clj:\d+\) -> bogus"
+                    (-> (state-flow/run (flow "will boom" bogus-flow) {:value 2})
+                        second
+                        (#'state-flow/state->current-description))))))
 
 (deftest top-level-description
   (let [tld (fn [flow] (->> (state-flow/run flow)
