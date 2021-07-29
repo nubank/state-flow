@@ -159,22 +159,13 @@
   (let [add-two-fn (state-flow/as-step-fn (state/modify #(+ 2 %)))]
     (is (= 3 (add-two-fn 1)))))
 
-(defn consecutive?
-  "Returns true iff ns (minimum of 2) all increase by 1"
-  [& ns]
-  (and (>= (count ns) 2)
-       (let [a (first ns)
-             z (inc (last ns))]
-         (and (< a z)
-              (= (range a z) ns)))))
-
 (deftest current-description
   (testing "top level flow"
-    (is (re-matches #"level 1 \(core_test.clj:\d+\)"
+    (is (re-matches #"level 1 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                     (first (state-flow/run (flow "level 1" (state-flow/current-description)))))))
 
   (testing "nested flows"
-    (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\)"
+    (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                     (first (state-flow/run (flow "level 1"
                                              (flow "level 2"
                                                (state-flow/current-description)))))))
@@ -187,19 +178,20 @@
                                    (flow "level 2"
                                      (flow "level 3"
                                        (state-flow/current-description)))))]
-      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\)" desc))
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
+                      desc))
       (testing "line numbers are correct"
         (let [[level-1-line
                level-2-line
                level-3-line]
               (->> desc
-                   (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
+                   (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\) -> \(state-flow\/current-description\) \(line \d+\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
-          (is (consecutive? line-number-before-flow-invocation
-                            level-1-line
-                            level-2-line
-                            level-3-line))))))
+          (is (<= line-number-before-flow-invocation
+                  level-1-line
+                  level-2-line
+                  level-3-line))))))
 
   (testing "composition"
     (let [line-number-before-flow-invocation (this-line-number)
@@ -207,7 +199,7 @@
           level-2  (flow "level 2" level-3)
           level-1  (flow "level 1" level-2)
           [desc _] (state-flow/run level-1)]
-      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       desc))
       (testing "line numbers are correct, even when composed"
         (let [[level-1-line
@@ -217,27 +209,33 @@
                    (re-find #"level 1 \(core_test.clj:(\d+)\) -> level 2 \(core_test.clj:(\d+)\) -> level 3 \(core_test.clj:(\d+)\)")
                    (drop 1)
                    (map #(Integer/parseInt %)))]
-          (is (consecutive? line-number-before-flow-invocation
-                            level-3-line
-                            level-2-line
-                            level-1-line))))))
+          (is (<= line-number-before-flow-invocation
+                  level-3-line
+                  level-2-line
+                  level-1-line))))))
 
   (testing "after nested flows complete"
     (testing "within nested flows "
-      (is (re-matches #"level 1 \(core_test.clj:\d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2")
                                                (state-flow/current-description))))))
-      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\)"
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2"
                                                  (flow "level 3")
                                                  (state-flow/current-description)))))))
-      (is (re-matches #"level 1 \(core_test.clj:\d+\)"
+
+      (is (re-matches #"level 1 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
                                                (flow "level 2"
                                                  (flow "level 3"))
-                                               (state-flow/current-description)))))))))
+                                               (state-flow/current-description))))))))
+  (testing "description in presence of exceptions"
+    (is (re-matches #"will boom \(core_test.clj:\d+\) -> root \(core_test.clj:\d+\) -> child2 \(core_test.clj:\d+\) -> bogus"
+                    (-> (state-flow/run (flow "will boom" bogus-flow) {:value 2})
+                        second
+                        (#'state-flow/state->current-description))))))
 
 (deftest top-level-description
   (let [tld (fn [flow] (->> (state-flow/run flow)
