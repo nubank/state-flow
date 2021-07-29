@@ -76,7 +76,7 @@
                      :match/actual       {:n 2}}
                     flow-ret)))
       (testing "saves assertion report to state with current description stack"
-        (is (match? {:flow/description-stack [{:description "match?"}]
+        (is (match? {:flow/description-stack [{:description "match?"} {:description "(cats.core/do-let ...)"}]
                      :match/result       :mismatch
                      :mismatch/detail    {:n {:expected 1 :actual 2}}
                      :probe/results      [{:check-result false :value {:n 2}}

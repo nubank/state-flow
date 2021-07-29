@@ -3,7 +3,8 @@
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
             [clojure.pprint :as pp]
-            [clojure.string :as str]
+            [clojure.string :as string]
+            [state-flow.internals.description :as description]
             [state-flow.state :as state]
             [taoensso.timbre :as log]))
 
@@ -31,15 +32,16 @@
   "Returns a flow that will modify the state metadata.
 
   For internal use. Subject to change."
-  [description {:keys [line ns file]}]
-  (modify-meta
-   (fn [m] (-> m
-               (update :top-level-description #(or % description))
-               (update :description-stack (fnil conj [])
-                       (cond-> {:description description
-                                :ns ns}
-                         line (assoc :line line)
-                         file (assoc :file file)))))))
+  [description {:keys [line ns file call-site-meta]}]
+  (let [meta-map (cond-> {:description description
+                          :ns          ns}
+                   call-site-meta (assoc :call-site-meta call-site-meta)
+                   line (assoc :line line)
+                   file (assoc :file file))]
+    (modify-meta
+     (fn [m] (-> m
+                 (update :top-level-description #(or % description))
+                 (update :description-stack (fnil conj []) meta-map))))))
 
 (defn pop-meta
   "Returns a flow that will modify the state metadata.
@@ -54,20 +56,41 @@
 
 (defn description->file
   [{:keys [file]}]
-  (when file (last (str/split file #"/"))))
+  (when file (last (string/split file #"/"))))
 
-(defn ^:private format-single-description
+(defn- format-single-description
   [{:keys [line description file] :as m}]
   (let [filename (description->file m)]
     (str description
          (when line
-           (format " (%s:%s)" filename line)))))
+           (if filename
+             (format " (%s:%s)" filename line)
+             ;; TODO: we can probably pull filename info from previous stack entries
+             (format " (line %s)" line))))))
+
+(defn- remove-non-terminal-call-site-meta
+  "non-terminal call-site meta is usually redudant with the meta-data provided
+  by `flow` forms.
+
+  It is thus mostly useful at the end of the call-stack, as a way to get more
+  precise line information for issues that arise after the last `flow` form."
+  [stack]
+  (let [call-site-meta?      #(contains? % :call-site-meta)
+        last-call-site-metas (->> stack
+                                  reverse
+                                  (take-while call-site-meta?)
+                                  reverse)
+        filtered-stack        (-> (remove call-site-meta? stack)
+                                  (concat last-call-site-metas))]
+    ;; `into` to preserve the `stack` sequence type
+    (into (empty stack) filtered-stack)))
 
 (defn format-description
   [stack]
   (->> stack
+       remove-non-terminal-call-site-meta
        (map format-single-description)
-       (str/join " -> ")))
+       (string/join " -> ")))
 
 (defn description-stack
   "Returns the list of descriptions in the current stack.
@@ -81,13 +104,13 @@
   [s]
   (-> s meta :description-stack))
 
-(defn ^:private string-expr? [x]
+(defn- string-expr? [x]
   (or (string? x)
       (and (sequential? x)
            (or (= (first x) 'str)
                (= (first x) 'clojure.core/str)))))
 
-(defn ^:private state->current-description [s]
+(defn- state->current-description [s]
   (-> (description-stack s)
       format-description))
 
@@ -121,6 +144,28 @@
    [hook (state/gets (comp :before-flow-hook meta))]
    (state/modify (or hook identity))))
 
+(defn- push-abbr-meta [flow]
+  `(push-meta ~(description/abbr-sexpr flow)
+              ~(assoc (meta flow)
+                      :call-site-meta true)))
+
+(defn- flow-expr? [expr]
+  (and (coll? expr)
+       (or (= 'flow (first expr))
+           (= `flow (first expr)))))
+
+(defn annotate-with-line-meta [flows]
+  (let [annotated-flows (reduce (fn [acc flow]
+                                  (if (flow-expr? flow)
+                                    (conj acc flow) ;; `flow`s push their own meta data
+                                    (into [] (concat acc [(push-abbr-meta flow) flow `(pop-meta)]))))
+                                []
+                                flows)]
+    ;; to preserve the return value, exclude terminal pop-meta's
+    (if (= `(pop-meta) (last annotated-flows))
+      (butlast annotated-flows)
+      annotated-flows)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public API
 
@@ -137,12 +182,17 @@
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (when (vector? (last flows))
     (throw (ex-info "The last argument to flow must be a flow/step, not a binding vector." {})))
-  (let [flow-meta caller-meta
-        flows'    (or flows `[(m/return nil)])]
+  (let [flow-meta       caller-meta
+        annotated-flows (annotate-with-line-meta
+                         (or flows `[(m/return nil)]))
+        pop-line-meta   (if (flow-expr? (last annotated-flows))
+                          '()
+                          `((pop-meta)))]
     `(m/do-let
       (push-meta ~description ~flow-meta)
       (apply-before-flow-hook)
-      [ret# (m/do-let ~@flows')]
+      [ret# (m/do-let ~@annotated-flows)]
+      ~@pop-line-meta
       (pop-meta)
       (m/return ret#))))
 
