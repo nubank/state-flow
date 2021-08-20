@@ -21,7 +21,7 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [com.taoensso/timbre "4.10.0"]
                  [funcool/cats "2.4.1"]
-                 [nubank/matcher-combinators "3.1.4"]]
+                 [nubank/matcher-combinators "3.3.1"]]
 
   :exclusions   [log4j]
 
@@ -34,7 +34,7 @@
              :dev {:source-paths ["dev"]
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "1.1.0"]
-                                  [midje "1.10.3"]
+                                  [midje "1.10.4"]
                                   [org.clojure/java.classpath "1.0.0"]
                                   [rewrite-clj "0.6.1"]]}}
 
