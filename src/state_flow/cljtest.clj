@@ -49,9 +49,11 @@
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
                                forms
-                               (cons {} forms))]
-    `(t/deftest ~name
-       (let [[ret# state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
+                               (cons {} forms))
+        flow `(core/flow ~(str name) ~@flows)]
+    `(t/deftest ~(vary-meta name assoc :state-flow {:flow flow
+                                                    :parameters parameters})
+       (let [[ret# state#] (core/run* ~parameters ~flow)
              assertions# (get-in (meta state#) [:test-report :assertions])]
          (doseq [assertion-data# assertions#]
            (t/report (#'clojure-test-report assertion-data#)))
