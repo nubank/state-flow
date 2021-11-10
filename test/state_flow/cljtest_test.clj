@@ -56,6 +56,15 @@
       (is (match? {:test 0 :pass 2 :fail 0 :error 0}
                   (merge-with - report-counters-after report-counters-before))))))
 
+(deftest get-flow-from-meta
+  (let [{{:keys [flow parameters]} :state-flow} (meta #'my-flow)]
+    (testing "We can grab the flow and parameters from test metadata"
+      (is (match? [{:match/result :match
+                    :match/actual {:a 1 :b 2}}
+                   {:value 1
+                    :map   {:a 1 :b 2}}]
+                  (state-flow/run* parameters flow))))))
+
 (deftest test-deprecated-match?
   (testing "with times-to-try > 1 and a value instead of a step"
     (testing "does not throw (to preserve backward compatibility)"
