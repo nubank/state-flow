@@ -43,16 +43,18 @@
      :line (-> description-stack last :line)}))
 
 (defmacro defflow
-  {:doc "Creates a flow and binds it a Var named by name"
+  {:doc      "Creates a flow and binds it a Var named by name"
    :arglists '([name & flows]
                [name parameters & flows])}
   [name & forms]
   (let [[parameters & flows] (if (map? (first forms))
                                forms
-                               (cons {} forms))]
-    `(t/deftest ~name
-       (let [[ret# state#] (core/run* ~parameters (core/flow ~(str name) ~@flows))
-             assertions# (get-in (meta state#) [:test-report :assertions])]
+                               (cons {} forms))
+        flow                 `(core/flow ~(str name) ~@flows)]
+    `(t/deftest ~(vary-meta name assoc :state-flow {:flow       flow
+                                                    :parameters parameters})
+       (let [[ret# state#] (core/run* ~parameters ~flow)
+             assertions#   (get-in (meta state#) [:test-report :assertions])]
          (doseq [assertion-data# assertions#]
            (t/report (#'clojure-test-report assertion-data#)))
          [ret# state#]))))

@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.14.0]
+- Add flow and parameters to test metadata on cljtest deflow
+
 ## [5.13.2]
 - Include line information when reporting flows that raise exceptions
 
