@@ -177,14 +177,15 @@
   Creates a flow which is a composite of flows. The calling macro should
   provide (meta &form) as `:caller-meta` in order to support accurate line
   number reporting."
-  [{:keys [description caller-meta]} & flows]
+  [{:keys [description caller-meta annotate?]} & flows]
   (when-not (string-expr? description)
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (when (vector? (last flows))
     (throw (ex-info "The last argument to flow must be a flow/step, not a binding vector." {})))
   (let [flow-meta       caller-meta
-        annotated-flows (annotate-with-line-meta
-                         (or flows `[(m/return nil)]))
+        annotated-flows (if (fnil annotate? true)
+                          (annotate-with-line-meta (or flows `[(m/return nil)]))
+                          (or flows `[(m/return nil)]))
         pop-line-meta   (if (flow-expr? (last annotated-flows))
                           '()
                           `((pop-meta)))]
@@ -201,6 +202,7 @@
   {:style/indent :defn}
   [description & flows]
   (apply flow* {:description description
+                :annotate? true
                 :caller-meta (assoc (meta &form)
                                     :file *file*
                                     :ns (str *ns*))}
