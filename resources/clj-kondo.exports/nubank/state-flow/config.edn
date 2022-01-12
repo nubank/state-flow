@@ -1,4 +1,5 @@
 {:lint-as {state-flow.api/for clojure.core/for}
  :hooks   {:analyze-call {state-flow.cljtest/defflow nubank.state-flow/defflow
+                          state-flow.api/defflow     nubank.state-flow/defflow
                           state-flow.core/flow       nubank.state-flow/flow
                           state-flow.api/flow        nubank.state-flow/flow}}}
