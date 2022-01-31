@@ -1,5 +1,6 @@
 (ns state-flow.cljtest-test
   (:require [clojure.test :as t :refer [deftest is testing]]
+            [matcher-combinators.result :as result]
             [matcher-combinators.test :refer [match?]]
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.cljtest :refer [defflow] :as cljtest]
@@ -19,7 +20,8 @@
                 :flow/description-stack [{:description "my test"
                                           :file "my-test-file.clj"
                                           :line 23}]}
-        match-report (first (state-flow/run (mc/match? 1 2) {}))]
+        match-report (first (state-flow/run (mc/match? 1 2) {}))
+        report-with-details (assoc report :mismatch/detail 1)]
     (testing "we adapt state-flow assertion report into clojure-test report format"
       (is (match? {:type :fail
                    :message "my test (my-test-file.clj:23)"
@@ -29,8 +31,11 @@
                    :line 23}
                   (#'cljtest/clojure-test-report report))))
     (testing "we save pretty printing metadata"
-      (is (match? {:type :state-flow.cljtest/mismatch}
-                  (meta (:actual (#'cljtest/clojure-test-report match-report))))))))
+      (is (match? {:type :matcher-combinators.clj-test/mismatch}
+                  (meta (:actual (#'cljtest/clojure-test-report match-report))))))
+    (testing "is compatible with print-method of matcher-combinators"
+      (is (match? {:actual {:match-result {::result/value 1}}}
+                  (#'cljtest/clojure-test-report report-with-details))))))
 
 (deftest run-a-flow
   ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests
