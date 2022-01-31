@@ -1,6 +1,8 @@
 (ns state-flow.cljtest
   (:require [clojure.test :as t]
-            [matcher-combinators.printer :as matcher-combinators.printer] ;; to register clojure.test assert-expr for `match?`
+            [matcher-combinators.clj-test] ;; to register clojure.test assert-expr for `match?`
+            [matcher-combinators.printer :as matcher-combinators.printer]
+            [matcher-combinators.result :as result]
             [matcher-combinators.test]
             [state-flow.assertions.matcher-combinators]
             [state-flow.core :as core]
@@ -17,14 +19,8 @@
                        params)]
     `(~'state-flow.assertions.matcher-combinators/match? ~expected ~actual ~params*)))
 
-(defn- tag-for-pretty-printing [actual-summary result]
-  (with-meta {:summary      actual-summary
-              :match-result result}
-    {:type ::mismatch}))
-
-(defmethod clojure.core/print-method ::mismatch [{:keys [match-result]} out]
-  (binding [*out* out]
-    (matcher-combinators.printer/pretty-print match-result)))
+(defn- assertion-report->match-combinators-result [assertion-report]
+  {::result/value (:mismatch/detail assertion-report)})
 
 (defn- clojure-test-report
   [{:match/keys [result expected actual]
@@ -35,9 +31,9 @@
      :message message
      :expected expected
      :actual (if (:mismatch/detail assertion-report)
-               (tag-for-pretty-printing
+               (matcher-combinators.clj-test/tagged-for-pretty-printing
                 (list '~'not (list 'match? expected actual))
-                (:mismatch/detail assertion-report))
+                (assertion-report->match-combinators-result assertion-report))
                actual)
      :file (-> description-stack last core/description->file)
      :line (-> description-stack last :line)}))
