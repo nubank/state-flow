@@ -1,5 +1,9 @@
 # Changelog
 
+
+## [5.14.1]
+- Fix test result visualization bug when running with cider [#163](https://github.com/nubank/state-flow/pull/163)
+
 ## [5.14.0]
 - Add flow and parameters to test metadata on cljtest deflow
 
