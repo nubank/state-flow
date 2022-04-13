@@ -1,6 +1,9 @@
 # Changelog
 
 
+## [5.14.2]
+- bump library dependencies
+
 ## [5.14.1]
 - Fix test result visualization bug when running with cider [#163](https://github.com/nubank/state-flow/pull/163)
 
