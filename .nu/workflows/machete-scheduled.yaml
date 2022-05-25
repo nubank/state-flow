@@ -1,0 +1,8 @@
+apiVersion: workflows.dev/v1alpha1
+kind: TemplateInstance
+metadata:
+  namespace: pipelines
+spec:
+  templateName: machete-scheduled
+  input:
+    scheduleCron: '30 4 * * 5'
