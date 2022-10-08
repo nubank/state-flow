@@ -1,6 +1,5 @@
 (ns state-flow.presentation
-  (:require [state-flow.assertions.matcher-combinators :refer [match?]]
-            [state-flow.api :as api :refer [flow]]))
+  (:require [state-flow.api :as api :refer [flow match?]]))
 
 """
 The primitive steps
