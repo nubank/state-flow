@@ -34,7 +34,7 @@
              :dev {:source-paths ["dev"]
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "1.2.0"]
-                                  [midje "1.10.5"]
+                                  [midje "1.10.7"]
                                   [org.clojure/java.classpath "1.0.0"]
                                   [rewrite-clj "0.6.1"]]}}
 
