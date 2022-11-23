@@ -1,5 +1,7 @@
 # Changelog
 
+## [5.14.3]
+- Bump midje to 1.10.7
 
 ## [5.14.2]
 - bump library dependencies
