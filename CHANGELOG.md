@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.14.4]
+- Bump midje to 1.10.9
+
 ## [5.14.3]
 - Bump midje to 1.10.7
 
