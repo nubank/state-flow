@@ -1,4 +1,4 @@
-(defproject nubank/state-flow "5.14.3"
+(defproject nubank/state-flow "5.14.4"
   :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -34,7 +34,7 @@
              :dev {:source-paths ["dev"]
                    :dependencies [[ns-tracker "0.4.0"]
                                   [org.clojure/tools.namespace "1.2.0"]
-                                  [midje "1.10.7"]
+                                  [midje "1.10.9"]
                                   [org.clojure/java.classpath "1.0.0"]
                                   [rewrite-clj "0.6.1"]]}}
 
