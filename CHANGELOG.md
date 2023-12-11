@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.14.5]
+- switch the declare/import-var function to def in state.api [#171](https://github.com/nubank/state-flow/pull/171) 
+- 
 ## [5.14.4]
 - Bump midje to 1.10.9
 
