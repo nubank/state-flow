@@ -22,7 +22,7 @@
 (defn- assertion-report->match-combinators-result [assertion-report]
   {::result/value (:mismatch/detail assertion-report)})
 
-(defn- clojure-test-report
+(defn- clojure-test-result-report
   [{:match/keys [result expected actual]
     :flow/keys [description-stack]
     :as assertion-report}]
@@ -52,5 +52,11 @@
        (let [[ret# state#] (core/run* ~parameters ~flow)
              assertions#   (get-in (meta state#) [:test-report :assertions])]
          (doseq [assertion-data# assertions#]
-           (t/report (#'clojure-test-report assertion-data#)))
+           (t/report (#'clojure-test-result-report assertion-data#)))
+         (let [message# (str "Finished running flow " name)]
+           (t/report
+            {:type    :end-flow
+             :message message#
+             :final-state state#
+             :flow-return ret#}))
          [ret# state#]))))

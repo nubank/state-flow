@@ -29,13 +29,13 @@
                    :actual 2
                    :file "my-test-file.clj"
                    :line 23}
-                  (#'cljtest/clojure-test-report report))))
+                  (#'cljtest/clojure-test-result-report report))))
     (testing "we save pretty printing metadata"
       (is (match? {:type :matcher-combinators.clj-test/mismatch}
-                  (meta (:actual (#'cljtest/clojure-test-report match-report))))))
+                  (meta (:actual (#'cljtest/clojure-test-result-report match-report))))))
     (testing "is compatible with print-method of matcher-combinators"
       (is (match? {:actual {:match-result {::result/value 1}}}
-                  (#'cljtest/clojure-test-report report-with-details))))))
+                  (#'cljtest/clojure-test-result-report report-with-details))))))
 
 (deftest run-a-flow
   ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests
