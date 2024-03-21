@@ -352,7 +352,8 @@
                                    assoc
                                    :runner runner
                                    :before-flow-hook before-flow-hook
-                                   :fail-fast? fail-fast?)
+                                   :fail-fast? fail-fast?
+                                   :init init)
         pair            (-> flow
                             (runner init-state+meta)
                             clarify-illegal-arg
