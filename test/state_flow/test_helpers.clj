@@ -20,7 +20,7 @@
   in `delay-ms` milliseconds."
   [delay-ms k f & args]
   (state/modify (fn [state]
-                  (future (do (Thread/sleep delay-ms)
+                  (future (do (Thread/sleep ^long delay-ms)
                               (apply swap! (get state k) f args)))
                   state)))
 
