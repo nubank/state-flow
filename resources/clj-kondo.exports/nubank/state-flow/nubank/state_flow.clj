@@ -22,12 +22,10 @@
      [(hooks/token-node 'let)
       (hooks/vector-node new-bindings)])))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn flow [{:keys [node]}]
   (let [forms (rest (:children node))]
     {:node (with-meta (do-let forms) (meta node))}))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn defflow [{:keys [node]}]
   (let [[test-name & body]     (rest (:children node))
         new-node (hooks/list-node
@@ -45,17 +43,15 @@
 
    into
 
-   (do (clojure.core/with-redefs bindings)
-       (state-flow.core/flow \"state-flow.labs.state/with-redefs\" flows))"
+   (clojure.core/with-redefs bindings
+     (state-flow.core/flow \"state-flow.labs.state/with-redefs\" flows))"
   [{:keys [node]}]
   (let [[bindings & flows] (rest (:children node))
         new-node (hooks/list-node
-                  [(hooks/token-node 'do)
+                  [(hooks/token-node 'clojure.core/with-redefs)
+                   bindings
                    (hooks/list-node
-                    [(hooks/token-node 'clojure.core/with-redefs)
-                     bindings])
-                   (hooks/list-node
-                    (concat [(hooks/token-node 'state-flow.api/flow)
+                    (concat [(hooks/token-node 'state-flow.core/flow)
                              (hooks/string-node "state-flow.labs.state/with-redefs")]
                             flows))])]
     {:node (with-meta new-node (meta node))
