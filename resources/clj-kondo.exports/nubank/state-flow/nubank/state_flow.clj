@@ -1,4 +1,5 @@
 (ns nubank.state-flow
+  (:refer-clojure :exclude [with-redefs])
   (:require [clj-kondo.hooks-api :as hooks]))
 
 (defn- normalize-mlet-binds
@@ -33,3 +34,25 @@
                    (do-let body)])]
     {:node (with-meta new-node (meta node))
      :defined-by 'state-flow.cljtest/defflow}))
+
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn with-redefs
+  "This transformation hook converts
+
+   (state-flow.labs.state/with-redefs [bindings & flows])
+
+   into
+
+   (clojure.core/with-redefs bindings
+     (state-flow.core/flow \"state-flow.labs.state/with-redefs\" flows))"
+  [{:keys [node]}]
+  (let [[bindings & flows] (rest (:children node))
+        new-node (hooks/list-node
+                  [(hooks/token-node 'clojure.core/with-redefs)
+                   bindings
+                   (hooks/list-node
+                    (concat [(hooks/token-node 'state-flow.api/flow)
+                             (hooks/string-node "state-flow.labs.state/with-redefs")]
+                            flows))])]
+    {:node (with-meta new-node (meta node))
+     :defined-by 'state-flow.labs.state/with-redefs}))
