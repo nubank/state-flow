@@ -51,7 +51,7 @@
                   [(hooks/token-node 'clojure.core/with-redefs)
                    bindings
                    (hooks/list-node
-                    (concat [(hooks/token-node 'state-flow.core/flow)
+                    (concat [(hooks/token-node 'state-flow.api/flow)
                              (hooks/string-node "state-flow.labs.state/with-redefs")]
                             flows))])]
     {:node (with-meta new-node (meta node))
