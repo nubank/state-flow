@@ -1,10 +1,13 @@
 # Changelog
 
+## [5.16.0]
+- Add linter for `state-flow.labs.state/with-redefs` [#175](https://github.com/nubank/state-flow/pull/175)
+
 ## [5.15.0]
 - Store init function in state metadata
 
 ## [5.14.5]
-- switch the declare/import-var function to def in state.api [#171](https://github.com/nubank/state-flow/pull/171) 
+- switch the declare/import-var function to def in state.api [#171](https://github.com/nubank/state-flow/pull/171)
 
 ## [5.14.4]
 - Bump midje to 1.10.9
