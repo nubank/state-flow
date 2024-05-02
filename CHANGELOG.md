@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.17.0]
+- revert linter `state-flow.labs.state/with-redefs`
+
 ## [5.16.0]
 - Add linter for `state-flow.labs.state/with-redefs` [#175](https://github.com/nubank/state-flow/pull/175)
 
