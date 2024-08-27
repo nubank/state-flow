@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.18.0]
+- Bump dependencies
+  - org.clojure/clojure from 1.11.1 to 1.11.4
+  - com.taoensso/timbre from 4.10.0 to 6.5.0
+  - nubank/matcher-combinators from 3.5.0 to 3.9.1
+
 ## [5.17.0]
 - revert linter `state-flow.labs.state/with-redefs`
 
