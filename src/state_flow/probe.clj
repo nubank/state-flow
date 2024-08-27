@@ -19,7 +19,7 @@
 (defn ^:private with-delay
   "Adds a delay before the step is run"
   [step delay]
-  (m/>> (state/wrap-fn #(Thread/sleep delay)) step))
+  (m/>> (state/wrap-fn #(Thread/sleep ^long delay)) step))
 
 (defn ^:private sequence-while*
   "Like cats.core/sequence but with short circuiting when pred is satisfied by the return value of a step"
