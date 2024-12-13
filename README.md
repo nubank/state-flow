@@ -4,6 +4,10 @@
 
 StateFlow is a testing framework designed to support the composition and reuse of individual test steps.
 
+## Learning Materials
+- [Tutorial](./samples/tutorial.clj)
+- [Walkthrough](./doc/walkthrough.repl)
+
 ## Definitions
 
 * A [*flow*](#flows) is a sequence of steps or bindings.
