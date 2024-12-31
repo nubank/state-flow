@@ -18,8 +18,8 @@
             [lein-nsorg "0.3.0"]
             [changelog-check "0.1.0"]]
 
-  :dependencies [[org.clojure/clojure "1.11.4"]
-                 [com.taoensso/timbre "6.5.0"]
+  :dependencies [[org.clojure/clojure "1.12.0"]
+                 [com.taoensso/timbre "6.6.1"]
                  [funcool/cats "2.4.2"]
                  [nubank/matcher-combinators "3.9.1"]]
 
@@ -36,7 +36,7 @@
                                   [org.clojure/tools.namespace "1.5.0"]
                                   [midje "1.10.10"]
                                   [org.clojure/java.classpath "1.1.0"]
-                                  [rewrite-clj "1.1.48"]]}}
+                                  [rewrite-clj "1.1.49"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
