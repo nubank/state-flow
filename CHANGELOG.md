@@ -3,7 +3,7 @@
 ## [5.19.0]
 - Bump dependencies
   - org.clojure/clojure from 1.11.4 to 1.12.0
-  - com.taoensso/timbe from 6.5.0 to 6.6.1
+  - com.taoensso/timbre from 6.5.0 to 6.6.1
   - rewrite-clj from 1.1.48 to 1.1.49
 
 ## [5.18.0]
