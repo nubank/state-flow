@@ -20,6 +20,11 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.java-version }}
 
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@13.0
+      with:
+        lein: 2.11.2
+
     - name: Print java version
       run: java -version
 
@@ -38,6 +43,16 @@ jobs:
     needs: test-using-java
     steps:
     - uses: actions/checkout@v4
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@13.0
+      with:
+        lein: 2.11.2
 
     - name: Install dependencies
       run: lein deps
