@@ -24,7 +24,7 @@ jobs:
     - name: Install clojure tools
       uses: DeLaGuardo/setup-clojure@13.0
       with:
-        lein: 2.9.1
+        lein: 2.11.2
 
     - name: Print java version
       run: java -version
@@ -48,6 +48,11 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 21
+
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@13.0
+      with:
+        lein: 2.11.2
 
     - name: Lint check
       run: lein lint
