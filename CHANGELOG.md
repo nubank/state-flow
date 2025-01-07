@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.19.0]
+- Bump dependencies
+  - org.clojure/clojure from 1.11.4 to 1.12.0
+  - com.taoensso/timbre from 6.5.0 to 6.6.1
+
 ## [5.18.0]
 - Bump dependencies
   - org.clojure/clojure from 1.11.1 to 1.11.4
