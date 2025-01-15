@@ -2,11 +2,11 @@
   (:refer-clojure :exclude [run!])
   (:require [cats.core :as m]
             [cats.monad.exception :as e]
+            [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pp]
             [clojure.string :as string]
             [state-flow.internals.description :as description]
-            [state-flow.state :as state]
-            [taoensso.timbre :as log]))
+            [state-flow.state :as state]))
 
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
@@ -232,11 +232,12 @@
   pair)
 
 (defn log-error
-  "Error handler that logs error and returns pair."
+  "Error handler that logs error to clojure.core/*out* and returns pair."
   [pair]
-  (let [description (state->current-description (second pair))
+  (let [throwable   (m/extract (first pair))
+        description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
-    (log/info (m/extract (first pair)) message)
+    (println (str message "\n" (exceptions/format-exception throwable)))
     pair))
 
 (defn throw-error!
