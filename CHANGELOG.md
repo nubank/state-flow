@@ -1,5 +1,10 @@
 # Changelog
 
+## [5.20.0]
+- Remove `com.taoensso/timbre` dependency
+  - **BEHAVIOR CHANGE**: previously, failures logged by `state-flow.core/log-error` were sent to whatever 
+    appenders were configured in timbre. Now, failures are always logged to `clojure.core/*out*`.
+
 ## [5.19.0]
 - Bump dependencies
   - org.clojure/clojure from 1.11.4 to 1.12.0
