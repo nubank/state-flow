@@ -20,7 +20,7 @@
 
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [org.clj-commons/pretty "3.3.0"]
-                 [funcool/cats "2.4.2"]
+                 [org.clojars.carloshernandez2/cats "0.0a1"]
                  [nubank/matcher-combinators "3.9.1"]]
 
   :exclusions   [log4j]
