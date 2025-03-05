@@ -1,8 +1,11 @@
 # Changelog
 
+## [5.20.1]
+- Use setMacro to flag macros in the api namespace to avoid AOT compilation errors
+
 ## [5.20.0]
 - Remove `com.taoensso/timbre` dependency
-  - **BEHAVIOR CHANGE**: previously, failures logged by `state-flow.core/log-error` were sent to whatever 
+  - **BEHAVIOR CHANGE**: previously, failures logged by `state-flow.core/log-error` were sent to whatever
     appenders were configured in timbre. Now, failures are always logged to `clojure.core/*out*`.
 
 ## [5.19.0]
