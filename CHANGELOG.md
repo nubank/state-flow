@@ -1,5 +1,8 @@
 # Changelog
 
+## [5.20.2]
+- Fixing the "Too long name" error when attempting to `compile` most namespaces that use `state-flow.` Details [here](https://github.com/funcool/cats/pull/247)
+
 ## [5.20.1]
 - Use setMacro to flag macros in the api namespace to avoid AOT compilation errors
 
