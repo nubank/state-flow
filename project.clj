@@ -1,4 +1,4 @@
-(defproject org.clojars.carloshernandez2/state-flow "5.20.0-SNAPSHOT"
+(defproject nubank/state-flow "5.20.2"
   :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -20,7 +20,7 @@
 
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [org.clj-commons/pretty "3.3.0"]
-                 [org.clojars.carloshernandez2/cats "0.0a1-20250303.212206-2"]
+                 [funcool/cats "2.4.3-beta.1"]
                  [nubank/matcher-combinators "3.9.1"]]
 
   :exclusions   [log4j]
