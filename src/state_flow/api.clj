@@ -8,10 +8,10 @@
             [state-flow.state]))
 
 (def ^{:doc      "Creates a flow which is a composite of flows."
-       :arglists '([description & flows])
-       :macro    true}
+       :arglists '([description & flows])}
   flow
   #'state-flow.core/flow)
+(.setMacro #'flow)
 
 (def ^{:arglists '([flow] [flow initial-state]),
        :doc      "Given an initial-state (default {}), runs a flow and returns a tuple of
@@ -92,10 +92,10 @@
   #'state-flow.state/when)
 
 (def ^{:arglists '([name & flows] [name parameters & flows]),
-       :doc      "Creates a flow and binds it a Var named by name",
-       :macro    true}
+       :doc      "Creates a flow and binds it a Var named by name"}
   defflow
   #'state-flow.cljtest/defflow)
+(.setMacro #'defflow)
 
 (def ^{:arglists '([expected actual & [{:keys [times-to-try sleep-time], :as params}]]),
        :doc      "Builds a state-flow step which uses matcher-combinators to make an
@@ -118,10 +118,10 @@
 
        Returns a map (in the left value) with information about the success
        or failure of the match, the details of which are used internally by
-       state-flow and subject to change.",
-       :macro    true}
+       state-flow and subject to change."}
   match?
   #'state-flow.assertions.matcher-combinators/match?)
+(.setMacro #'match?)
 
 (def ^{:arglists '([] [f & args]),
        :doc      "Creates a flow that returns the result of applying f (default identity)\nto state with any additional args."}
