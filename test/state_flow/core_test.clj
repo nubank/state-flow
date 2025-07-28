@@ -71,7 +71,7 @@
 
   (testing "flow with a `(format ..)` expr for the description is fine"
     (is (macroexpand `(flow (format "foo %s" "bar") [original (state/gets :value)
-                                         :let [doubled (* 2 original)]]
+                                                     :let [doubled (* 2 original)]]
                             (state/modify #(assoc % :value doubled))))))
 
   (testing "but flows with an expression that resolves to a string also aren't valid,
