@@ -19,7 +19,7 @@
             [changelog-check "0.1.0"]]
 
   :dependencies [[org.clojure/clojure "1.11.3"]
-                 [com.taoensso/timbre "6.5.0"]
+                 [com.taoensso/timbre "6.7.1"]
                  [funcool/cats "2.4.2"]
                  [nubank/matcher-combinators "3.9.1"]]
 
@@ -32,11 +32,11 @@
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["dev"]
-                   :dependencies [[ns-tracker "0.4.0"]
+                   :dependencies [[ns-tracker "1.0.0"]
                                   [org.clojure/tools.namespace "1.5.0"]
                                   [midje "1.10.10"]
                                   [org.clojure/java.classpath "1.1.0"]
-                                  [rewrite-clj "1.1.47"]]}}
+                                  [rewrite-clj "1.2.50"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
