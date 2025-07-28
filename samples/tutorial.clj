@@ -1,5 +1,5 @@
 (ns state-flow.presentation
-  (:require [state-flow.api :as api :refer [flow match?]]))
+  (:require [state-flow.api :as api :refer [flow match? defflow]]))
 
 """
 The primitive steps
@@ -58,17 +58,50 @@ Bindings
 Tests
 
 (match? <description> <value/flow> <matcher>)
+   
+(defflow <name> [parameters] <flows>)
 """
-(def with-assertions
-  (flow "with assertions"
-    inc-value
-    [value get-value]
-    (match? 5 value)
+(def with-matching-assertion
+  (flow "truthy assertion"
+        inc-value
+        [value get-value]
+        (match? 5 value)))
+ (api/run with-matching-assertion {:value 4})
+; => [{:match/result :match ...}]
 
-    inc-value
-    [world (api/get-state identity)]
-    (match? 7 get-value)))
-(api/run with-assertions {:value 4})
+(def with-mismatched-assertion
+  (flow "falsy assertion"
+        inc-value
+        [value get-value]
+        (match? 6 value)))
+ (api/run with-mismatched-assertion {:value 4})
+; => [{:match/result :mismatch ...}]
+
+(def with-matching-and-mismatched-assertions
+  (flow "falsy assertion before truthy ones"
+        inc-value
+        [value get-value]
+        (match? 0 value) ; mismatch
+
+        inc-value
+        [value get-value]
+        (match? 6 value) ; match
+
+        inc-value
+        [world (api/get-state identity)]
+        (match? {:value 7} world))) ; match
+(api/run with-matching-and-mismatched-assertions {:value 4})
+; => [{:match/result :match ...}]
+
+(defflow my-test
+  {:init (constantly {:value 4})}
+  with-matching-and-mismatched-assertions)
+
+(comment
+  (my-test)
+  ; actual: (mismatch (expected 0) (actual 5))
+  )
+
 
 """
 Asynchronous tests

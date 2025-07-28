@@ -1,5 +1,27 @@
 # Changelog
 
+## [5.20.2]
+- Fixing the "Too long name" error when attempting to `compile` most namespaces that use `state-flow.` Details [here](https://github.com/funcool/cats/pull/247)
+
+## [5.20.1]
+- Use setMacro to flag macros in the api namespace to avoid AOT compilation errors
+
+## [5.20.0]
+- Remove `com.taoensso/timbre` dependency
+  - **BEHAVIOR CHANGE**: previously, failures logged by `state-flow.core/log-error` were sent to whatever
+    appenders were configured in timbre. Now, failures are always logged to `clojure.core/*out*`.
+
+## [5.19.0]
+- Bump dependencies
+  - org.clojure/clojure from 1.11.4 to 1.12.0
+  - com.taoensso/timbre from 6.5.0 to 6.6.1
+
+## [5.18.0]
+- Bump dependencies
+  - org.clojure/clojure from 1.11.1 to 1.11.4
+  - com.taoensso/timbre from 4.10.0 to 6.5.0
+  - nubank/matcher-combinators from 3.5.0 to 3.9.1
+
 ## [5.17.0]
 - revert linter `state-flow.labs.state/with-redefs`
 
