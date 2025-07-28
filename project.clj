@@ -19,7 +19,7 @@
             [changelog-check "0.1.0"]]
 
   :dependencies [[org.clojure/clojure "1.12.0"]
-                 [org.clj-commons/pretty "3.3.0"]
+                 [org.clj-commons/pretty "3.5.0"]
                  [funcool/cats "2.4.3-beta.2"]
                  [nubank/matcher-combinators "3.9.1"]]
 
