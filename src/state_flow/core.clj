@@ -107,8 +107,7 @@
 (defn- string-expr? [x]
   (or (string? x)
       (and (sequential? x)
-           (or (= (first x) 'str)
-               (= (first x) 'clojure.core/str)))))
+           (contains? #{'str `str 'format `format} (first x)))))
 
 (defn- state->current-description [s]
   (-> (description-stack s)
