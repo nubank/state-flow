@@ -19,7 +19,7 @@
             [changelog-check "0.1.0"]]
 
   :dependencies [[org.clojure/clojure "1.12.0"]
-                 [org.clj-commons/pretty "3.3.0"]
+                 [org.clj-commons/pretty "3.5.0"]
                  [funcool/cats "2.4.3-beta.2"]
                  [nubank/matcher-combinators "3.9.1"]]
 
@@ -36,7 +36,7 @@
                                   [org.clojure/tools.namespace "1.5.0"]
                                   [midje "1.10.10"]
                                   [org.clojure/java.classpath "1.1.0"]
-                                  [rewrite-clj "1.1.49"]]}}
+                                  [rewrite-clj "1.2.50"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
