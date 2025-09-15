@@ -4,36 +4,120 @@
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
+            [state-flow.protocols :as sp]
             [cats.util :as util]))
 
 (declare short-circuiting-context)
 
+(defrecord Success [success]
+  sp/Extract
+  (-extract [_] success)
+
+  sp/Printable
+  (-repr [_]
+    (str "#<Success " (pr-str success) ">"))
+
+  clojure.lang.IDeref
+  (deref [_] success))
+
+(defrecord Failure [failure]
+  sp/Extract
+  (-extract [_] failure)
+
+  sp/Printable
+  (-repr [_]
+    (str "#<Failure " (pr-str failure) ">"))
+
+  clojure.lang.IDeref
+  (deref [_] (throw failure)))
+
+(defn success
+  "A Success type constructor.
+
+  It wraps any arbitrary value into
+  success type."
+  [v]
+  (Success. v))
+
+(defn failure
+  "A failure type constructor.
+
+  If a provided parameter is an exception, it wraps
+  it in a `Failure` instance and return it. But if
+  a provided parameter is arbitrary data, it tries
+  create an exception from it using clojure `ex-info`
+  function.
+
+  Take care that `ex-info` function in clojurescript
+  differs a little bit from clojure."
+  ([e] (failure e ""))
+  ([e message]
+   (if (instance? Throwable e)
+     (Failure. e)
+     (Failure. (ex-info message e)))))
+
+(defn exception?
+  "Return true in case of `v` is instance
+  of Exception monad."
+  [v]
+  (cond
+    (or (instance? Failure v) (instance? Success v)) true
+    :else false))
+
+(defn ^{:no-doc true}
+  exec-try-on
+  [func]
+  (try
+    (let [result (func)]
+      (cond
+        (instance? Throwable result) (failure result)
+        (exception? result) result
+        :else (success result)))
+    (catch Throwable e (failure e))))
+
+(defmacro try-on
+  "Wraps a computation and return success of failure."
+  [expr]
+  `(let [func# (fn [] ~expr)]
+     (exec-try-on func#)))
+
+(defn wrap
+  "Wrap a function in a try monad.
+
+  Is a high order function that accept a function
+  as parameter and returns an other that returns
+  success or failure depending of result of the
+  first function."
+  [func]
+  (let [metadata (meta func)]
+    (-> (fn [& args] (try-on (apply func args)))
+        (with-meta metadata))))
+
 (defn- result-or-err [f & args]
-  (let [result ((e/wrap (partial apply f)) args)]
-    (if (e/failure? result)
-      result
-      @result)))
+  (try
+    (apply f args)
+    (catch Throwable e e)))
 
 (defn error-catching-state [mfn]
   (state/state
    (fn [s]
-     (let [new-pair ((e/wrap mfn) s)]
-       (if (e/failure? new-pair)
-         [new-pair s]
-         @new-pair)))
+     (try
+       (let [[v s'] (mfn s)]
+         [v s'])
+       (catch Throwable e
+         [e s])))
    short-circuiting-context))
 
 (def short-circuiting-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
     p/Context
-
     p/Functor
     (-fmap [_ f fv]
       (error-catching-state
        (fn [s]
          (let [[v s'] ((p/-extract fv) s)]
-           (if (e/failure? v)
+           (if (instance? Throwable v)
              [v s']
              [(result-or-err f v) s'])))))
 
@@ -45,7 +129,7 @@
       (error-catching-state
        (fn [s]
          (let [[v s'] ((p/-extract self) s)]
-           (if (e/failure? v)
+           (if (instance? Throwable v)
              [v s']
              ((p/-extract (f v)) s'))))))
 

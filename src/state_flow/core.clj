@@ -1,7 +1,6 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
   (:require [cats.core :as m]
-            [cats.monad.exception :as e]
             [clojure.pprint :as pp]
             [clojure.string :as string]
             [state-flow.internals.description :as description]
@@ -132,11 +131,12 @@
   (state/gets (comp :fail-fast? meta)))
 
 (defn- clarify-illegal-arg [pair]
-  (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
-    [(#'cats.monad.exception/->Failure
-      (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
-     (second pair)]
-    pair))
+  (let [error (when (instance? Throwable (first pair))
+                (first pair))]
+    (if-let [illegal-arg (some->> error .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
+      [(ex-info (format "Expected a flow, got %s" illegal-arg) {})
+       (second pair)]
+      pair)))
 
 (defn apply-before-flow-hook
   []
@@ -236,7 +236,7 @@
   [pair]
   (let [description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
-    (log/info (m/extract (first pair)) message)
+    (log/info (first pair) message)
     pair))
 
 (defn throw-error!
@@ -244,7 +244,7 @@
   [pair]
   (let [description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")
-        exception   (ex-info message {} (m/extract (first pair)))]
+        exception   (ex-info message {} (first pair))]
     (doto exception
       (.setStackTrace (into-array (take 3 (into [] (.getStackTrace exception))))))
     (throw exception)))
@@ -294,17 +294,16 @@
    (filter-stack-trace default-stack-trace-exclusions))
   ([exclusions]
    (fn [pair]
-     (if-let [failure (some->> pair first :failure)]
+     (if-let [failure (first pair)]
        (do (deep-stack-trace-filter! failure exclusions)
-           [(#'cats.monad.exception/->Failure failure)
-            (second pair)])
+           [failure (second pair)])
        pair))))
 
 (defn- unwrap-assertion-failure-value [pair]
   (let [assertion-result? (comp not nil? :probe/sleep-time)
         exception-data    (and (vector? pair)
-                               (-> pair first e/exception?)
-                               (-> pair first m/extract ex-data))]
+                               (instance? Throwable (first pair))
+                               (-> pair first ex-data))]
     (if (assertion-result? exception-data)
       [exception-data (second pair)]
       pair)))
@@ -361,7 +360,7 @@
       (cleanup (second pair))
       pair
       (finally
-        (when (e/failure? (first pair))
+        (when (instance? Throwable (first pair))
           (on-error pair))))))
 
 (defn ^:deprecated run!

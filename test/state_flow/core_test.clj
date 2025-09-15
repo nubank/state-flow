@@ -82,7 +82,7 @@
 
   (testing "nested-flow-with exception, returns exception and state before exception"
     (let [[left right] (state-flow/run bogus-flow {:value 0})]
-      (is (thrown-with-msg? Exception #"My exception" @left))
+      (is (thrown-with-msg? Exception #"My exception" (throw left)))
       (is (= {:value 2} right))))
 
   (testing "flow allows do-let style binding"
@@ -121,14 +121,14 @@
                             :cleanup  (fn [& _] (swap! cleanup-runs inc))
                             :on-error (partial reset! on-error-input)}
                            bogus-flow))
-      (is (= "My exception" (-> @on-error-input first .failure .getMessage)))
+      (is (= "My exception" (-> @on-error-input first .getMessage)))
       (is (= 1 @cleanup-runs))))
 
   (testing "flow with exception in which cleanup ignores error"
     (let [result (state-flow/run* {:init     (constantly {:value 0})
                                    :on-error state-flow/ignore-error}
                                   bogus-flow)]
-      (is (e/exception? (first result)))
+      (is (instance? Throwable (first result)))
       (is (match? {:value 2} (second result)))))
 
   (testing "flow with exception in cleanup throws exception"
@@ -258,7 +258,6 @@
     (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run (flow "flow" identity))
                       first
-                      :failure
                       .getMessage)))
     (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run
@@ -266,7 +265,6 @@
                          [x identity]
                          (state/gets)))
                       first
-                      :failure
                       .getMessage)))))
 
 (defn custom-runner [flow state]
@@ -291,7 +289,6 @@
                                    state-flow/default-stack-trace-exclusions)}
                        (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
-                      :failure
                       .getStackTrace)]
       (is (empty? (->> (rest frames)
                        (map #(.getClassName %))
@@ -303,7 +300,6 @@
                        {:on-error (state-flow/filter-stack-trace [#"clojure.lang"])}
                        (state-flow/flow "" (state/invoke (/ 1 0))))
                       first
-                      :failure
                       .getStackTrace)]
       (is (= "clojure.lang.Numbers" (.getClassName (first frames))))
       (is (empty? (->> (rest frames)

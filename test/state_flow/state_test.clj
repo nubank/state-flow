@@ -1,6 +1,5 @@
 (ns state-flow.state-test
   (:require [cats.core :as m]
-            [cats.monad.exception :as e]
             [clojure.test :as t :refer [deftest is testing]]
             [state-flow.state :as state]))
 
@@ -23,12 +22,12 @@
 
 (deftest exception-handling
   (let [double-state (state/modify * 2)]
-    (testing "state with an exception returns a failure as the left value"
+    (testing "state with an exception returns an exception as the left value"
       (let [[res state] (state/run (m/>> double-state
                                          double-state
                                          (state/modify (fn [s] (throw (Exception. "My exception"))))
                                          double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state))))
 
     (testing "also handles exceptions with fmap"
@@ -37,7 +36,7 @@
                                            double-state
                                            (state/modify (fn [s] (throw (Exception. "My exception"))))
                                            double-state)) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
@@ -45,7 +44,7 @@
                                double-state
                                (state/modify (fn [s] (throw (Exception. "My exception"))))
                                double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
@@ -53,17 +52,17 @@
                                        (m/>> double-state
                                              double-state))
                                double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))))
 
   (testing "exceptions in primitives are returned as the result"
-    (is (e/failure? (first (state/run (state/gets #(/ 2 %)) 0))))
-    (is (e/failure? (first (state/run (state/modify #(/ 2 %)) 0))))))
+    (is (instance? Exception (first (state/run (state/gets #(/ 2 %)) 0))))
+    (is (instance? Exception (first (state/run (state/modify #(/ 2 %)) 0))))))
 
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
                                  _ (state/put (inc x))]
-                          (m/return x))]
+                                (m/return x))]
     (testing "modify state with get and put"
       (is (= [2 3]
              (state/run increment-state 2))))))
