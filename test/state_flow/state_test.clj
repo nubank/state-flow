@@ -62,7 +62,7 @@
 (deftest get-and-put
   (let [increment-state (m/mlet [x (state/get)
                                  _ (state/put (inc x))]
-                                (m/return x))]
+                          (m/return x))]
     (testing "modify state with get and put"
       (is (= [2 3]
              (state/run increment-state 2))))))

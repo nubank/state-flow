@@ -6,7 +6,7 @@
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
-            [state-flow.test-helpers :as test-helpers :refer [this-line-number shhh!]]))
+            [state-flow.test-helpers :as test-helpers :refer [shhh! this-line-number]]))
 
 (def get-value-state (state/gets (comp deref :value)))
 
@@ -39,9 +39,9 @@
     (let [[flow-ret flow-state]
           (state/run
            (flow "flow"
-                 (test-helpers/swap-later 100 :value + 2)
-                 (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
-                                                                :sleep-time 110}))
+             (test-helpers/swap-later 100 :value + 2)
+             (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
+                                                            :sleep-time 110}))
            {:value (atom 0)})]
       (testing "returns match result with probe info"
         (is (match? {:probe/sleep-time 110
@@ -89,11 +89,11 @@
     (let [[flow-ret flow-state]
           (state-flow/run
            (flow "flow"
-                 (test-helpers/swap-later 200 :count + 2)
-                 (testing "2" (mc/match? 2
-                                         (state/gets (comp deref :count))
-                                         {:times-to-try 2
-                                          :sleep-time 75})))
+             (test-helpers/swap-later 200 :count + 2)
+             (testing "2" (mc/match? 2
+                                     (state/gets (comp deref :count))
+                                     {:times-to-try 2
+                                      :sleep-time 75})))
            {:count (atom 0)})]
       (testing "returns match result"
         (is (match? {:match/result :mismatch} flow-ret)))
@@ -126,8 +126,8 @@
                                           :fail-fast? true
                                           :on-error state-flow/ignore-error}
                                          (flow "stop before boom"
-                                               (mc/match? 1 2)
-                                               (flow "will explode" bogus))))]
+                                           (mc/match? 1 2)
+                                           (flow "will explode" bogus))))]
       (testing "state is left as is"
         (is (match? {:value 0} (second result))))
       (testing "the return value is the same as a failing match?"

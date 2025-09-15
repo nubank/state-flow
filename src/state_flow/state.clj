@@ -4,8 +4,8 @@
             [cats.monad.exception :as e]
             [cats.monad.state :as state]
             [cats.protocols :as p]
-            [state-flow.protocols :as sp]
-            [cats.util :as util]))
+            [cats.util :as util]
+            [state-flow.protocols :as sp]))
 
 (declare short-circuiting-context)
 
