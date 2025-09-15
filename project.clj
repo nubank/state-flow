@@ -1,4 +1,4 @@
-(defproject nubank/state-flow "5.14.2"
+(defproject nubank/state-flow "5.20.2-beta.2"
   :description "Integration testing with composable flows"
   :url "https://github.com/nubank/state-flow"
   :license {:name "MIT"}
@@ -9,19 +9,19 @@
                              :sign-releases false}]]
 
   :plugins [[lein-project-version "0.1.0"]
-            [lein-midje "3.2.1"]
-            [lein-cloverage "1.0.10"]
+            [lein-midje "3.2.2"]
+            [lein-cloverage "1.2.4"]
             [lein-vanity "0.2.0"]
-            [s3-wagon-private "1.3.1"]
-            [lein-ancient "0.6.15"]
-            [lein-cljfmt "0.6.1"]
-            [lein-nsorg "0.2.0"]
+            [s3-wagon-private "1.3.5"]
+            [lein-ancient "0.7.0"]
+            [lein-cljfmt "0.9.2"]
+            [lein-nsorg "0.3.0"]
             [changelog-check "0.1.0"]]
 
-  :dependencies [[org.clojure/clojure "1.11.1"]
-                 [com.taoensso/timbre "4.10.0"]
-                 [funcool/cats "2.4.2"]
-                 [nubank/matcher-combinators "3.5.0"]]
+  :dependencies [[org.clojure/clojure "1.12.0"]
+                 [org.clj-commons/pretty "3.5.0"]
+                 [funcool/cats "2.4.3-beta.2"]
+                 [nubank/matcher-combinators "3.9.1"]]
 
   :exclusions   [log4j]
 
@@ -32,11 +32,11 @@
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["dev"]
-                   :dependencies [[ns-tracker "0.4.0"]
-                                  [org.clojure/tools.namespace "1.2.0"]
-                                  [midje "1.10.5"]
-                                  [org.clojure/java.classpath "1.0.0"]
-                                  [rewrite-clj "0.6.1"]]}}
+                   :dependencies [[ns-tracker "1.0.0"]
+                                  [org.clojure/tools.namespace "1.5.0"]
+                                  [midje "1.10.10"]
+                                  [org.clojure/java.classpath "1.1.0"]
+                                  [rewrite-clj "1.2.50"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
             "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]

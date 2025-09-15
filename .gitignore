@@ -10,3 +10,5 @@ pom.xml.asc
 *.iml
 .idea
 **/*.DS_Store
+.clj-kondo
+!.clj-kondo/config.edn

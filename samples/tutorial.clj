@@ -1,28 +1,25 @@
 (ns state-flow.presentation
-  (:require [state-flow.core :as state-flow :refer [flow]]
-            [state-flow.cljtest :refer [match?]]
-            [state-flow.state :as state]
-            [cats.core :as m]))
+  (:require [state-flow.api :as api :refer [flow match? defflow]]))
 
 """
 The primitive steps
 
-(state/gets getter) => (fn [s] [(getter s) s])
+(api/get-state getter) => (fn [s] [(getter s) s])
 
-(state/modify setter) => (fn [s] [s (setter s)])
+(api/swap-state setter) => (fn [s] [s (setter s)])
 
-(m/return value) => (fn [s] [value s])
+(api/return value) => (fn [s] [value s])
 """
 
 """
 Runner
 """
-(def get-value (state/gets :value))
-(state-flow/run! get-value {:value 4})
+(def get-value (api/get-state :value))
+(api/run get-value {:value 4})
 ; => [4 {:value 4}]
 
-(def inc-value (state/modify #(update % :value inc)))
-(state-flow/run! inc-value {:value 4})
+(def inc-value (api/swap-state #(update % :value inc)))
+(api/run inc-value {:value 4})
 ; => [{:value 4} {:value 5}]
 
 """
@@ -35,14 +32,14 @@ The flow macro
     (flow "bla"
       inc-value)))
 
-(state-flow/run! my-first-flow {:value 4})
+(api/run my-first-flow {:value 4})
 ; => [{:value 4} {:value 5}]
 
 (def inc-two
   (flow "inc 2 times"
     inc-value
     inc-value))
-(state-flow/run! inc-two {:value 4})
+(api/run inc-two {:value 4})
 ; => [{:value 5} {:value 6}]
 
 """
@@ -53,50 +50,83 @@ Bindings
     inc-value
     [value get-value
      :let [value2 (* 2 value)]]
-    (m/return value2)))
-(state-flow/run! with-bindings {:value 4})
-; => [8 {:value 4}]
+    (api/return value2)))
+(api/run with-bindings {:value 4})
+; => [10 {:value 5}]
 
 """
 Tests
 
 (match? <description> <value/flow> <matcher>)
+   
+(defflow <name> [parameters] <flows>)
 """
-(def with-assertions
-  (flow "with assertions"
-    inc-value
-    [value get-value]
-    (match? "is 5" value 4)
+(def with-matching-assertion
+  (flow "truthy assertion"
+        inc-value
+        [value get-value]
+        (match? 5 value)))
+ (api/run with-matching-assertion {:value 4})
+; => [{:match/result :match ...}]
 
-    inc-value
-    [world (state/gets identity)]
-    (match? "is 6" world {:value 6})))
-(state-flow/run! with-assertions {:value 4})
+(def with-mismatched-assertion
+  (flow "falsy assertion"
+        inc-value
+        [value get-value]
+        (match? 6 value)))
+ (api/run with-mismatched-assertion {:value 4})
+; => [{:match/result :mismatch ...}]
+
+(def with-matching-and-mismatched-assertions
+  (flow "falsy assertion before truthy ones"
+        inc-value
+        [value get-value]
+        (match? 0 value) ; mismatch
+
+        inc-value
+        [value get-value]
+        (match? 6 value) ; match
+
+        inc-value
+        [world (api/get-state identity)]
+        (match? {:value 7} world))) ; match
+(api/run with-matching-and-mismatched-assertions {:value 4})
+; => [{:match/result :match ...}]
+
+(defflow my-test
+  {:init (constantly {:value 4})}
+  with-matching-and-mismatched-assertions)
+
+(comment
+  (my-test)
+  ; actual: (mismatch (expected 0) (actual 5))
+  )
+
 
 """
 Asynchronous tests
 """
 (def delayed-inc-value
-  (state/modify (fn [world]
-                  (future (do (Thread/sleep 200)
-                              (swap! (:value world) inc)))
-                  world)))
+  (api/swap-state (fn [world]
+                    (future (do (Thread/sleep 200)
+                                (swap! (:value world) inc)))
+                    world)))
 
 (def get-value-deref
-  (state/gets (comp deref :value)))
+  (api/get-state (comp deref :value)))
 
 (def with-async-fail
   (flow "with async"
     delayed-inc-value
     [value get-value-deref]
-    (match? "is 5" value 5)))
+    (match? 5 value)))
 
-(state-flow/run! with-async-fail {:value (atom 4)})
+(api/run with-async-fail {:value (atom 4)})
 
 (def with-async-success
   (flow "with async"
     delayed-inc-value
-    (match? "is 5" get-value-deref 5)))
+    (match? 5 get-value-deref {:times-to-try 10})))
 
-(state-flow/run! with-async-success {:value (atom 4)})
+(api/run with-async-success {:value (atom 4)})
 ;=> [5 {:value (atom 5)}]

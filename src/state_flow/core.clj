@@ -1,11 +1,11 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
   (:require [cats.core :as m]
+            [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pp]
             [clojure.string :as string]
             [state-flow.internals.description :as description]
-            [state-flow.state :as state]
-            [taoensso.timbre :as log]))
+            [state-flow.state :as state]))
 
 ;; From time to time we see the following error when trying to pretty-print
 ;; Failure records:
@@ -106,8 +106,7 @@
 (defn- string-expr? [x]
   (or (string? x)
       (and (sequential? x)
-           (or (= (first x) 'str)
-               (= (first x) 'clojure.core/str)))))
+           (contains? #{'str `str 'format `format} (first x)))))
 
 (defn- state->current-description [s]
   (-> (description-stack s)
@@ -232,11 +231,12 @@
   pair)
 
 (defn log-error
-  "Error handler that logs error and returns pair."
+  "Error handler that logs error to clojure.core/*out* and returns pair."
   [pair]
-  (let [description (state->current-description (second pair))
+  (let [throwable   (first pair)
+        description (state->current-description (second pair))
         message     (str "Flow " "\"" description "\"" " failed with exception")]
-    (log/info (first pair) message)
+    (println (str message "\n" (exceptions/format-exception throwable)))
     pair))
 
 (defn throw-error!
@@ -351,7 +351,8 @@
                                    assoc
                                    :runner runner
                                    :before-flow-hook before-flow-hook
-                                   :fail-fast? fail-fast?)
+                                   :fail-fast? fail-fast?
+                                   :init init)
         pair            (-> flow
                             (runner init-state+meta)
                             clarify-illegal-arg
