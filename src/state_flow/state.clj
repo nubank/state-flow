@@ -1,97 +1,228 @@
 (ns state-flow.state
   (:refer-clojure :exclude [eval get when])
-  (:require [cats.core :as m]
-            [cats.monad.exception :as e]
-            [cats.monad.state :as state]
+  (:require [cats.monad.state :as state]
             [cats.protocols :as p]
             [cats.util :as util]
             [state-flow.protocols :as sp]))
 
+(defn throw-illegal-argument
+  {:no-doc true :internal true}
+  [^String text]
+  (throw (IllegalArgumentException. text)))
+
+;; CONTEXT STUFF HERE
+
+(defprotocol Contextual
+  "Abstraction that establishes a concrete type as a member of a context.
+
+  A great example is the Maybe monad type Just. It implements
+  this abstraction to establish that Just is part of
+  the Maybe monad."
+  (-get-context [_] "Get the context associated with the type."))
+
+(extend-protocol sp/Contextual
+  java.lang.Object
+  (-get-context [_] nil))
+
+(extend-protocol sp/Contextual
+  nil
+  (-get-context [_] nil))
+
+(defn infer
+  "Given an optional value infer its context. If context is already set, it
+  is returned as is without any inference operation."
+  {:no-doc true}
+  [v]
+  (if-let [context (sp/-get-context v)]
+    context
+    (throw-illegal-argument
+     (str "No context is set and it can not be automatically "
+          "resolved from provided value"))))
+
+;; END CONTEXT STUFF
+
+;; FUNCTOR STUFF
+(defn fmap
+  ^{:doc "Creates a flow that returns the application of f to the return of flow"
+    :arglists '([f flow])}
+  [f fv]
+  (let [ctx (infer fv)]
+    (sp/-fmap ctx f fv)))
+
+;; MONAD STUFF
+(defn bind
+  "Given a monadic value `mv` and a function `f`,
+  apply `f` to the unwrapped value of `mv`.
+
+      (bind (either/right 1) (fn [v]
+                               (return (inc v))))
+      ;; => #<Right [2]>
+
+  For convenience, you may prefer to use the `mlet` macro,
+  which provides a beautiful, `let`-like syntax for
+  composing operations with the `bind` function."
+  [mv f]
+  (let [ctx (infer mv)]
+    (sp/-mbind ctx mv f)))
+
+(defn mreturn
+  "This is a monad version of `pure` and works
+  identically to it."
+  [ctx v]
+  (sp/-mreturn ctx v))
+
+(defn join
+  "Remove one level of monadic structure.
+  This is the same as `(bind mv identity)`."
+  [mv]
+  (bind mv identity))
+
+(defmacro mlet
+  "Monad composition macro that works like Clojure's
+     `let`. This facilitates much easier composition of
+     monadic computations.
+
+     Let's see an example to understand how it works.
+     This code uses bind to compose a few operations:
+
+         (bind (just 1)
+               (fn [a]
+                 (bind (just (inc a))
+                         (fn [b]
+                           (return (* b 2))))))
+         ;=> #<Just [4]>
+
+     Now see how this code can be made clearer
+     by using the mlet macro:
+
+         (mlet [a (just 1)
+                b (just (inc a))]
+           (return (* b 2)))
+         ;=> #<Just [4]>
+     "
+  [bindings & body]
+  (when-not (and (vector? bindings)
+                 (not-empty bindings)
+                 (even? (count bindings)))
+    (throw (IllegalArgumentException. "bindings has to be a vector with even number of elements.")))
+  (->> (reverse (partition 2 bindings))
+       (reduce (fn [acc [l r]] `(bind ~r (fn [~l] ~acc)))
+               `(do ~@body))))
+
+(defmacro do-let
+  "Haskell-inspired monadic do notation
+   it allows one to drop the _ when  we don't need the extracted value
+
+  Basically,
+  (do-let
+    a
+    b
+    [c d
+     e f]
+    x
+    y)
+
+  Translates into:
+
+  (mlet
+    [_ a
+     _ b
+     c d
+     e f
+     _ x]
+    y)
+  "
+  [& forms]
+  (assert (not (empty? forms)) "do-let must have at least one argument")
+  (assert (not (vector? (last forms))) "Last argument of do-let must not be a vector")
+  (if (= 1 (count forms))
+    `(do (assert (not (satisfies? sp/Monad ~(first forms))) "Single argument of do-let must implement Monad protocol")
+         ~(first forms))
+    `(mlet ~(vec (reduce (fn [acc form]
+                           (cond (vector? form) (into acc form)
+                                 :else          (into acc ['_ form])))
+                         []
+                         (butlast forms)))
+       ~(last forms))))
+
+;; APPLICATIVE STUFF
+(defn pure
+  "Given any value `v`, return it wrapped in
+  the default/effect-free context.
+
+  This is a multi-arity function that with arity `pure/1`
+  uses the dynamic scope to resolve the current
+  context. With `pure/2`, you can force a specific context
+  value.
+
+  Example:
+
+      (with-context either/context
+        (pure 1))
+      ;; => #<Right [1]>
+
+      (pure either/context 1)
+      ;; => #<Right [1]>
+  "
+  [ctx v]
+  (sp/-pure ctx v))
+
+(defn fapply
+  "Given a function wrapped in a monadic context `af`,
+  and a value wrapped in a monadic context `av`,
+  apply the unwrapped function to the unwrapped value
+  and return the result, wrapped in the same context as `av`.
+
+  This function is variadic, so it can be used like
+  a Haskell-style left-associative fapply."
+  [af & avs]
+  {:pre [(seq avs)]}
+  (let [ctx (infer af)]
+    (reduce (partial sp/-fapply ctx) af avs)))
+
+(defn sequence
+  "Given a collection of monadic values, collect
+  their values in a seq returned in the monadic context.
+
+      (require '[cats.context :as ctx]
+               '[cats.monad.maybe :as maybe]
+               '[cats.core :as m])
+
+      (sequence [(maybe/just 2) (maybe/just 3)])
+      ;; => #<Just [[2, 3]]>
+
+      (sequence [(maybe/nothing) (maybe/just 3)])
+      ;; => #<Nothing>
+
+      (ctx/with-context maybe/context
+        (sequence []))
+      ;; => #<Just [()]>
+  "
+  [context mvs]
+  (if (empty? mvs)
+    (mreturn context ())
+    (reduce (fn [mvs mv]
+              (mlet [v mv
+                     vs mvs]
+                    (mreturn context (cons v vs))))
+            (mreturn context ())
+            (reverse mvs))))
+
+(defmacro for
+  "Syntactic wrapper for (sequence (for [,,,] mv)).
+
+      (require '[cats.core :as m]
+               '[cats.monad.maybe :as maybe])
+
+      (m/for [x [2 3]] (maybe/just x))
+      ;; => #<Just [[2, 3]]>
+
+  See cats.core/sequence
+  See clojure.core/for"
+  [seq-exprs body-expr]
+  `(sequence (clojure.core/for ~seq-exprs ~body-expr)))
+
 (declare short-circuiting-context)
-
-(defrecord Success [success]
-  sp/Extract
-  (-extract [_] success)
-
-  sp/Printable
-  (-repr [_]
-    (str "#<Success " (pr-str success) ">"))
-
-  clojure.lang.IDeref
-  (deref [_] success))
-
-(defrecord Failure [failure]
-  sp/Extract
-  (-extract [_] failure)
-
-  sp/Printable
-  (-repr [_]
-    (str "#<Failure " (pr-str failure) ">"))
-
-  clojure.lang.IDeref
-  (deref [_] (throw failure)))
-
-(defn success
-  "A Success type constructor.
-
-  It wraps any arbitrary value into
-  success type."
-  [v]
-  (Success. v))
-
-(defn failure
-  "A failure type constructor.
-
-  If a provided parameter is an exception, it wraps
-  it in a `Failure` instance and return it. But if
-  a provided parameter is arbitrary data, it tries
-  create an exception from it using clojure `ex-info`
-  function.
-
-  Take care that `ex-info` function in clojurescript
-  differs a little bit from clojure."
-  ([e] (failure e ""))
-  ([e message]
-   (if (instance? Throwable e)
-     (Failure. e)
-     (Failure. (ex-info message e)))))
-
-(defn exception?
-  "Return true in case of `v` is instance
-  of Exception monad."
-  [v]
-  (cond
-    (or (instance? Failure v) (instance? Success v)) true
-    :else false))
-
-(defn ^{:no-doc true}
-  exec-try-on
-  [func]
-  (try
-    (let [result (func)]
-      (cond
-        (instance? Throwable result) (failure result)
-        (exception? result) result
-        :else (success result)))
-    (catch Throwable e (failure e))))
-
-(defmacro try-on
-  "Wraps a computation and return success of failure."
-  [expr]
-  `(let [func# (fn [] ~expr)]
-     (exec-try-on func#)))
-
-(defn wrap
-  "Wrap a function in a try monad.
-
-  Is a high order function that accept a function
-  as parameter and returns an other that returns
-  success or failure depending of result of the
-  first function."
-  [func]
-  (let [metadata (meta func)]
-    (-> (fn [& args] (try-on (apply func args)))
-        (with-meta metadata))))
 
 (defn- result-or-err [f & args]
   (try
@@ -184,7 +315,7 @@
         [new-count (state/gets :count)]
         (state-flow/return new-count)))"
   [v]
-  (m/return short-circuiting-context v))
+  (mreturn short-circuiting-context v))
 
 (defn invoke
   "Creates a flow that invokes a function of no arguments and returns the
@@ -200,12 +331,6 @@
   (if e
     flow
     (return nil)))
-
-(def
-  ^{:doc "Creates a flow that returns the application of f to the return of flow"
-    :arglists '([f flow])}
-  fmap
-  m/fmap)
 
 (defn ^:deprecated swap
   "DEPRECATED: use state-flow.state/modify instead."
