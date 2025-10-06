@@ -1,9 +1,6 @@
 (ns state-flow.state
   (:refer-clojure :exclude [eval get when])
-  (:require [cats.monad.state :as state]
-            [cats.protocols :as p]
-            [cats.util :as util]
-            [state-flow.protocols :as sp]))
+  (:require [state-flow.protocols :as sp]))
 
 (defn throw-illegal-argument
   {:no-doc true :internal true}
@@ -64,6 +61,14 @@
   [mv f]
   (let [ctx (infer mv)]
     (sp/-mbind ctx mv f)))
+
+(defn >>
+  "Perform a Haskell-style left-associative bind,
+  ignoring the values produced by the monadic computations."
+  ([mv mv']
+   (bind mv (fn [_] mv')))
+  ([mv mv' & mvs]
+   (reduce >> mv (cons mv' mvs))))
 
 (defn mreturn
   "This is a monad version of `pure` and works
@@ -222,7 +227,29 @@
   [seq-exprs body-expr]
   `(sequence (clojure.core/for ~seq-exprs ~body-expr)))
 
+;;
+;; State Monad Stuff
+;;
+
 (declare short-circuiting-context)
+
+(defrecord State [mfn state-context]
+  sp/Contextual
+  (-get-context [_] state-context)
+
+  sp/Extract
+  (-extract [_] mfn))
+
+(defn state
+  "The State type constructor.
+  The purpose of State type is wrap a simple
+  function that fullfill the state signature.
+  It exists just for avoid extend the clojure
+  function type because is very generic type."
+  ([f]
+   (State. f short-circuiting-context))
+  ([f state-context]
+   (State. f state-context)))
 
 (defn- result-or-err [f & args]
   (try
@@ -230,7 +257,7 @@
     (catch Throwable e e)))
 
 (defn error-catching-state [mfn]
-  (state/state
+  (state
    (fn [s]
      (try
        (let [[v s'] (mfn s)]
@@ -242,29 +269,28 @@
 (def short-circuiting-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
-    p/Context
-    p/Functor
+    sp/Functor
     (-fmap [_ f fv]
       (error-catching-state
        (fn [s]
-         (let [[v s'] ((p/-extract fv) s)]
+         (let [[v s'] ((sp/-extract fv) s)]
            (if (instance? Throwable v)
              [v s']
              [(result-or-err f v) s'])))))
 
-    p/Monad
+    sp/Monad
     (-mreturn [_ v]
       (error-catching-state #(vector v %)))
 
     (-mbind [_ self f]
       (error-catching-state
        (fn [s]
-         (let [[v s'] ((p/-extract self) s)]
+         (let [[v s'] ((sp/-extract self) s)]
            (if (instance? Throwable v)
              [v s']
-             ((p/-extract (f v)) s'))))))
+             ((sp/-extract (f v)) s'))))))
 
-    state/MonadState
+    sp/MonadState
     (-get-state [_]
       (error-catching-state #(vector %1 %1)))
 
@@ -274,35 +300,17 @@
     (-swap-state [_ f]
       (error-catching-state #(vector %1 (f %1))))
 
-    p/Printable
+    sp/Printable
     (-repr [_]
       "#<State-E>")))
 
-(util/make-printable (type short-circuiting-context))
+(defn make-printable
+  [klass]
+  (defmethod print-method klass
+    [mv ^java.io.Writer writer]
+    (.write writer (sp/-repr mv))))
 
-(defn get
-  "Creates a flow that returns the value of state. "
-  []
-  (state/get short-circuiting-context))
-
-(defn gets
-  "Creates a flow that returns the result of applying f (default identity)
-  to state with any additional args."
-  ([]
-   (gets identity))
-  ([f & args]
-   (state/gets #(apply f % args) short-circuiting-context)))
-
-(defn put
-  "Creates a flow that replaces state with new-state. "
-  [new-state]
-  (state/put new-state short-circuiting-context))
-
-(defn modify
-  "Creates a flow that replaces state with the result of applying f to
-  state with any additional args."
-  [f & args]
-  (state/swap #(apply f % args) short-circuiting-context))
+(make-printable (type short-circuiting-context))
 
 (defn return
   "Creates a flow that returns v. Use this as the last
@@ -316,6 +324,31 @@
         (state-flow/return new-count)))"
   [v]
   (mreturn short-circuiting-context v))
+
+(defn get
+  "Creates a flow that returns the value of state. "
+  []
+  (sp/-get-state short-circuiting-context))
+
+(defn gets
+  "Creates a flow that returns the result of applying f (default identity)
+  to state with any additional args."
+  ([]
+   (gets identity))
+  ([f & args]
+   (mlet [s (get)]
+     (return (apply f s args)))))
+
+(defn put
+  "Creates a flow that replaces state with new-state. "
+  [new-state]
+  (sp/-put-state short-circuiting-context new-state))
+
+(defn modify
+  "Creates a flow that replaces state with the result of applying f to
+  state with any additional args."
+  [f & args]
+  (sp/-swap-state short-circuiting-context #(apply f % args)))
 
 (defn invoke
   "Creates a flow that invokes a function of no arguments and returns the
@@ -342,14 +375,45 @@
   wrap-fn
   invoke)
 
-(def state? state/state?)
-(def run state/run)
-(def eval state/eval)
-(def exec state/exec)
+(defn state?
+  "Return true if `s` is instance of
+  the State type."
+  [s]
+  (instance? State s))
+
+(defn run
+  "Given a State instance, execute the
+  wrapped computation and returns a cats.data.Pair
+  instance with result and new state.
+    (def computation (mlet [x (get-state)
+                            y (put-state (inc x))]
+                       (return y)))
+    (def initial-state 1)
+    (run computation initial-state)
+  This should return something to: #<Pair [1 2]>"
+  [state seed]
+  ((sp/-extract state) seed))
+
+(defn eval
+  "Given a State instance, execute the
+  wrapped computation and return the resultant
+  value, ignoring the state.
+  Equivalent to taking the first value of the pair instance
+  returned by `run` function."
+  [state seed]
+  (first (run state seed)))
+
+(defn exec
+  "Given a State instance, execute the
+  wrapped computation and return the resultant
+  state.
+  Equivalent to taking the second value of the pair instance
+  returned by `run` function."
+  [state seed]
+  (second (run state seed)))
 
 (defn ensure-step
   "Internal use only.
-
   Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
   [value]
   (if (state? value)
