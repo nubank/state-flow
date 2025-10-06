@@ -1,6 +1,5 @@
 (ns state-flow.assertions.matcher-combinators
-  (:require [cats.core :as m]
-            [matcher-combinators.standalone :as matcher-combinators]
+  (:require [matcher-combinators.standalone :as matcher-combinators]
             [state-flow.assertions.report :as report]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
@@ -61,10 +60,10 @@
     (core/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
-     ;; Nesting m/do-let inside a call the function core/flow* is
+     ;; Nesting state/do-let inside a call the function core/flow* is
      ;; a bit ugly, but it supports getting the correct line number
      ;; information from core/current-description.
-     `(m/do-let
+     `(state/do-let
        (state/invoke #(when (and (not (:called-from-deprecated-match? ~params*))
                                  ((fnil > 1) ~times-to-try 1)
                                  (not (state/state? ~actual)))

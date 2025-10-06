@@ -20,15 +20,14 @@
 
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [org.clj-commons/pretty "3.5.0"]
-                 [funcool/cats "2.4.3-beta.2"]
                  [nubank/matcher-combinators "3.9.1"]]
 
-  :exclusions   [log4j]
+  :exclusions [log4j]
 
-  :cljfmt {:indents {mlet  [[:block 1]]
+  :cljfmt {:indents {mlet [[:block 1]]
                      facts [[:block 1]]
-                     fact  [[:block 1]]
-                     flow  [[:block 1]]}}
+                     fact [[:block 1]]
+                     flow [[:block 1]]}}
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["dev"]
@@ -39,11 +38,11 @@
                                   [rewrite-clj "1.2.50"]]}}
 
   :aliases {"coverage" ["cloverage" "-s" "coverage"]
-            "lint"     ["do" ["cljfmt" "check"] ["nsorg"]]
+            "lint" ["do" ["cljfmt" "check"] ["nsorg"]]
             "lint-fix" ["do" ["cljfmt" "fix"] ["nsorg" "--replace"]]
-            "loc"      ["vanity"]}
+            "loc" ["vanity"]}
 
-  :repl-options  {:init-ns user}
+  :repl-options {:init-ns user}
 
   :min-lein-version "2.4.2"
 

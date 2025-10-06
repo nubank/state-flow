@@ -1,6 +1,5 @@
 (ns state-flow.assertions.matcher-combinators-test
-  (:require [cats.core :as m]
-            [clojure.test :as t :refer [deftest is testing]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.matchers :as matchers]
             [matcher-combinators.test]
             [state-flow.assertions.matcher-combinators :as mc]
@@ -39,9 +38,9 @@
     (let [[flow-ret flow-state]
           (state/run
            (flow "flow"
-             (test-helpers/swap-later 100 :value + 2)
-             (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
-                                                            :sleep-time 110}))
+                 (test-helpers/swap-later 100 :value + 2)
+                 (mc/match? 2 (state/gets (comp deref :value)) {:times-to-try 3
+                                                                :sleep-time 110}))
            {:value (atom 0)})]
       (testing "returns match result with probe info"
         (is (match? {:probe/sleep-time 110
@@ -74,7 +73,7 @@
                      :match/actual {:n 2}}
                     flow-ret)))
       (testing "saves assertion report to state with current description stack"
-        (is (match? {:flow/description-stack [{:description "match?"} {:description "(cats.core/do-let ...)"}]
+        (is (match? {:flow/description-stack [{:description "match?"} {:description "(state-flow.state/do-let ...)"}]
                      :match/result :mismatch
                      :mismatch/detail {:n {:expected 1 :actual 2}}
                      :probe/results [{:check-result false :value {:n 2}}
@@ -89,11 +88,11 @@
     (let [[flow-ret flow-state]
           (state-flow/run
            (flow "flow"
-             (test-helpers/swap-later 200 :count + 2)
-             (testing "2" (mc/match? 2
-                                     (state/gets (comp deref :count))
-                                     {:times-to-try 2
-                                      :sleep-time 75})))
+                 (test-helpers/swap-later 200 :count + 2)
+                 (testing "2" (mc/match? 2
+                                         (state/gets (comp deref :count))
+                                         {:times-to-try 2
+                                          :sleep-time 75})))
            {:count (atom 0)})]
       (testing "returns match result"
         (is (match? {:match/result :mismatch} flow-ret)))
@@ -114,7 +113,7 @@
 (deftest test-report->actual
   (is (= :actual
          (first (shhh! (state/run
-                        (m/fmap mc/report->actual (mc/match? :expected :actual))
+                        (state/fmap mc/report->actual (mc/match? :expected :actual))
                         {}))))))
 
 (def bogus (state/gets (fn [_] (throw (Exception. "My exception")))))
@@ -126,8 +125,8 @@
                                           :fail-fast? true
                                           :on-error state-flow/ignore-error}
                                          (flow "stop before boom"
-                                           (mc/match? 1 2)
-                                           (flow "will explode" bogus))))]
+                                               (mc/match? 1 2)
+                                               (flow "will explode" bogus))))]
       (testing "state is left as is"
         (is (match? {:value 0} (second result))))
       (testing "the return value is the same as a failing match?"

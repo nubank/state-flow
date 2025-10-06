@@ -1,6 +1,5 @@
 (ns state-flow.core-test
-  (:require [cats.monad.exception :as e]
-            [clojure.test :as t :refer [deftest is testing]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]
             [state-flow.core :as state-flow :refer [flow]]
             [state-flow.state :as state]
@@ -12,19 +11,19 @@
 
 (def nested-flow
   (flow "root"
-    (flow "child 1" add-two)
-    (flow "child 2" add-two)))
+        (flow "child 1" add-two)
+        (flow "child 2" add-two)))
 
 (def flow-with-bindings
   (flow "root"
-    [original (state/gets :value)
-     :let [doubled (* 2 original)]]
-    (state/modify #(assoc % :value doubled))))
+        [original (state/gets :value)
+         :let [doubled (* 2 original)]]
+        (state/modify #(assoc % :value doubled))))
 
 (def bogus-flow
   (flow "root"
-    (flow "child1" add-two)
-    (flow "child2" bogus add-two)))
+        (flow "child1" add-two)
+        (flow "child2" bogus add-two)))
 
 (def empty-flow
   (flow "empty"))
@@ -55,8 +54,8 @@
 
   (testing "with two steps"
     (let [[l r] (state-flow/run (flow "flow"
-                                  (flow "step 1" add-two)
-                                  (flow "step 2" add-two))
+                                      (flow "step 1" add-two)
+                                      (flow "step 2" add-two))
                                 {:value 0})]
       (is (= {:value 4} r))
       (is (= "flow" (state-flow/top-level-description r)))))
@@ -101,7 +100,7 @@
                 (second (state-flow/run* {:init (constantly {:value 0})} nested-flow)))))
 
   (testing "flow with custom runner"
-    (let [{:keys [l r]} (state-flow/run* {:init   (constantly {:count 0})
+    (let [{:keys [l r]} (state-flow/run* {:init (constantly {:count 0})
                                           :runner (fn [flow state]
                                                     (let [[l r] (state-flow/run flow state)]
                                                       {:l l :r r}))}
@@ -111,8 +110,8 @@
 
   (testing "flow with cleanup"
     (is (zero?
-         (-> (state-flow/run* {:init    (constantly {:value 0
-                                                     :atom  (atom 1)})
+         (-> (state-flow/run* {:init (constantly {:value 0
+                                                  :atom (atom 1)})
                                :cleanup #(reset! (:atom %) 0)}
                               nested-flow)
              second
@@ -120,17 +119,17 @@
              deref))))
 
   (testing "flow with exception and cleanup"
-    (let [cleanup-runs   (atom 0)
+    (let [cleanup-runs (atom 0)
           on-error-input (atom nil)]
-      (is (state-flow/run* {:init     (constantly {:value 0})
-                            :cleanup  (fn [& _] (swap! cleanup-runs inc))
+      (is (state-flow/run* {:init (constantly {:value 0})
+                            :cleanup (fn [& _] (swap! cleanup-runs inc))
                             :on-error (partial reset! on-error-input)}
                            bogus-flow))
       (is (= "My exception" (-> @on-error-input first .getMessage)))
       (is (= 1 @cleanup-runs))))
 
   (testing "flow with exception in which cleanup ignores error"
-    (let [result (state-flow/run* {:init     (constantly {:value 0})
+    (let [result (state-flow/run* {:init (constantly {:value 0})
                                    :on-error state-flow/ignore-error}
                                   bogus-flow)]
       (is (instance? Throwable (first result)))
@@ -172,17 +171,17 @@
   (testing "nested flows"
     (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                     (first (state-flow/run (flow "level 1"
-                                             (flow "level 2"
-                                               (state-flow/current-description)))))))
+                                                 (flow "level 2"
+                                                       (state-flow/current-description)))))))
 
     ;; WARNING: this (admittedly brittle) test depends on the following 4 lines
     ;; staying in sequence. They can move up or down in this file together,
     ;; but re-order them at your own peril.
     (let [line-number-before-flow-invocation (this-line-number)
           [desc] (state-flow/run (flow "level 1"
-                                   (flow "level 2"
-                                     (flow "level 3"
-                                       (state-flow/current-description)))))]
+                                       (flow "level 2"
+                                             (flow "level 3"
+                                                   (state-flow/current-description)))))]
       (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       desc))
       (testing "line numbers are correct"
@@ -200,9 +199,9 @@
 
   (testing "composition"
     (let [line-number-before-flow-invocation (this-line-number)
-          level-3  (flow "level 3" (state-flow/current-description))
-          level-2  (flow "level 2" level-3)
-          level-1  (flow "level 1" level-2)
+          level-3 (flow "level 3" (state-flow/current-description))
+          level-2 (flow "level 2" level-3)
+          level-1 (flow "level 1" level-2)
           [desc _] (state-flow/run level-1)]
       (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> level 3 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       desc))
@@ -223,19 +222,19 @@
     (testing "within nested flows "
       (is (re-matches #"level 1 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
-                                               (flow "level 2")
-                                               (state-flow/current-description))))))
+                                                   (flow "level 2")
+                                                   (state-flow/current-description))))))
       (is (re-matches #"level 1 \(core_test.clj:\d+\) -> level 2 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
-                                               (flow "level 2"
-                                                 (flow "level 3")
-                                                 (state-flow/current-description)))))))
+                                                   (flow "level 2"
+                                                         (flow "level 3")
+                                                         (state-flow/current-description)))))))
 
       (is (re-matches #"level 1 \(core_test.clj:\d+\) -> \(state-flow\/current-description\) \(line \d+\)"
                       (first (state-flow/run (flow "level 1"
-                                               (flow "level 2"
-                                                 (flow "level 3"))
-                                               (state-flow/current-description))))))))
+                                                   (flow "level 2"
+                                                         (flow "level 3"))
+                                                   (state-flow/current-description))))))))
   (testing "description in presence of exceptions"
     (is (re-matches #"will boom \(core_test.clj:\d+\) -> root \(core_test.clj:\d+\) -> child2 \(core_test.clj:\d+\) -> bogus"
                     (-> (state-flow/run (flow "will boom" bogus-flow) {:value 2})
@@ -249,14 +248,14 @@
     (is (= "level 1"
            (tld (flow "level 1"))
            (tld (flow "level 1"
-                  (flow "level 2")))
+                      (flow "level 2")))
            (tld (flow "level 1"
-                  (flow "level 2")))
+                      (flow "level 2")))
            (tld (flow "level 1"
-                  (flow "level 2"
-                    (flow "level 3"))
-                  (flow "level 2 again"
-                    (flow "level 3 again"))))))))
+                      (flow "level 2"
+                            (flow "level 3"))
+                      (flow "level 2 again"
+                            (flow "level 3 again"))))))))
 
 (deftest illegal-flow-args
   (testing "produce friendly failure messages"
@@ -267,8 +266,8 @@
     (is (re-find #"Expected a flow.*got.*identity"
                  (->> (state-flow/run
                        (flow "flow"
-                         [x identity]
-                         (state/gets)))
+                             [x identity]
+                             (state/gets)))
                       first
                       .getMessage)))))
 

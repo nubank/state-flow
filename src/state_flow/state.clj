@@ -34,7 +34,7 @@
     context
     (throw-illegal-argument
      (str "No context is set and it can not be automatically "
-          "resolved from provided value"))))
+          "resolved from provided value of type " (some-> v class .getName)))) )
 
 ;; END CONTEXT STUFF
 
@@ -111,7 +111,10 @@
                  (even? (count bindings)))
     (throw (IllegalArgumentException. "bindings has to be a vector with even number of elements.")))
   (->> (reverse (partition 2 bindings))
-       (reduce (fn [acc [l r]] `(bind ~r (fn [~l] ~acc)))
+       (reduce (fn [acc [l r]]
+                 (if (= l :let)
+                   `(let ~r ~acc)
+                   `(bind ~r (fn [~l] ~acc))))
                `(do ~@body))))
 
 (defmacro do-let
@@ -145,10 +148,10 @@
          ~(first forms))
     `(mlet ~(vec (reduce (fn [acc form]
                            (cond (vector? form) (into acc form)
-                                 :else          (into acc ['_ form])))
+                                 :else (into acc ['_ form])))
                          []
                          (butlast forms)))
-       ~(last forms))))
+           ~(last forms))))
 
 ;; APPLICATIVE STUFF
 (defn pure
@@ -225,7 +228,7 @@
   See cats.core/sequence
   See clojure.core/for"
   [seq-exprs body-expr]
-  `(sequence (clojure.core/for ~seq-exprs ~body-expr)))
+  `(sequence short-circuiting-context (clojure.core/for ~seq-exprs ~body-expr)))
 
 ;;
 ;; State Monad Stuff
@@ -337,7 +340,7 @@
    (gets identity))
   ([f & args]
    (mlet [s (get)]
-     (return (apply f s args)))))
+         (return (apply f s args)))))
 
 (defn put
   "Creates a flow that replaces state with new-state. "
