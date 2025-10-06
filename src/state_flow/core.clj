@@ -1,25 +1,9 @@
 (ns state-flow.core
   (:refer-clojure :exclude [run!])
-  (:require [cats.core :as m]
-            [cats.monad.exception :as e]
-            [clj-commons.format.exceptions :as exceptions]
-            [clojure.pprint :as pp]
+  (:require [clj-commons.format.exceptions :as exceptions]
             [clojure.string :as string]
             [state-flow.internals.description :as description]
             [state-flow.state :as state]))
-
-;; From time to time we see the following error when trying to pretty-print
-;; Failure records:
-;;
-;;   Unhandled java.lang.IllegalArgumentException
-;;   Multiple methods in multimethod 'simple-dispatch' match dispatch
-;;   value: class cats.monad.exception.Failure -> interface
-;;   clojure.lang.IDeref and interface clojure.lang.IPersistentMap, and
-;;   neither is preferred
-;;
-;; This prevents that from happening:
-(defmethod pp/simple-dispatch cats.monad.exception.Failure [f]
-  (pr f))
 
 (defn modify-meta
   "Returns a monad that will apply vary-meta to the world.
@@ -34,7 +18,7 @@
   For internal use. Subject to change."
   [description {:keys [line ns file call-site-meta]}]
   (let [meta-map (cond-> {:description description
-                          :ns          ns}
+                          :ns ns}
                    call-site-meta (assoc :call-site-meta call-site-meta)
                    line (assoc :line line)
                    file (assoc :file file))]
@@ -75,13 +59,13 @@
   It is thus mostly useful at the end of the call-stack, as a way to get more
   precise line information for issues that arise after the last `flow` form."
   [stack]
-  (let [call-site-meta?      #(contains? % :call-site-meta)
+  (let [call-site-meta? #(contains? % :call-site-meta)
         last-call-site-metas (->> stack
                                   reverse
                                   (take-while call-site-meta?)
                                   reverse)
-        filtered-stack        (-> (remove call-site-meta? stack)
-                                  (concat last-call-site-metas))]
+        filtered-stack (-> (remove call-site-meta? stack)
+                           (concat last-call-site-metas))]
     ;; `into` to preserve the `stack` sequence type
     (into (empty stack) filtered-stack)))
 
@@ -131,15 +115,20 @@
   (state/gets (comp :fail-fast? meta)))
 
 (defn- clarify-illegal-arg [pair]
-  (if-let [illegal-arg (some->> pair first :failure .getMessage (re-find #"cats.protocols\/Extract.*for (.*)$") last)]
-    [(#'cats.monad.exception/->Failure
-      (ex-info (format "Expected a flow, got %s" illegal-arg) {}))
-     (second pair)]
-    pair))
+  (let [error (when (instance? Throwable (first pair))
+                (first pair))
+        msg   (some-> error .getMessage)
+        illegal-arg (or (some->> msg (re-find #"state-flow\.protocols\/Extract.*class:\s+(.*)$") last)
+                        (some->> msg (re-find #"cats\.protocols\/Extract.*for (.*)$") last)
+                        (some->> msg (re-find #"resolved from provided value of type\s+(.*)$") last))]
+    (if illegal-arg
+      [(ex-info (format "Expected a flow, got %s" illegal-arg) {})
+       (second pair)]
+      pair)))
 
 (defn apply-before-flow-hook
   []
-  (m/do-let
+  (state/do-let
    [hook (state/gets (comp :before-flow-hook meta))]
    (state/modify (or hook identity))))
 
@@ -181,19 +170,19 @@
     (throw (IllegalArgumentException. "The first argument to flow must be a description string")))
   (when (vector? (last flows))
     (throw (ex-info "The last argument to flow must be a flow/step, not a binding vector." {})))
-  (let [flow-meta       caller-meta
+  (let [flow-meta caller-meta
         annotated-flows (annotate-with-line-meta
-                         (or flows `[(m/return nil)]))
-        pop-line-meta   (if (flow-expr? (last annotated-flows))
-                          '()
-                          `((pop-meta)))]
-    `(m/do-let
+                         (or flows `[(state/return nil)]))
+        pop-line-meta (if (flow-expr? (last annotated-flows))
+                        '()
+                        `((pop-meta)))]
+    `(state/do-let
       (push-meta ~description ~flow-meta)
       (apply-before-flow-hook)
-      [ret# (m/do-let ~@annotated-flows)]
+      [ret# (state/do-let ~@annotated-flows)]
       ~@pop-line-meta
       (pop-meta)
-      (m/return ret#))))
+      (state/return ret#))))
 
 (defmacro flow
   "Creates a flow which is a composite of flows."
@@ -233,9 +222,9 @@
 (defn log-error
   "Error handler that logs error to clojure.core/*out* and returns pair."
   [pair]
-  (let [throwable   (m/extract (first pair))
+  (let [throwable (first pair)
         description (state->current-description (second pair))
-        message     (str "Flow " "\"" description "\"" " failed with exception")]
+        message (str "Flow " "\"" description "\"" " failed with exception")]
     (println (str message "\n" (exceptions/format-exception throwable)))
     pair))
 
@@ -243,8 +232,8 @@
   "Error handler that throws the error."
   [pair]
   (let [description (state->current-description (second pair))
-        message     (str "Flow " "\"" description "\"" " failed with exception")
-        exception   (ex-info message {} (m/extract (first pair)))]
+        message (str "Flow " "\"" description "\"" " failed with exception")
+        exception (ex-info message {} (first pair))]
     (doto exception
       (.setStackTrace (into-array (take 3 (into [] (.getStackTrace exception))))))
     (throw exception)))
@@ -294,17 +283,16 @@
    (filter-stack-trace default-stack-trace-exclusions))
   ([exclusions]
    (fn [pair]
-     (if-let [failure (some->> pair first :failure)]
+     (if-let [failure (first pair)]
        (do (deep-stack-trace-filter! failure exclusions)
-           [(#'cats.monad.exception/->Failure failure)
-            (second pair)])
+           [failure (second pair)])
        pair))))
 
 (defn- unwrap-assertion-failure-value [pair]
   (let [assertion-result? (comp not nil? :probe/sleep-time)
-        exception-data    (and (vector? pair)
-                               (-> pair first e/exception?)
-                               (-> pair first m/extract ex-data))]
+        exception-data (and (vector? pair)
+                            (instance? Throwable (first pair))
+                            (-> pair first ex-data))]
     (if (assertion-result? exception-data)
       [exception-data (second pair)]
       pair)))
@@ -339,14 +327,14 @@
                               log-error
                               (filter-stack-trace default-stack-trace-exclusions))`"
   [{:keys [init cleanup runner on-error fail-fast? before-flow-hook]
-    :or   {init                   (constantly {})
-           cleanup                identity
-           runner                 run
-           fail-fast?             false
-           before-flow-hook       identity
-           on-error               (comp throw-error!
-                                        log-error
-                                        (filter-stack-trace default-stack-trace-exclusions))}}
+    :or {init (constantly {})
+         cleanup identity
+         runner run
+         fail-fast? false
+         before-flow-hook identity
+         on-error (comp throw-error!
+                        log-error
+                        (filter-stack-trace default-stack-trace-exclusions))}}
    flow]
   (let [init-state+meta (vary-meta (init)
                                    assoc
@@ -354,15 +342,15 @@
                                    :before-flow-hook before-flow-hook
                                    :fail-fast? fail-fast?
                                    :init init)
-        pair            (-> flow
-                            (runner init-state+meta)
-                            clarify-illegal-arg
-                            unwrap-assertion-failure-value)]
+        pair (-> flow
+                 (runner init-state+meta)
+                 clarify-illegal-arg
+                 unwrap-assertion-failure-value)]
     (try
       (cleanup (second pair))
       pair
       (finally
-        (when (e/failure? (first pair))
+        (when (instance? Throwable (first pair))
           (on-error pair))))))
 
 (defn ^:deprecated run!

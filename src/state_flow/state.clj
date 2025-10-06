@@ -1,55 +1,299 @@
 (ns state-flow.state
   (:refer-clojure :exclude [eval get when])
-  (:require [cats.core :as m]
-            [cats.monad.exception :as e]
-            [cats.monad.state :as state]
-            [cats.protocols :as p]
-            [cats.util :as util]))
+  (:require [state-flow.protocols :as sp]))
+
+(defn throw-illegal-argument
+  {:no-doc true :internal true}
+  [^String text]
+  (throw (IllegalArgumentException. text)))
+
+;; CONTEXT STUFF HERE
+
+(defprotocol Contextual
+  "Abstraction that establishes a concrete type as a member of a context.
+
+  A great example is the Maybe monad type Just. It implements
+  this abstraction to establish that Just is part of
+  the Maybe monad."
+  (-get-context [_] "Get the context associated with the type."))
+
+(extend-protocol sp/Contextual
+  java.lang.Object
+  (-get-context [_] nil))
+
+(extend-protocol sp/Contextual
+  nil
+  (-get-context [_] nil))
+
+(defn infer
+  "Given an optional value infer its context. If context is already set, it
+  is returned as is without any inference operation."
+  {:no-doc true}
+  [v]
+  (if-let [context (sp/-get-context v)]
+    context
+    (throw-illegal-argument
+     (str "No context is set and it can not be automatically "
+          "resolved from provided value of type " (some-> v class .getName)))) )
+
+;; END CONTEXT STUFF
+
+;; FUNCTOR STUFF
+(defn fmap
+  ^{:doc "Creates a flow that returns the application of f to the return of flow"
+    :arglists '([f flow])}
+  [f fv]
+  (let [ctx (infer fv)]
+    (sp/-fmap ctx f fv)))
+
+;; MONAD STUFF
+(defn bind
+  "Given a monadic value `mv` and a function `f`,
+  apply `f` to the unwrapped value of `mv`.
+
+      (bind (either/right 1) (fn [v]
+                               (return (inc v))))
+      ;; => #<Right [2]>
+
+  For convenience, you may prefer to use the `mlet` macro,
+  which provides a beautiful, `let`-like syntax for
+  composing operations with the `bind` function."
+  [mv f]
+  (let [ctx (infer mv)]
+    (sp/-mbind ctx mv f)))
+
+(defn >>
+  "Perform a Haskell-style left-associative bind,
+  ignoring the values produced by the monadic computations."
+  ([mv mv']
+   (bind mv (fn [_] mv')))
+  ([mv mv' & mvs]
+   (reduce >> mv (cons mv' mvs))))
+
+(defn mreturn
+  "This is a monad version of `pure` and works
+  identically to it."
+  [ctx v]
+  (sp/-mreturn ctx v))
+
+(defn join
+  "Remove one level of monadic structure.
+  This is the same as `(bind mv identity)`."
+  [mv]
+  (bind mv identity))
+
+(defmacro mlet
+  "Monad composition macro that works like Clojure's
+     `let`. This facilitates much easier composition of
+     monadic computations.
+
+     Let's see an example to understand how it works.
+     This code uses bind to compose a few operations:
+
+         (bind (just 1)
+               (fn [a]
+                 (bind (just (inc a))
+                         (fn [b]
+                           (return (* b 2))))))
+         ;=> #<Just [4]>
+
+     Now see how this code can be made clearer
+     by using the mlet macro:
+
+         (mlet [a (just 1)
+                b (just (inc a))]
+           (return (* b 2)))
+         ;=> #<Just [4]>
+     "
+  [bindings & body]
+  (when-not (and (vector? bindings)
+                 (not-empty bindings)
+                 (even? (count bindings)))
+    (throw (IllegalArgumentException. "bindings has to be a vector with even number of elements.")))
+  (->> (reverse (partition 2 bindings))
+       (reduce (fn [acc [l r]]
+                 (if (= l :let)
+                   `(let ~r ~acc)
+                   `(bind ~r (fn [~l] ~acc))))
+               `(do ~@body))))
+
+(defmacro do-let
+  "Haskell-inspired monadic do notation
+   it allows one to drop the _ when  we don't need the extracted value
+
+  Basically,
+  (do-let
+    a
+    b
+    [c d
+     e f]
+    x
+    y)
+
+  Translates into:
+
+  (mlet
+    [_ a
+     _ b
+     c d
+     e f
+     _ x]
+    y)
+  "
+  [& forms]
+  (assert (not (empty? forms)) "do-let must have at least one argument")
+  (assert (not (vector? (last forms))) "Last argument of do-let must not be a vector")
+  (if (= 1 (count forms))
+    `(do (assert (not (satisfies? sp/Monad ~(first forms))) "Single argument of do-let must implement Monad protocol")
+         ~(first forms))
+    `(mlet ~(vec (reduce (fn [acc form]
+                           (cond (vector? form) (into acc form)
+                                 :else (into acc ['_ form])))
+                         []
+                         (butlast forms)))
+           ~(last forms))))
+
+;; APPLICATIVE STUFF
+(defn pure
+  "Given any value `v`, return it wrapped in
+  the default/effect-free context.
+
+  This is a multi-arity function that with arity `pure/1`
+  uses the dynamic scope to resolve the current
+  context. With `pure/2`, you can force a specific context
+  value.
+
+  Example:
+
+      (with-context either/context
+        (pure 1))
+      ;; => #<Right [1]>
+
+      (pure either/context 1)
+      ;; => #<Right [1]>
+  "
+  [ctx v]
+  (sp/-pure ctx v))
+
+(defn fapply
+  "Given a function wrapped in a monadic context `af`,
+  and a value wrapped in a monadic context `av`,
+  apply the unwrapped function to the unwrapped value
+  and return the result, wrapped in the same context as `av`.
+
+  This function is variadic, so it can be used like
+  a Haskell-style left-associative fapply."
+  [af & avs]
+  {:pre [(seq avs)]}
+  (let [ctx (infer af)]
+    (reduce (partial sp/-fapply ctx) af avs)))
+
+(defn sequence
+  "Given a collection of monadic values, collect
+  their values in a seq returned in the monadic context.
+
+      (require '[cats.context :as ctx]
+               '[cats.monad.maybe :as maybe]
+               '[cats.core :as m])
+
+      (sequence [(maybe/just 2) (maybe/just 3)])
+      ;; => #<Just [[2, 3]]>
+
+      (sequence [(maybe/nothing) (maybe/just 3)])
+      ;; => #<Nothing>
+
+      (ctx/with-context maybe/context
+        (sequence []))
+      ;; => #<Just [()]>
+  "
+  [context mvs]
+  (if (empty? mvs)
+    (mreturn context ())
+    (reduce (fn [mvs mv]
+              (mlet [v mv
+                     vs mvs]
+                    (mreturn context (cons v vs))))
+            (mreturn context ())
+            (reverse mvs))))
+
+(defmacro for
+  "Syntactic wrapper for (sequence (for [,,,] mv)).
+
+      (require '[cats.core :as m]
+               '[cats.monad.maybe :as maybe])
+
+      (m/for [x [2 3]] (maybe/just x))
+      ;; => #<Just [[2, 3]]>
+
+  See cats.core/sequence
+  See clojure.core/for"
+  [seq-exprs body-expr]
+  `(sequence short-circuiting-context (clojure.core/for ~seq-exprs ~body-expr)))
+
+;;
+;; State Monad Stuff
+;;
 
 (declare short-circuiting-context)
 
+(defrecord State [mfn state-context]
+  sp/Contextual
+  (-get-context [_] state-context)
+
+  sp/Extract
+  (-extract [_] mfn))
+
+(defn state
+  "The State type constructor.
+  The purpose of State type is wrap a simple
+  function that fullfill the state signature.
+  It exists just for avoid extend the clojure
+  function type because is very generic type."
+  ([f]
+   (State. f short-circuiting-context))
+  ([f state-context]
+   (State. f state-context)))
+
 (defn- result-or-err [f & args]
-  (let [result ((e/wrap (partial apply f)) args)]
-    (if (e/failure? result)
-      result
-      @result)))
+  (try
+    (apply f args)
+    (catch Throwable e e)))
 
 (defn error-catching-state [mfn]
-  (state/state
+  (state
    (fn [s]
-     (let [new-pair ((e/wrap mfn) s)]
-       (if (e/failure? new-pair)
-         [new-pair s]
-         @new-pair)))
+     (try
+       (let [[v s'] (mfn s)]
+         [v s'])
+       (catch Throwable e
+         [e s])))
    short-circuiting-context))
 
 (def short-circuiting-context
   "Same as state monad context, but short circuits if error happens, place error in return value"
   (reify
-    p/Context
-
-    p/Functor
+    sp/Functor
     (-fmap [_ f fv]
       (error-catching-state
        (fn [s]
-         (let [[v s'] ((p/-extract fv) s)]
-           (if (e/failure? v)
+         (let [[v s'] ((sp/-extract fv) s)]
+           (if (instance? Throwable v)
              [v s']
              [(result-or-err f v) s'])))))
 
-    p/Monad
+    sp/Monad
     (-mreturn [_ v]
       (error-catching-state #(vector v %)))
 
     (-mbind [_ self f]
       (error-catching-state
        (fn [s]
-         (let [[v s'] ((p/-extract self) s)]
-           (if (e/failure? v)
+         (let [[v s'] ((sp/-extract self) s)]
+           (if (instance? Throwable v)
              [v s']
-             ((p/-extract (f v)) s'))))))
+             ((sp/-extract (f v)) s'))))))
 
-    state/MonadState
+    sp/MonadState
     (-get-state [_]
       (error-catching-state #(vector %1 %1)))
 
@@ -59,35 +303,17 @@
     (-swap-state [_ f]
       (error-catching-state #(vector %1 (f %1))))
 
-    p/Printable
+    sp/Printable
     (-repr [_]
       "#<State-E>")))
 
-(util/make-printable (type short-circuiting-context))
+(defn make-printable
+  [klass]
+  (defmethod print-method klass
+    [mv ^java.io.Writer writer]
+    (.write writer (sp/-repr mv))))
 
-(defn get
-  "Creates a flow that returns the value of state. "
-  []
-  (state/get short-circuiting-context))
-
-(defn gets
-  "Creates a flow that returns the result of applying f (default identity)
-  to state with any additional args."
-  ([]
-   (gets identity))
-  ([f & args]
-   (state/gets #(apply f % args) short-circuiting-context)))
-
-(defn put
-  "Creates a flow that replaces state with new-state. "
-  [new-state]
-  (state/put new-state short-circuiting-context))
-
-(defn modify
-  "Creates a flow that replaces state with the result of applying f to
-  state with any additional args."
-  [f & args]
-  (state/swap #(apply f % args) short-circuiting-context))
+(make-printable (type short-circuiting-context))
 
 (defn return
   "Creates a flow that returns v. Use this as the last
@@ -100,7 +326,32 @@
         [new-count (state/gets :count)]
         (state-flow/return new-count)))"
   [v]
-  (m/return short-circuiting-context v))
+  (mreturn short-circuiting-context v))
+
+(defn get
+  "Creates a flow that returns the value of state. "
+  []
+  (sp/-get-state short-circuiting-context))
+
+(defn gets
+  "Creates a flow that returns the result of applying f (default identity)
+  to state with any additional args."
+  ([]
+   (gets identity))
+  ([f & args]
+   (mlet [s (get)]
+         (return (apply f s args)))))
+
+(defn put
+  "Creates a flow that replaces state with new-state. "
+  [new-state]
+  (sp/-put-state short-circuiting-context new-state))
+
+(defn modify
+  "Creates a flow that replaces state with the result of applying f to
+  state with any additional args."
+  [f & args]
+  (sp/-swap-state short-circuiting-context #(apply f % args)))
 
 (defn invoke
   "Creates a flow that invokes a function of no arguments and returns the
@@ -117,12 +368,6 @@
     flow
     (return nil)))
 
-(def
-  ^{:doc "Creates a flow that returns the application of f to the return of flow"
-    :arglists '([f flow])}
-  fmap
-  m/fmap)
-
 (defn ^:deprecated swap
   "DEPRECATED: use state-flow.state/modify instead."
   [f]
@@ -133,14 +378,45 @@
   wrap-fn
   invoke)
 
-(def state? state/state?)
-(def run state/run)
-(def eval state/eval)
-(def exec state/exec)
+(defn state?
+  "Return true if `s` is instance of
+  the State type."
+  [s]
+  (instance? State s))
+
+(defn run
+  "Given a State instance, execute the
+  wrapped computation and returns a cats.data.Pair
+  instance with result and new state.
+    (def computation (mlet [x (get-state)
+                            y (put-state (inc x))]
+                       (return y)))
+    (def initial-state 1)
+    (run computation initial-state)
+  This should return something to: #<Pair [1 2]>"
+  [state seed]
+  ((sp/-extract state) seed))
+
+(defn eval
+  "Given a State instance, execute the
+  wrapped computation and return the resultant
+  value, ignoring the state.
+  Equivalent to taking the first value of the pair instance
+  returned by `run` function."
+  [state seed]
+  (first (run state seed)))
+
+(defn exec
+  "Given a State instance, execute the
+  wrapped computation and return the resultant
+  state.
+  Equivalent to taking the second value of the pair instance
+  returned by `run` function."
+  [state seed]
+  (second (run state seed)))
 
 (defn ensure-step
   "Internal use only.
-
   Given a state-flow step, returns value as/is, else wraps value in a state-flow step."
   [value]
   (if (state? value)

@@ -1,9 +1,9 @@
 (ns state-flow.labs.state
   "WARNING: This API is experimental and subject to changes."
   (:refer-clojure :exclude [with-redefs])
-  (:require [cats.core :as m]
-            [state-flow.api :as flow]
-            [state-flow.core :as state-flow]))
+  (:require [state-flow.api :as flow]
+            [state-flow.core :as state-flow]
+            [state-flow.state :as state]))
 
 (defmacro wrap-with
   "WARNING: `wrap-with` usage is not recommended. Use only if you know what you're
@@ -12,8 +12,8 @@
   Wraps the provided state-flow execution. `wrapper-fn` will be passed a
   function that will run the flow when called."
   [wrapper-fn flow]
-  `(m/do-let
-    [world#  (flow/get-state)
+  `(state/do-let
+    [world# (flow/get-state)
      runner# (state-flow/runner)
      :let [[ret# state#] (~wrapper-fn (fn [] (runner# ~flow world#)))]]
     (flow/swap-state (constantly state#))

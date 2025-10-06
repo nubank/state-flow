@@ -1,7 +1,5 @@
 (ns state-flow.assertions.matcher-combinators
-  (:require [cats.core :as m]
-            [cats.monad.exception :as e]
-            [matcher-combinators.standalone :as matcher-combinators]
+  (:require [matcher-combinators.standalone :as matcher-combinators]
             [state-flow.assertions.report :as report]
             [state-flow.core :as core]
             [state-flow.probe :as probe]
@@ -46,46 +44,46 @@
   state-flow and subject to change."
   [expected actual & [{:keys [times-to-try
                               sleep-time]
-                       :as   params}]]
+                       :as params}]]
 
    ;; description is here to support the
    ;; deprecated cljtest/match? fn.  Undecided
    ;; whether we want to make it part of the API.
    ;; caller-meta is definitely not part of the API.
   (let [caller-meta (assoc (meta &form) :file *file* :ns (str *ns*))
-        params*     (merge {:description  "match?"
-                            :caller-meta  caller-meta
-                            :times-to-try 1
-                            :sleep-time   probe/default-sleep-time}
-                           params)]
+        params* (merge {:description "match?"
+                        :caller-meta caller-meta
+                        :times-to-try 1
+                        :sleep-time probe/default-sleep-time}
+                       params)]
 
     (core/flow*
      {:description (:description params*)
       :caller-meta (:caller-meta params*)}
-     ;; Nesting m/do-let inside a call the function core/flow* is
+     ;; Nesting state/do-let inside a call the function core/flow* is
      ;; a bit ugly, but it supports getting the correct line number
      ;; information from core/current-description.
-     `(m/do-let
+     `(state/do-let
        (state/invoke #(when (and (not (:called-from-deprecated-match? ~params*))
                                  ((fnil > 1) ~times-to-try 1)
                                  (not (state/state? ~actual)))
                         (throw (ex-info "actual must be a step or a flow when :times-to-try > 1"
                                         {:times-to-try ~times-to-try
-                                         :actual       ~actual}))))
-       [flow-desc#  (core/current-description)
+                                         :actual ~actual}))))
+       [flow-desc# (core/current-description)
         fail-fast?# core/fail-fast?
-        probe-res#  (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
+        probe-res# (#'match-probe (state/ensure-step ~actual) ~expected ~params*)
         :let [actual# (-> probe-res# last :value)
               report# (assoc (matcher-combinators/match ~expected actual#)
-                             :match/expected     ~expected
-                             :match/actual       actual#
-                             :probe/results      probe-res#
-                             :probe/sleep-time   ~(:sleep-time params*)
+                             :match/expected ~expected
+                             :match/actual actual#
+                             :probe/results probe-res#
+                             :probe/sleep-time ~(:sleep-time params*)
                              :probe/times-to-try ~(:times-to-try params*))]]
 
        (report/push report#)
        (state/return (if (and fail-fast?# (= :mismatch (:match/result report#)))
-                       (e/failure report# "match? assertion was not satisfied")
+                       (ex-info "match? assertion was not satisfied" report#)
                        report#))))))
 
 (defn report->actual

@@ -1,8 +1,7 @@
 (ns state-flow.api
   "This namespace provides the user API, that is, the set of public functions that one can use for writing flows."
   (:refer-clojure :exclude [for when])
-  (:require [cats.core :as m]
-            [state-flow.assertions.matcher-combinators]
+  (:require [state-flow.assertions.matcher-combinators]
             [state-flow.cljtest]
             [state-flow.core]
             [state-flow.state]))
@@ -151,4 +150,4 @@
      (match? even? 6)
      (match? even? 8)) "
   [seq-exprs flow]
-  `(m/for ~seq-exprs ~flow))
+  `(state/for ~seq-exprs ~flow))

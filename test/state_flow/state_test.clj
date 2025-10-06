@@ -1,7 +1,5 @@
 (ns state-flow.state-test
-  (:require [cats.core :as m]
-            [cats.monad.exception :as e]
-            [clojure.test :as t :refer [deftest is testing]]
+  (:require [clojure.test :as t :refer [deftest is testing]]
             [state-flow.state :as state]))
 
 (deftest primitives
@@ -23,47 +21,47 @@
 
 (deftest exception-handling
   (let [double-state (state/modify * 2)]
-    (testing "state with an exception returns a failure as the left value"
-      (let [[res state] (state/run (m/>> double-state
+    (testing "state with an exception returns an exception as the left value"
+      (let [[res state] (state/run (state/>> double-state
                                          double-state
                                          (state/modify (fn [s] (throw (Exception. "My exception"))))
                                          double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state))))
 
     (testing "also handles exceptions with fmap"
       (let [[res state] (state/run
-                         (m/fmap inc (m/>> double-state
+                         (state/fmap inc (state/>> double-state
                                            double-state
                                            (state/modify (fn [s] (throw (Exception. "My exception"))))
                                            double-state)) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
-                         (m/>> double-state
+                         (state/>> double-state
                                double-state
                                (state/modify (fn [s] (throw (Exception. "My exception"))))
                                double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))
 
       (let [[res state] (state/run
-                         (m/>> (m/fmap (fn [s] (throw (Exception. "My exception")))
-                                       (m/>> double-state
+                         (state/>> (state/fmap (fn [s] (throw (Exception. "My exception")))
+                                       (state/>> double-state
                                              double-state))
                                double-state) 2)]
-        (is (e/failure? res))
+        (is (instance? Exception res))
         (is (= 8 state)))))
 
   (testing "exceptions in primitives are returned as the result"
-    (is (e/failure? (first (state/run (state/gets #(/ 2 %)) 0))))
-    (is (e/failure? (first (state/run (state/modify #(/ 2 %)) 0))))))
+    (is (instance? Exception (first (state/run (state/gets #(/ 2 %)) 0))))
+    (is (instance? Exception (first (state/run (state/modify #(/ 2 %)) 0))))))
 
 (deftest get-and-put
-  (let [increment-state (m/mlet [x (state/get)
+  (let [increment-state (state/mlet [x (state/get)
                                  _ (state/put (inc x))]
-                          (m/return x))]
+                          (state/return x))]
     (testing "modify state with get and put"
       (is (= [2 3]
              (state/run increment-state 2))))))
