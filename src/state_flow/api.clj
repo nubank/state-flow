@@ -150,4 +150,4 @@
      (match? even? 6)
      (match? even? 8)) "
   [seq-exprs flow]
-  `(state/for ~seq-exprs ~flow))
+  `(state-flow.state/for ~seq-exprs ~flow))

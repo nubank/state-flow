@@ -188,6 +188,8 @@
   (let [ctx (infer af)]
     (reduce (partial sp/-fapply ctx) af avs)))
 
+(declare short-circuiting-context)
+
 (defn sequence
   "Given a collection of monadic values, collect
   their values in a seq returned in the monadic context.
@@ -206,15 +208,17 @@
         (sequence []))
       ;; => #<Just [()]>
   "
-  [context mvs]
-  (if (empty? mvs)
-    (mreturn context ())
-    (reduce (fn [mvs mv]
-              (mlet [v mv
-                     vs mvs]
-                    (mreturn context (cons v vs))))
-            (mreturn context ())
-            (reverse mvs))))
+  ([mvs]
+   (sequence short-circuiting-context mvs))
+  ([context mvs]
+   (if (empty? mvs)
+     (mreturn context ())
+     (reduce (fn [mvs mv]
+               (mlet [v mv
+                      vs mvs]
+                     (mreturn context (cons v vs))))
+             (mreturn context ())
+             (reverse mvs)))))
 
 (defmacro for
   "Syntactic wrapper for (sequence (for [,,,] mv)).
