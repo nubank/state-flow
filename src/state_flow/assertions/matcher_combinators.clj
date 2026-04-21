@@ -79,6 +79,7 @@
               report# (assoc (matcher-combinators/match ~expected actual#)
                              :match/expected     ~expected
                              :match/actual       actual#
+                             :match/instant      (System/nanoTime)
                              :probe/results      probe-res#
                              :probe/sleep-time   ~(:sleep-time params*)
                              :probe/times-to-try ~(:times-to-try params*))]]
