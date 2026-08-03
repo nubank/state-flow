@@ -129,7 +129,7 @@
   #'state-flow.state/gets)
 
 (def ^{:arglists '([f & args]),
-       :doc      "Creates a flow that replaces state with the result of applying f to\nstate with any additional args.\n\nThe flow's *return value* is the unmodified (pre-update) state; the\nupdated state is only visible to subsequent steps. Equivalently:\n\n  (swap-state setter) => (fn [s] [s (setter s)])"}
+       :doc      "Creates a flow that replaces state with the result of applying f to\nstate with any additional args.\n\nThe flow's *return value* is the unmodified (pre-update) state; the\nupdated state is only visible to subsequent steps. Equivalently:\n\n  (swap-state f & args) => (fn [s] [s (apply f s args)])"}
   swap-state
   #'state-flow.state/modify)
 
