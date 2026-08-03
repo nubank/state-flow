@@ -85,7 +85,12 @@
 
 (defn modify
   "Creates a flow that replaces state with the result of applying f to
-  state with any additional args."
+  state with any additional args.
+
+  The flow's *return value* is the unmodified (pre-update) state; the
+  updated state is only visible to subsequent steps. Equivalently:
+
+    (swap-state setter) => (fn [s] [s (setter s)])"
   [f & args]
   (state/swap #(apply f % args) short-circuiting-context))
 
