@@ -26,17 +26,29 @@
   [{:match/keys [result expected actual]
     :flow/keys [description-stack]
     :as assertion-report}]
-  (let [message (core/format-description description-stack)]
-    {:type (case result :match :pass :mismatch :fail)
-     :message message
+  ;; The last description-stack entries can be internal call-site metas
+  ;; that carry no location information, e.g. the `(m/do-let ...)` emitted
+  ;; inside `match?`'s expansion. Drop call-site entries that have neither
+  ;; :line nor :file, and take the report location from the deepest entry
+  ;; that does carry location information (the `match?` call site).
+  (let [stack    (filterv #(or (not (:call-site-meta %))
+                              (:line %)
+                              (:file %))
+                          description-stack)
+        location (->> stack
+                      (filter #(or (:line %) (:file %)))
+                      last)
+        message  (core/format-description stack)]
+    {:type     (case result :match :pass :mismatch :fail)
+     :message  message
      :expected expected
-     :actual (if (:mismatch/detail assertion-report)
-               (matcher-combinators.clj-test/tagged-for-pretty-printing
-                (list '~'not (list 'match? expected actual))
-                (assertion-report->match-combinators-result assertion-report))
-               actual)
-     :file (-> description-stack last core/description->file)
-     :line (-> description-stack last :line)}))
+     :actual   (if (:mismatch/detail assertion-report)
+                 (matcher-combinators.clj-test/tagged-for-pretty-printing
+                  (list '~'not (list 'match? expected actual))
+                  (assertion-report->match-combinators-result assertion-report))
+                 actual)
+     :file     (core/description->file location)
+     :line     (:line location)}))
 
 (defmacro defflow
   {:doc      "Creates a flow and binds it a Var named by name"
