@@ -5,7 +5,8 @@
             [state-flow.assertions.matcher-combinators :as mc]
             [state-flow.cljtest :refer [defflow] :as cljtest]
             [state-flow.core :as state-flow]
-            [state-flow.state :as state]))
+            [state-flow.state :as state]
+            [state-flow.test-helpers :refer [this-line-number]]))
 
 (defflow my-flow {:init (constantly {:value 1
                                      :map   {:a 1 :b 2}})}
@@ -36,6 +37,20 @@
     (testing "is compatible with print-method of matcher-combinators"
       (is (match? {:actual {:match-result {::result/value 1}}}
                   (#'cljtest/clojure-test-report report-with-details))))))
+
+(deftest test-clojure-test-report-location
+  (testing "reports the file and line of the match? call site, not of
+            internal call-site metas"
+    (let [match?-line (inc (this-line-number))
+          [_ state]   (state-flow/run (state-flow/flow "the test" (mc/match? 1 2)) {})
+          report      (#'cljtest/clojure-test-report
+                       (first (get-in (meta state) [:test-report :assertions])))]
+      (is (match? {:file "cljtest_test.clj"
+                   :line match?-line}
+                  report))
+      (testing "message does not include internal call-site metas"
+        (is (re-matches #"the test \(cljtest_test.clj:\d+\) -> match\? \(cljtest_test.clj:\d+\)"
+                        (:message report)))))))
 
 (deftest run-a-flow
   ;; NOTE:(sovelten,2020-12-15) This test works when called via clojure.test/run-tests
